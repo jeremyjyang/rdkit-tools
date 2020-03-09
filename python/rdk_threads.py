@@ -14,21 +14,13 @@
 ### an unhandled exception. The is_alive() method tests whether the thread is alive.
 ### Thread methods: start(), join(), setName(), getName(), is_alive()
 #############################################################################
-### Jeremy J Yang
-#############################################################################
-import os,re,time,sys
+import os,re,time,sys,logging
 from threading import Thread
 
-try:
-  import rdkit.Chem
-  import rdkit.Chem.AllChem
-except:
-  sys.path.append('/home/app/rdkit/python')
-  import rdkit.Chem
-  import rdkit.Chem.AllChem
+import rdkit.Chem
+import rdkit.Chem.AllChem
 
 import rdk_utils
-import time_utils
 
 #############################################################################
 class dgeom_thread(Thread):
@@ -104,7 +96,7 @@ pwin.document.writeln('%(JOB)s [%(T)s]: %(NIN)d in, %(NOUT)d out, %(NFAIL)d fail
 if (navigator.appName.match('Explorer')) pwin.scrollTo(0,99999);
 else pwin.scrollTo(0,pwin.document.body.offsetHeight);
 </SCRIPT>
-'''%{   'T':time_utils.NiceTime(time.time()-t0),
+'''%{   'T':time.strftime('%Hh:%Mm:%Ss',time.gmtime(time.time()-t0)),
         'NIN':th.n_in,
         'NOUT':th.n_in-th.n_fail,
         'NFAIL':th.n_fail,
@@ -117,7 +109,7 @@ pwin.document.writeln('%(JOB)s [%(T)s]: %(NIN)d in, %(NOUT)d out, %(NFAIL)d fail
 if (navigator.appName.match('Explorer')) pwin.scrollTo(0,99999);
 else pwin.scrollTo(0,pwin.document.body.offsetHeight);
 </SCRIPT>
-'''%{   'T':time_utils.NiceTime(time.time()-t0),
+'''%{   'T':time.strftime('%Hh:%Mm:%Ss',time.gmtime(time.time()-t0)),
         'NIN':th.n_in,
         'NOUT':th.n_in-th.n_fail,
         'NFAIL':th.n_fail,
@@ -130,10 +122,9 @@ else pwin.scrollTo(0,pwin.document.body.offsetHeight);
 
 if __name__=='__main__':
   PROG=os.path.basename(sys.argv[0])
-
-  print 'TESTING:'
+  logging.info('TESTING:')
   if len(sys.argv) != 5:
-    print 'Syntax: %s INFILE OUTFILE FORCEFIELD MAXCONF'%PROG
+    logging.info('Syntax: %s INFILE OUTFILE FORCEFIELD MAXCONF'%PROG)
     sys.exit(1)
   infile = sys.argv[1]
   outfile = sys.argv[2]
@@ -143,10 +134,10 @@ if __name__=='__main__':
   th = dgeom_thread(infile,outfile,ff,maxconf)
 
   t0=time.time()
-  print >>sys.stderr, 'DEBUG: start()...'
+  logging.info('DEBUG: start()...')
   th.start()
-  print >>sys.stderr, 'DEBUG: back from start()...'
+  logging.info('DEBUG: back from start()...')
   n_mol,n_ok,n_fail = DgeomProgress(th,t0,1,'TESTING',PROG)
-  print ("%s: execution time: %s"%(PROG,time_utils.NiceTime(time.time()-t0)))
-  print "%s"%(th.log)
+  logging.info("%s: execution time: %s"%(PROG, time.strftime('%Hh:%Mm:%Ss',time.gmtime(time.time()-t0))))
+  logging.info("%s"%(th.log))
 

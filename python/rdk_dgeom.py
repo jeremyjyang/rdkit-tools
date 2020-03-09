@@ -4,111 +4,68 @@ Conformer generation vi RDKit distance geometry method.
 
 Problem: RDKit hard coded to write to both stderr and stdout.  Logging a
 known issue.
-
-Jeremy Yang
 """
 #############################################################################
-import os,sys,re,time,getopt
+import os,sys,re,time,argparse,logging
+
 import rdkit.rdBase
 import rdkit.Chem
-#import rdkit.Chem.AllChem
 
-import time_utils
 import rdk_utils
-
-PROG=os.path.basename(sys.argv[0])
-
-#############################################################################
-def ErrorExit(msg):
-  print(msg, file=sys.stderr)
-  sys.exit(1)
-
-FFS=['UFF','MMFF']
 
 #############################################################################
 if __name__=='__main__':
-  nconf=1;
-  ff='MMFF';
-  optiters=200;
-  etol=1e-6;
-  USAGE='''\
-%(PROG)s - RDKit Conformer Generation
-Based on distance geometry method by Blaney et al.
+  FFS=['UFF','MMFF'];
+  NCONF=1; OPTITERS=200; ETOL=1e-6;
 
-required:
-	--i INFILE .......... SMI or SDF
-	--o OUTFILE ......... SDF with 3D 
+  parser = argparse.ArgumentParser(description="RDKit Conformer Generation", epilog="Based on distance geometry method by Blaney et al.")
+  parser.add_argument("--i", dest="ifile", help="input file, SMI or SDF")
+  parser.add_argument("--o", dest="ofile", help="output SDF with 3D")
+  parser.add_argument("--ff", choices=FFS, default="MMFF", help="force-field")
+  parser.add_argument("--optiters", type=int, default=200, help="optimizer iterations per conf")
+  parser.add_argument("--nconf", type=int, default=1, help="# confs per mol")
+  parser.add_argument("--etol", type=float, default=ETOL, help="energy tolerance")
+  parser.add_argument("--title_in_header", action="store_true", help="title line in header")
+  parser.add_argument("-v", "--verbose", action="count", default=0)
 
-options:
-	--ff FORCEFIELD ..... %(FFS)s [%(FF)s]
-	--nconf NCONF ....... # confs per mol [%(NCONF)d]
-	--optiters N  ....... optimizer iterations per conf [%(OPTITERS)d]
-	--etol ETOL ......... energy tolerance [%(ETOL)g]
-	--v[v] .............. verbose [very]
-	--h ................. help
+  args = parser.parse_args()
 
-RDKit: %(RDK_VERSION)s
-'''%{	'PROG':PROG,
-	'NCONF':nconf,
-	'OPTITERS':optiters,
-	'ETOL':etol,
-	'FF':ff,
-	'FFS':('|'.join(FFS)),
-	'RDK_VERSION':rdkit.rdBase.rdkitVersion
-	}
+  logging.basicConfig(format='%(levelname)s:%(message)s', level=(logging.DEBUG if args.verbose>1 else logging.INFO))
 
-  ifile=None; ofile=None; verbose=0;
-  inheader=False;
-  opts,pargs=getopt.getopt(sys.argv[1:],'',['h','v','vv','vvv',
-	'i=','o=','nconf=','ff=','optiters=','etol=',
-        ])
-  if not opts: ErrorExit(USAGE)
-  for (opt,val) in opts:
-    if opt=='--h': ErrorExit(USAGE)
-    elif opt=='--i': ifile=val
-    elif opt=='--o': ofile=val
-    elif opt=='--nconf': nconf=int(val)
-    elif opt=='--optiters': optiters=int(val)
-    elif opt=='--etol': etol=float(val)
-    elif opt=='--ff': ff=val
-    elif opt=='--v': verbose=1
-    elif opt=='--vv': verbose=2
-    elif opt=='--vvv': verbose=3
-    else: ErrorExit('Illegal option: %s'%val)
+  logging.info('RDK_VERSION: %s'%rdkit.rdBase.rdkitVersion)
 
-  if not ifile and ofile: ErrorExit('--i and --o required.')
+  if not args.ifile and args.ofile: parser.error('--i and --o required.')
 
-  if ifile[-4:].lower()=='.smi':
-    molreader=rdkit.Chem.SmilesMolSupplier(ifile,delimiter=' ',
-        smilesColumn=0,nameColumn=1,titleLine=inheader,
+  if args.ifile[-4:].lower()=='.smi':
+    molreader=rdkit.Chem.SmilesMolSupplier(args.ifile, delimiter=' ',
+        smilesColumn=0, nameColumn=1, titleLine=args.title_in_header,
         sanitize=True)
-  elif ifile[-4:].lower() in ('.sdf','.sd','.mdl','.mol'):
-    molreader=rdkit.Chem.SDMolSupplier(ifile,sanitize=True,removeHs=True)
+  elif args.ifile[-4:].lower() in ('.sdf','.sd','.mdl','.mol'):
+    molreader=rdkit.Chem.SDMolSupplier(args.ifile, sanitize=True, removeHs=True)
   else:
-    ErrorExit('ERROR: unrecognized file extension: %s'%ifile)
+    parser.error('unrecognized file extension: %s'%args.ifile)
 
-  if ofile[-4:].lower() in ('.sdf','.sd','.mdl','.mol'):
-    molwriter=rdkit.Chem.SDWriter(ofile)
+  if args.ofile[-4:].lower() in ('.sdf','.sd','.mdl','.mol'):
+    molwriter=rdkit.Chem.SDWriter(args.ofile)
   else:
-    ErrorExit('ERROR: unrecognized file extension: %s'%ofile)
+    parser.error('unrecognized file extension: %s'%args.ofile)
 
-  if ff.upper() not in FFS:
-    ErrorExit('ERROR: unrecognized force field: "%s"'%ff)
+  if args.ff.upper() not in FFS:
+    parser.error('unrecognized force field: "%s"'%args.ff)
 
   t0=time.time()
   n_mol=0; n_conf=0;
   for mol in molreader:
     n_mol+=1
     molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-    if verbose>1:
-      print('%d. %s:'%(n_mol,molname), file=sys.stderr)
+    logging.debug('%d. %s:'%(n_mol, molname))
     ###
     ### redirect sys.stderr
     #fmsg = open('/tmp/z.err','w')
     #old_target, sys.stderr = sys.stderr, fmsg
     ###
 
-    mol, confIds = rdk_utils.GenerateConformations(mol,nconf,ff,optiters,etol,verbose)
+    mol, confIds = rdk_utils.GenerateConformations(mol, args.nconf, args.ff, args.optiters, args.etol)
 
     ###
     #print >>sys.stderr, 'DEBUG: fmsg = "%s"'%(open('/tmp/z.err').read())
@@ -121,5 +78,5 @@ RDKit: %(RDK_VERSION)s
       molwriter.write(mol, confId = confId)
     n_conf+=len(confIds)
 
-  print('%s: %d mols, %d confs written to %s' %(PROG,n_mol,n_conf,ofile), file=sys.stderr)
-  print('%s: total elapsed time: %s'%(PROG,time_utils.NiceTime(time.time()-t0)), file=sys.stderr)
+  logging.info('%d mols, %d confs written to %s' %(n_mol, n_conf, args.ofile))
+  logging.info('total elapsed time: %s'%(time.strftime('%Hh:%Mm:%Ss', time.gmtime(time.time()-t0))))
