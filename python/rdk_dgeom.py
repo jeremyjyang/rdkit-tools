@@ -34,18 +34,17 @@ if __name__=='__main__':
 
   logging.info('RDK_VERSION: %s'%rdkit.rdBase.rdkitVersion)
 
-  if not args.ifile and args.ofile: parser.error('--i and --o required.')
+  if not (args.ifile and args.ofile): parser.error('--i and --o required.')
 
-  if args.ifile[-4:].lower()=='.smi':
-    molreader=rdkit.Chem.SmilesMolSupplier(args.ifile, delimiter=' ',
-        smilesColumn=0, nameColumn=1, titleLine=args.title_in_header,
-        sanitize=True)
-  elif args.ifile[-4:].lower() in ('.sdf','.sd','.mdl','.mol'):
+  if re.sub(r'.*\.', '', args.ifile).lower()=='smi':
+    molreader=rdkit.Chem.SmilesMolSupplier(args.ifile, delimiter=' ', smilesColumn=0, nameColumn=1, titleLine=args.title_in_header, sanitize=True)
+  
+  elif re.sub(r'.*\.', '', args.ifile).lower() in ('sdf','sd','mdl','mol'):
     molreader=rdkit.Chem.SDMolSupplier(args.ifile, sanitize=True, removeHs=True)
   else:
     parser.error('unrecognized file extension: %s'%args.ifile)
 
-  if args.ofile[-4:].lower() in ('.sdf','.sd','.mdl','.mol'):
+  if re.sub(r'.*\.', '', args.ofile).lower() in ('sdf','sd','mdl','mol'):
     molwriter=rdkit.Chem.SDWriter(args.ofile)
   else:
     parser.error('unrecognized file extension: %s'%args.ofile)
