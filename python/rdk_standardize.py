@@ -7,6 +7,34 @@ import rdkit.Chem.AllChem
 import rdkit.Chem.MolStandardize
 
 #############################################################################
+def Standardize(ifile, ofile):
+  if re.sub(r'.*\.', '', ifile).lower()in ('smi', 'smiles'):
+    molreader = rdkit.Chem.SmilesMolSupplier(ifile, delimiter=' ', smilesColumn=0, nameColumn=1, titleLine=True, sanitize=True)
+  elif re.sub(r'.*\.', '', ifile).lower() in ('sdf','sd','mdl','mol'):
+    molreader = rdkit.Chem.SDMolSupplier(ifile, sanitize=True, removeHs=True)
+  else:
+    logging.error('Invalid file extension: %s'%ifile)
+
+  if re.sub(r'.*\.', '', ofile).lower() in ('sdf','sd','mdl','mol'):
+    molwriter = rdkit.Chem.SDWriter(ofile)
+  elif re.sub(r'.*\.', '', ofile).lower()in ('smi', 'smiles'):
+    molwriter = rdkit.Chem.SmilesWriter(ofile, delimiter='\t', nameHeader='Name',
+        includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
+  else:
+    logging.error('Invalid file extension: %s'%ofile)
+
+  n_mol=0; 
+  s = MyStandardizer()
+  for mol in molreader:
+    n_mol+=1
+    molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
+    logging.debug('%d. %s:'%(n_mol, molname))
+    mol2 = StdMol(s, mol)
+    molwriter.write(mol2)
+
+  logging.info('%d mols written to %s' %(n_mol, args.ofile))
+
+#############################################################################
 def MyStandardizer():
   norms = list(rdkit.Chem.MolStandardize.normalize.NORMALIZATIONS)
 
@@ -65,6 +93,8 @@ def Demo():
 #############################################################################
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="RDKit chemical standardizer", epilog="")
+  OPS = ["standardize", "list_norms"]
+  parser.add_argument("op", choices=ops, default="standardize", help='operation')
   parser.add_argument("--i", dest="ifile", help="input file, SMI or SDF")
   parser.add_argument("--o", dest="ofile")
   parser.add_argument("-v", "--verbose", action="count", default=0)
@@ -73,33 +103,14 @@ if __name__ == "__main__":
 
   logging.basicConfig(format='%(levelname)s:%(message)s', level=(logging.DEBUG if args.verbose>1 else logging.INFO))
 
-  if not (args.ifile and args.ofile): parser.error('--i and --o required.')
-
-  if re.sub(r'.*\.', '', args.ifile).lower()in ('smi', 'smiles'):
-    molreader = rdkit.Chem.SmilesMolSupplier(args.ifile, delimiter=' ', smilesColumn=0, nameColumn=1, titleLine=True, sanitize=True)
-  elif re.sub(r'.*\.', '', args.ifile).lower() in ('sdf','sd','mdl','mol'):
-    molreader = rdkit.Chem.SDMolSupplier(args.ifile, sanitize=True, removeHs=True)
-  else:
-    parser.error('Invalid file extension: %s'%args.ifile)
-
-  if re.sub(r'.*\.', '', args.ofile).lower() in ('sdf','sd','mdl','mol'):
-    molwriter = rdkit.Chem.SDWriter(args.ofile)
-  elif re.sub(r'.*\.', '', args.ofile).lower()in ('smi', 'smiles'):
-    molwriter = rdkit.Chem.SmilesWriter(args.ofile, delimiter='\t', nameHeader='Name',
-        includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
-  else:
-    parser.error('Invalid file extension: %s'%args.ofile)
-
   t0=time.time()
-  n_mol=0; 
-  s = MyStandardizer()
-  for mol in molreader:
-    n_mol+=1
-    molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-    logging.debug('%d. %s:'%(n_mol, molname))
-    mol2 = StdMol(s, mol)
-    molwriter.write(mol2)
 
-  logging.info('%d mols written to %s' %(n_mol, args.ofile))
+  if args.op=="list_norms":
+  elif args.op=="standardize":
+    if not (args.ifile and args.ofile): parser.error('--i and --o required.')
+    Standardize(args.ifile, args.ofile)
+  else:
+    parser.error("Unsupported operation: {}".format(args.op))
+
   logging.info('Elapsed: %s'%(time.strftime('%Hh:%Mm:%Ss', time.gmtime(time.time()-t0))))
 
