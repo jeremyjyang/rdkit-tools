@@ -2,76 +2,74 @@
 #############################################################################
 import os,sys,re,time,argparse,logging
 
-import rdkit.Chem
-import rdkit.Chem.AllChem
-import rdkit.Chem.MolStandardize
+from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolStandardize, MolToSmiles, MolFromSmiles
+#import rdkit.Chem.AllChem
 
 #############################################################################
-def Standardize(ifile, ofile):
-  if re.sub(r'.*\.', '', ifile).lower()in ('smi', 'smiles'):
-    molreader = rdkit.Chem.SmilesMolSupplier(ifile, delimiter=' ', smilesColumn=0, nameColumn=1, titleLine=True, sanitize=True)
-  elif re.sub(r'.*\.', '', ifile).lower() in ('sdf','sd','mdl','mol'):
-    molreader = rdkit.Chem.SDMolSupplier(ifile, sanitize=True, removeHs=True)
-  else:
-    logging.error('Invalid file extension: %s'%ifile)
-
-  if re.sub(r'.*\.', '', ofile).lower() in ('sdf','sd','mdl','mol'):
-    molwriter = rdkit.Chem.SDWriter(ofile)
-  elif re.sub(r'.*\.', '', ofile).lower()in ('smi', 'smiles'):
-    molwriter = rdkit.Chem.SmilesWriter(ofile, delimiter='\t', nameHeader='Name',
-        includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
-  else:
-    logging.error('Invalid file extension: %s'%ofile)
-
+def Standardize(stdzr, molReader, molWriter):
   n_mol=0; 
-  s = MyStandardizer()
-  for mol in molreader:
+  for mol in molReader:
     n_mol+=1
     molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
     logging.debug('%d. %s:'%(n_mol, molname))
-    mol2 = StdMol(s, mol)
-    molwriter.write(mol2)
-
+    mol2 = StdMol(stdzr, mol)
+    molWriter.write(mol2)
   logging.info('%d mols written to %s' %(n_mol, args.ofile))
 
 #############################################################################
-def MyStandardizer():
-  norms = list(rdkit.Chem.MolStandardize.normalize.NORMALIZATIONS)
-
+def MyNorms():
+  norms = list(MolStandardize.normalize.NORMALIZATIONS)
   for i in range(len(norms)-1, 0, -1):
    norm = norms[i]
    if norm.name == "Sulfoxide to -S+(O-)-":
      del(norms[i])
-
-  norms.append(rdkit.Chem.MolStandardize.normalize.Normalization("[S+]-[O-] to S=O",
+  norms.append(MolStandardize.normalize.Normalization("[S+]-[O-] to S=O",
 	"[S+:1]([O-:2])>>[S+0:1](=[O-0:2])"))
-
   logging.info("Normalizations: {}".format(len(norms)))
-  for i,n in enumerate(norms):
-    logging.info("{}. {} : {}".format(i, n.name, n.transform_str))
-
-  s = rdkit.Chem.MolStandardize.Standardizer(
-	normalizations = norms,
-	max_restarts = rdkit.Chem.MolStandardize.normalize.MAX_RESTARTS,
-	prefer_organic = rdkit.Chem.MolStandardize.fragment.PREFER_ORGANIC,
-	acid_base_pairs = rdkit.Chem.MolStandardize.charge.ACID_BASE_PAIRS,
-	charge_corrections = rdkit.Chem.MolStandardize.charge.CHARGE_CORRECTIONS,
-	tautomer_transforms = rdkit.Chem.MolStandardize.tautomer.TAUTOMER_TRANSFORMS,
-	tautomer_scores = rdkit.Chem.MolStandardize.tautomer.TAUTOMER_SCORES,
-	max_tautomers = rdkit.Chem.MolStandardize.tautomer.MAX_TAUTOMERS
-	)
-  return(s)
+  return(norms)
 
 #############################################################################
-def StdMol(s, mol):
-  smi = rdkit.Chem.MolToSmiles(mol, isomericSmiles=False) if mol else None
-  mol_std = s.standardize(mol) if mol else None
-  smi_std = rdkit.Chem.MolToSmiles(mol_std, isomericSmiles=False) if mol_std else None
-  logging.debug("{:>28s}\t{}".format(smi, smi_std))
+def ReadNormsFile(fin):
+  norms=[];
+  while True:
+    line = fin.readline()
+    if not line: break
+    smirks, name = re.split(r'[\s]+', line, 1)
+    norms.append(MolStandardize.normalize.Normalization(name, smirks)
+  logging.info("Normalizations: {}".format(len(norms)))
+  return(norms)
+
+#############################################################################
+def MyStandardizer(norms):
+  stdzr = MolStandardize.Standardizer(
+	normalizations = norms,
+	max_restarts = MolStandardize.normalize.MAX_RESTARTS,
+	prefer_organic = MolStandardize.fragment.PREFER_ORGANIC,
+	acid_base_pairs = MolStandardize.charge.ACID_BASE_PAIRS,
+	charge_corrections = MolStandardize.charge.CHARGE_CORRECTIONS,
+	tautomer_transforms = MolStandardize.tautomer.TAUTOMER_TRANSFORMS,
+	tautomer_scores = MolStandardize.tautomer.TAUTOMER_SCORES,
+	max_tautomers = MolStandardize.tautomer.MAX_TAUTOMERS
+	)
+  return(stdzr)
+
+#############################################################################
+def ListNormalizations(norms, fout):
+  for norm in norms:
+    fout.write("{}\t{}\n".format(norm.transform_str, norm.name))
+  logging.info("Normalizations: {}".format(len(norms)))
+
+#############################################################################
+def StdMol(stdzr, mol):
+  smi = MolToSmiles(mol, isomericSmiles=False) if mol else None
+  mol_std = stdzr.standardize(mol) if mol else None
+  smi_std = MolToSmiles(mol_std, isomericSmiles=False) if mol_std else None
+  logging.debug("{:>28s} >> {}".format(smi, smi_std))
   return(mol_std)
 
 #############################################################################
-def Demo():
+def Demo(norms):
+  stdzr = MyStandardizer(norms)
   smis = [
 	'CCC(=O)O',
 	'c1ccc(cc1)N(=O)=O',
@@ -83,20 +81,21 @@ def Demo():
 	'C[S+]([O-])C1=CC=C(C=C1)\C=C2\C(=C(\CC(O)=O)C3=C2C=CC(=C3)F)C',
 	'O=[N+]([O-])c1cc(S(=O)(=O)N2CCCC2)ccc1NN=Cc1ccccn1'
 	]
-  s = MyStandardizer()
   for smi in smis:
-    mol1 = rdkit.Chem.MolFromSmiles(smi)
-    mol2 = s.standardize(mol1) if mol1 else None
-    smi_std = rdkit.Chem.MolToSmiles(mol2, isomericSmiles=False) if mol2 else None
-    logging.info("{:>28s}\t{}\n".format(smi, smi_std))
+    mol1 = MolFromSmiles(smi)
+    mol2 = stdzr.standardize(mol1) if mol1 else None
+    smi_std = MolToSmiles(mol2, isomericSmiles=False) if mol2 else None
+    logging.info("{:>28s} >> {}".format(smi, smi_std))
 
 #############################################################################
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="RDKit chemical standardizer", epilog="")
-  OPS = ["standardize", "list_norms"]
-  parser.add_argument("op", choices=ops, default="standardize", help='operation')
+  OPS = ["standardize", "list_norms", "demo"]
+  parser.add_argument("op", choices=OPS, default="standardize", help="operation")
   parser.add_argument("--i", dest="ifile", help="input file, SMI or SDF")
-  parser.add_argument("--o", dest="ofile")
+  parser.add_argument("--o", dest="ofile", help="output file, SMI or SDF")
+  parser.add_argument("--norms", choices=["default", "unm"], default="default", help="normalizations")
+  parser.add_argument("--i_norms", dest="ifile_norms", help="input normalizations file, format: SMIRKS<space>NAME")
   parser.add_argument("-v", "--verbose", action="count", default=0)
 
   args = parser.parse_args()
@@ -105,10 +104,42 @@ if __name__ == "__main__":
 
   t0=time.time()
 
+  if args.norms=="unm":
+    norms = MyNorms()
+  elif args.ifile_norms:
+    fin = open(args.ifile_norms)
+    norms = ReadNormsFile(fin)
+
+  else:
+    norms = MolStandardize.normalize.NORMALIZATIONS
+
   if args.op=="list_norms":
+    fout = open(args.ofile, "w") if args.ofile else sys.stdout
+    ListNormalizations(norms, fout)
+
   elif args.op=="standardize":
     if not (args.ifile and args.ofile): parser.error('--i and --o required.')
-    Standardize(args.ifile, args.ofile)
+    if re.sub(r'.*\.', '', args.ifile).lower()in ('smi', 'smiles'):
+      molReader = SmilesMolSupplier(args.ifile, delimiter=' ', smilesColumn=0, nameColumn=1, titleLine=True, sanitize=True)
+    elif re.sub(r'.*\.', '', args.ifile).lower() in ('sdf','sd','mdl','mol'):
+      molReader = SDMolSupplier(args.ifile, sanitize=True, removeHs=True)
+    else:
+      parser.error('Invalid file extension: {}'.format(args.ifile))
+
+    if re.sub(r'.*\.', '', ofile).lower() in ('sdf','sd','mdl','mol'):
+      molWriter = SDWriter(ofile)
+    elif re.sub(r'.*\.', '', ofile).lower()in ('smi', 'smiles'):
+      molWriter = SmilesWriter(ofile, delimiter='\t', nameHeader='Name',
+        includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
+    else:
+      logging.error('Invalid file extension: {}'.format(ofile))
+
+    stdzr = MyStandardizer(norms)
+    Standardize(stdzr, molReader, molWriter)
+
+  elif args.op=="demo":
+    Demo(norms)
+
   else:
     parser.error("Unsupported operation: {}".format(args.op))
 
