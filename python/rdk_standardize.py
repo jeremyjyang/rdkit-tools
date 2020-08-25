@@ -34,10 +34,24 @@ def ReadNormsFile(fin):
   while True:
     line = fin.readline()
     if not line: break
-    smirks, name = re.split(r'[\s]+', line, 1)
-    norms.append(MolStandardize.normalize.Normalization(name, smirks)
+    smirks, name = re.split(r'[\s]+', line.rstrip(), 1)
+    norms.append(MolStandardize.normalize.Normalization(name, smirks))
   logging.info("Normalizations: {}".format(len(norms)))
   return(norms)
+
+#############################################################################
+def ShowParameters():
+  logging.info("PREFER_ORGANIC: {}".format(MolStandardize.fragment.PREFER_ORGANIC))
+  logging.info("MAX_RESTARTS: {}".format(MolStandardize.normalize.MAX_RESTARTS))
+  logging.info("MAX_TAUTOMERS: {}".format(MolStandardize.tautomer.MAX_TAUTOMERS))
+  logging.info("ACID_BASE_PAIRS:\n\t{}".format(
+	"\n".join(map(lambda ab: ("\t{}\t{}\t{}".format(ab.name, MolToSmiles(ab.acid), MolToSmiles(ab.base))), MolStandardize.charge.ACID_BASE_PAIRS))))
+  logging.info("CHARGE_CORRECTIONS:\n\t{}".format(
+	"\n".join(map(lambda cc: ("\t{}\t{}\t{}".format(cc.name, MolToSmiles(cc.smarts), cc.charge)), MolStandardize.charge.CHARGE_CORRECTIONS))))
+  logging.info("TAUTOMER_TRANSFORMS:\n\t{}".format(
+	"\n".join(map(lambda tt: ("\t{}\t{}\t{}\t{}".format(tt.name, tt.tautomer_str, tt.bonds, tt.charges)), MolStandardize.tautomer.TAUTOMER_TRANSFORMS))))
+  logging.info("TAUTOMER_SCORES:\n\t{}".format(
+	"\n".join(map(lambda ts: ("\t{}\t{}\t{}".format(ts.name, ts.smarts_str, ts.score)), MolStandardize.tautomer.TAUTOMER_SCORES))))
 
 #############################################################################
 def MyStandardizer(norms):
@@ -90,7 +104,7 @@ def Demo(norms):
 #############################################################################
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="RDKit chemical standardizer", epilog="")
-  OPS = ["standardize", "list_norms", "demo"]
+  OPS = ["standardize", "list_norms", "show_params", "demo"]
   parser.add_argument("op", choices=OPS, default="standardize", help="operation")
   parser.add_argument("--i", dest="ifile", help="input file, SMI or SDF")
   parser.add_argument("--o", dest="ofile", help="output file, SMI or SDF")
@@ -136,6 +150,9 @@ if __name__ == "__main__":
 
     stdzr = MyStandardizer(norms)
     Standardize(stdzr, molReader, molWriter)
+
+  elif args.op=="show_params":
+    ShowParameters()
 
   elif args.op=="demo":
     Demo(norms)
