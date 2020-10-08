@@ -1,22 +1,14 @@
 #! /usr/bin/env python3
-#############################################################################
-### rdk_dgeom.cgi - front end for RDKit conformer generation via distance geometry.
-#############################################################################
-### Ref: http://www.rdkit.org/Python_Docs/
-#############################################################################
+"""
+Front end for RDKit conformer generation via distance geometry.
+Ref: http://www.rdkit.org/Python_Docs/
+"""
 import os,sys,stat,cgi,re,time,tempfile,random,urllib,base64,json
 from multiprocessing import Process,Manager,Pool
 
-
-try:
-  import rdkit.Chem
-  import rdkit.rdBase
-  import rdkit.Chem.AllChem
-except:
-  sys.path.append('/home/app/rdkit/python')
-  import rdkit.Chem
-  import rdkit.rdBase
-  import rdkit.Chem.AllChem
+import rdkit.Chem
+import rdkit.rdBase
+import rdkit.Chem.AllChem
   
 import rdk_utils
 import rdk_mp
@@ -24,7 +16,6 @@ import rdk_mp
 import env_cgi
 import mol2imghtm
 import htm_utils
-import time_utils
 import purgescratchdirs
 
 #############################################################################
@@ -224,7 +215,8 @@ def DgeomLaunchProcess(infile,smifile_header,outfile,logfile,statusfile,maxconf,
   t0=time.time()
   proc.start()
   rdk_mp.DgeomProgress(proc,statusfile,t0,1,PROGRESS_WIN_NAME,job)
-  ERRORS.append("%s execution time: %s"%(job,time_utils.NiceTime(time.time()-t0)))
+  ERRORS.append("%s execution time: %s"%(job, time.strftime('%Hh:%Mm:%Ss',time.gmtime(time.time()-t0))
+))
   if VERBOSE:
     ERRORS.append("<PRE>%s</PRE>"%(open(logfile).read()))
   return
