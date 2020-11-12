@@ -13,23 +13,18 @@ from rdkit.Chem.Scaffolds import MurckoScaffold
 from rdkit.Chem.Scaffolds import rdScaffoldNetwork
 
 #############################################################################
-def Mol2BMScaffold(mol):
-  scafmol = MurckoScaffold.GetScaffoldForMol(mol)
-  return scafmol
-
-#############################################################################
 def Mols2BMScaffolds(molReader, molWriter):
   n_mol=0; 
   for mol in molReader:
     n_mol+=1
     molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
     logging.debug('%d. %s:'%(n_mol, molname))
-    scafmol = Mol2BMScaffold(mol)
+    scafmol = MurckoScaffold.GetScaffoldForMol(mol)
     molWriter.write(scafmol)
-  #logging.info(f'{n_mol} mols written to {args.ofile}')
+  logging.info(f'{n_mol} mols written to {}'.format(str(molWriter))
 
 #############################################################################
-def Mols2ScafNet(molReader, molWriter):
+def Mols2ScafNet(molReader, ofile):
   n_mol=0; 
   params = rdScaffoldNetwork.BRICSScaffoldParams()
   for key in ('flattenChirality', 'flattenIsotopes', 'flattenKeepLargest', 'includeGenericBondScaffolds', 'includeGenericScaffolds', 'includeScaffoldsWithAttachments', 'includeScaffoldsWithoutAttachments', 'keepOnlyFirstFragment', 'pruneBeforeFragmenting'):
@@ -42,6 +37,12 @@ def Mols2ScafNet(molReader, molWriter):
     mols.append(mol)
 
   scafnet = rdScaffoldNetwork.CreateScaffoldNetwork(mols, params)
+  fout = open(ofile, "w") if ofile else sys.stdout
+  for i in range(len(scafnet.nodes)):
+    fout.write("node\t{}\t{}\t{}\n".format(i, scafnet.nodes[i], scafnet.counts[i]))
+  for i in range(len(scafnet.edges)):
+    fout.write("edge\t{}\t{}\t{}\t{}\n".format(i, scafnet.edges[i].beginIdx, scafnet.edges[i].endIdx, scafnet.edges[i].type))
+  fout.flush()
   logging.info("nodes: {}; edges:{}".format(len(scafnet.nodes), len(scafnet.edges)))
 
 #############################################################################
@@ -59,6 +60,30 @@ def Demo():
     mol2 = Mol2BMScaffold(mol1) if mol1 else None
     smi_std = MolToSmiles(mol2, isomericSmiles=False) if mol2 else None
     logging.info(f"{smi:>28s} >> {smi_std}")
+
+#############################################################################
+def File2Molreader(ifile, idelim, smicol, namcol, iheader):
+  if re.sub(r'.*\.', '', ifile).lower()in ('smi', 'smiles', 'csv', 'tsv'):
+    molReader = SmilesMolSupplier(ifile, delimiter=idelim, smilesColumn=smicol, nameColumn=namcol, titleLine=iheader, sanitize=True)
+  elif re.sub(r'.*\.', '', ifile).lower() in ('sdf','sd','mdl','mol'):
+    molReader = SDMolSupplier(ifile, sanitize=True, removeHs=True)
+  else:
+    molReader = None
+    logging.error(f'Invalid file extension: {ifile}')
+  return molReader
+
+#############################################################################
+def File2Molwriter(ofile, odelim, oheader):
+  if not ofile:
+    molWriter = SmilesWriter("-", delimiter=odelim, nameHeader='Name', includeHeader=oheader, isomericSmiles=True, kekuleSmiles=False)
+  elif re.sub(r'.*\.', '', ofile).lower() in ('sdf','sd','mdl','mol'):
+    molWriter = SDWriter(ofile)
+  elif re.sub(r'.*\.', '', ofile).lower() in ('smi', 'smiles', 'csv', 'tsv'):
+    molWriter = SmilesWriter(ofile, delimiter=odelim, nameHeader='Name', includeHeader=oheader, isomericSmiles=True, kekuleSmiles=False)
+  else:
+    logging.error(f'Invalid file extension: {ofile}')
+    molWriter = None
+  return molWriter
 
 #############################################################################
 if __name__ == "__main__":
@@ -87,26 +112,16 @@ if __name__ == "__main__":
     Demo()
     sys.exit()
 
-  if not (args.ifile and args.ofile): parser.error('--i and --o required.')
-  if re.sub(r'.*\.', '', args.ifile).lower()in ('smi', 'smiles', 'csv', 'tsv'):
-    molReader = SmilesMolSupplier(args.ifile, delimiter=args.idelim, smilesColumn=args.smicol, nameColumn=args.namcol, titleLine=args.iheader, sanitize=True)
-  elif re.sub(r'.*\.', '', args.ifile).lower() in ('sdf','sd','mdl','mol'):
-    molReader = SDMolSupplier(args.ifile, sanitize=True, removeHs=True)
-  else:
-    parser.error('Invalid file extension: {}'.format(args.ifile))
-
-  if re.sub(r'.*\.', '', args.ofile).lower() in ('sdf','sd','mdl','mol'):
-    molWriter = SDWriter(args.ofile)
-  elif re.sub(r'.*\.', '', args.ofile).lower() in ('smi', 'smiles', 'csv', 'tsv'):
-    molWriter = SmilesWriter(args.ofile, delimiter=args.odelim, nameHeader='Name', includeHeader=args.oheader, isomericSmiles=True, kekuleSmiles=False)
-  else:
-    logging.error(f'Invalid file extension: {args.ofile}')
+  if not (args.ifile): parser.error('--i required.')
 
   if args.op=="bmscaf":
+    molReader = File2Molreader(args.ifile, args.idelim, args.smicol, args.namcol, args.iheader)
+    molWriter = File2Molwriter(args.ofile, args.odelim, args.oheader)
     Mols2BMScaffolds(molReader, molWriter)
 
   elif args.op=="scafnet":
-    Mols2ScafNet(molReader, molWriter)
+    molReader = File2Molreader(args.ifile, args.idelim, args.smicol, args.namcol, args.iheader)
+    Mols2ScafNet(molReader, args.ofile)
 
   else:
     parser.error(f"Unsupported operation: {args.op}")
