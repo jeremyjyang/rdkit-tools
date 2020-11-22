@@ -2,17 +2,18 @@
 #############################################################################
 import os,sys,re,time,argparse,logging
 
-from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolStandardize, MolToSmiles, MolFromSmiles
+import rdkit
 #import rdkit.Chem.AllChem
+from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolStandardize, MolToSmiles, MolFromSmiles
 
 #############################################################################
-def Standardize(stdzr, molReader, molWriter):
+def Standardize(stdzr, remove_isomerism, molReader, molWriter):
   n_mol=0; 
   for mol in molReader:
     n_mol+=1
     molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
     logging.debug('%d. %s:'%(n_mol, molname))
-    mol2 = StdMol(stdzr, mol)
+    mol2 = StdMol(stdzr, mol, remove_isomerism)
     molWriter.write(mol2)
   logging.info('%d mols written to %s' %(n_mol, args.ofile))
 
@@ -70,15 +71,15 @@ def MyStandardizer(norms):
 #############################################################################
 def ListNormalizations(norms, fout):
   for norm in norms:
-    fout.write("{}\t{}\n".format(norm.transform_str, norm.name))
-  logging.info("Normalizations: {}".format(len(norms)))
+    fout.write(f"{norm.transform_str}\t{norm.name}\n")
+  logging.info(f"Normalizations: {len(norms)}")
 
 #############################################################################
-def StdMol(stdzr, mol):
-  smi = MolToSmiles(mol, isomericSmiles=False) if mol else None
+def StdMol(stdzr, mol, remove_isomerism=False):
+  smi = MolToSmiles(mol, isomericSmiles=(not remove_isomerism)) if mol else None
   mol_std = stdzr.standardize(mol) if mol else None
-  smi_std = MolToSmiles(mol_std, isomericSmiles=False) if mol_std else None
-  logging.debug("{:>28s} >> {}".format(smi, smi_std))
+  smi_std = MolToSmiles(mol_std, isomericSmiles=(not remove_isomerism)) if mol_std else None
+  logging.debug(f"{smi:>28s} >> {smi_std}")
   return(mol_std)
 
 #############################################################################
@@ -93,12 +94,13 @@ def Demo(norms):
 	'C[C@H]1CN(CCCN1[S+]([O-])(=O)C2=CC=CC3=C2C(=CN=C3)C)C(=O)CN',
 	'N[S+]([O-])(=O)C1=C(Cl)C=C2NC(N[S+]([O-])(=O)C2=C1)C(Cl)Cl',
 	'C[S+]([O-])C1=CC=C(C=C1)\C=C2\C(=C(\CC(O)=O)C3=C2C=CC(=C3)F)C',
-	'O=[N+]([O-])c1cc(S(=O)(=O)N2CCCC2)ccc1NN=Cc1ccccn1'
+	'O=[N+]([O-])c1cc(S(=O)(=O)N2CCCC2)ccc1NN=Cc1ccccn1',
+	'CCC(CC)COC(=O)[C@H](C)N[P@](=O)(OC[C@H]1O[C@](C#N)([C@H](O)[C@@H]1O)C1=CC=C2N1N=CN=C2N)OC1=CC=CC=C1',
 	]
   for smi in smis:
     mol1 = MolFromSmiles(smi)
     mol2 = stdzr.standardize(mol1) if mol1 else None
-    smi_std = MolToSmiles(mol2, isomericSmiles=False) if mol2 else None
+    smi_std = MolToSmiles(mol2, isomericSmiles=True) if mol2 else None
     logging.info("{:>28s} >> {}".format(smi, smi_std))
 
 #############################################################################
@@ -110,11 +112,14 @@ if __name__ == "__main__":
   parser.add_argument("--o", dest="ofile", help="output file, SMI or SDF")
   parser.add_argument("--norms", choices=["default", "unm"], default="default", help="normalizations")
   parser.add_argument("--i_norms", dest="ifile_norms", help="input normalizations file, format: SMIRKS<space>NAME")
+  parser.add_argument("--remove_isomerism", action="store_true", help="if true, output SMILES isomerism removed")
   parser.add_argument("-v", "--verbose", action="count", default=0)
 
   args = parser.parse_args()
 
   logging.basicConfig(format='%(levelname)s:%(message)s', level=(logging.DEBUG if args.verbose>1 else logging.INFO))
+
+  logging.info(f"RDKit version: {rdkit.__version__}")
 
   t0=time.time()
 
@@ -138,18 +143,18 @@ if __name__ == "__main__":
     elif re.sub(r'.*\.', '', args.ifile).lower() in ('sdf','sd','mdl','mol'):
       molReader = SDMolSupplier(args.ifile, sanitize=True, removeHs=True)
     else:
-      parser.error('Invalid file extension: {}'.format(args.ifile))
+      logging.error(f'Invalid file extension: {args.ifile}')
 
-    if re.sub(r'.*\.', '', ofile).lower() in ('sdf','sd','mdl','mol'):
-      molWriter = SDWriter(ofile)
-    elif re.sub(r'.*\.', '', ofile).lower()in ('smi', 'smiles'):
-      molWriter = SmilesWriter(ofile, delimiter='\t', nameHeader='Name',
-        includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
+    if re.sub(r'.*\.', '', args.ofile).lower() in ('sdf','sd','mdl','mol'):
+      molWriter = SDWriter(args.ofile)
+    elif re.sub(r'.*\.', '', args.ofile).lower()in ('smi', 'smiles'):
+      molWriter = SmilesWriter(args.ofile, delimiter='\t', nameHeader='Name',
+        includeHeader=True, isomericSmiles=(not args.remove_isomerism), kekuleSmiles=False)
     else:
-      logging.error('Invalid file extension: {}'.format(ofile))
+      logging.error(f'Invalid file extension: {args.ofile}')
 
     stdzr = MyStandardizer(norms)
-    Standardize(stdzr, molReader, molWriter)
+    Standardize(stdzr, args.remove_isomerism, molReader, molWriter)
 
   elif args.op=="show_params":
     ShowParameters()
@@ -158,7 +163,7 @@ if __name__ == "__main__":
     Demo(norms)
 
   else:
-    parser.error("Unsupported operation: {}".format(args.op))
+    parser.error(f"Unsupported operation: {args.op}")
 
   logging.info('Elapsed: %s'%(time.strftime('%Hh:%Mm:%Ss', time.gmtime(time.time()-t0))))
 
