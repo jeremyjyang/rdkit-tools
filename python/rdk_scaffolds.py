@@ -21,7 +21,7 @@ def Mols2BMScaffolds(molReader, molWriter):
     logging.debug('%d. %s:'%(n_mol, molname))
     scafmol = MurckoScaffold.GetScaffoldForMol(mol)
     molWriter.write(scafmol)
-  logging.info(f'{n_mol} mols written to {}'.format(str(molWriter))
+  logging.info(f'{n_mol} mols written to {molWriter}')
 
 #############################################################################
 def Mols2ScafNet(molReader, ofile):
