@@ -12,42 +12,7 @@ from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter,
 from rdkit.Chem.Scaffolds import MurckoScaffold
 from rdkit.Chem.Scaffolds import rdScaffoldNetwork
 
-#############################################################################
-def Mols2BMScaffolds(molReader, molWriter):
-  n_mol=0; 
-  for mol in molReader:
-    n_mol+=1
-    molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-    logging.debug('%d. %s:'%(n_mol, molname))
-    scafmol = MurckoScaffold.GetScaffoldForMol(mol)
-    molWriter.write(scafmol)
-  logging.info(f'{n_mol} mols written to {molWriter}')
-
-#############################################################################
-def Mols2ScafNet(molReader, ofile):
-  n_mol=0; 
-  params = rdScaffoldNetwork.BRICSScaffoldParams()
-  for key in ('flattenChirality', 'flattenIsotopes', 'flattenKeepLargest', 'includeGenericBondScaffolds', 'includeGenericScaffolds', 'includeScaffoldsWithAttachments', 'includeScaffoldsWithoutAttachments', 'keepOnlyFirstFragment', 'pruneBeforeFragmenting'):
-    logging.info("{}: {}".format(key, params.__getattribute__(key)))
-  mols = []
-  for mol in molReader:
-    n_mol+=1
-    molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-    logging.debug('%d. %s:'%(n_mol, molname))
-    mols.append(mol)
-
-  scafnet = rdScaffoldNetwork.CreateScaffoldNetwork(mols, params)
-  fout = open(ofile, "w") if ofile else sys.stdout
-  for i in range(len(scafnet.nodes)):
-    fout.write("node\t{}\t{}\t{}\n".format(i, scafnet.nodes[i], scafnet.counts[i]))
-  for i in range(len(scafnet.edges)):
-    fout.write("edge\t{}\t{}\t{}\t{}\n".format(i, scafnet.edges[i].beginIdx, scafnet.edges[i].endIdx, scafnet.edges[i].type))
-  fout.flush()
-  logging.info("nodes: {}; edges:{}".format(len(scafnet.nodes), len(scafnet.edges)))
-
-#############################################################################
-def Demo():
-  smis = [
+DEMOSMIS = [
 	'c1ccc(cc1)N(=O)=O',
 	'c1ccc(cc1)[N+](=O)[O-]',
 	'C[C@H]1CN(CCCN1[S+]([O-])(=O)C2=CC=CC3=C2C(=CN=C3)C)C(=O)CN',
@@ -55,11 +20,64 @@ def Demo():
 	'C[S+]([O-])C1=CC=C(C=C1)\C=C2\C(=C(\CC(O)=O)C3=C2C=CC(=C3)F)C',
 	'O=[N+]([O-])c1cc(S(=O)(=O)N2CCCC2)ccc1NN=Cc1ccccn1'
 	]
-  for smi in smis:
+
+#############################################################################
+def ReadMols(molReader):
+  mols=[]; 
+  for mol in molReader:
+    if mol is not None: mols.append(mol)
+  logging.info(f'{len(mols)} mols read from {molReader}')
+  return mols
+
+#############################################################################
+def Mols2BMScaffolds(mols, molWriter):
+  for i,mol in enumerate(mols):
+    molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
+    logging.debug(f'{i+1}. {molname}')
+    scafmol = MurckoScaffold.GetScaffoldForMol(mol)
+    molWriter.write(scafmol)
+  logging.info(f'{len(mols)} mols written to {molWriter}')
+
+#############################################################################
+def Mols2ScafNet(mols, ofile=None):
+  params = rdScaffoldNetwork.BRICSScaffoldParams()
+  params.flattenChirality = True
+  params.flattenIsotopes = True
+  params.flattenKeepLargest = True
+  params.includeGenericBondScaffolds = False
+  params.includeGenericScaffolds = False
+  params.includeScaffoldsWithAttachments = False
+  params.includeScaffoldsWithoutAttachments = True
+  params.keepOnlyFirstFragment = False
+  params.pruneBeforeFragmenting = True
+  for key in ('flattenChirality', 'flattenIsotopes', 'flattenKeepLargest', 'includeGenericBondScaffolds', 'includeGenericScaffolds', 'includeScaffoldsWithAttachments', 'includeScaffoldsWithoutAttachments', 'keepOnlyFirstFragment', 'pruneBeforeFragmenting'):
+    logging.info(f"{key}: {params.__getattribute__(key)}") 
+  for i,mol in enumerate(mols):
+    molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
+    logging.debug(f'{i+1}. {molname}:')
+
+  scafnet = rdScaffoldNetwork.CreateScaffoldNetwork(mols, params)
+  fout = open(ofile, "w") if ofile else sys.stdout
+  for i in range(len(scafnet.nodes)):
+    fout.write(f"node\t{i}\t{scafnet.nodes[i]}\t{scafnet.counts[i]}\n")
+  for i in range(len(scafnet.edges)):
+    fout.write(f"edge\t{i}\t{scafnet.edges[i].beginIdx}\t{scafnet.edges[i].endIdx}\t{scafnet.edges[i].type}\n")
+  fout.flush()
+  logging.info(f"nodes: {len(scafnet.nodes)}; edges:{len(scafnet.edges)}")
+  return scafnet
+
+#############################################################################
+def DemoBM():
+  for smi in DEMOSMIS:
     mol1 = MolFromSmiles(smi)
-    mol2 = Mol2BMScaffold(mol1) if mol1 else None
+    mol2 = MurckoScaffold.GetScaffoldForMol(mol1) if mol1 else None
     smi_std = MolToSmiles(mol2, isomericSmiles=False) if mol2 else None
     logging.info(f"{smi:>28s} >> {smi_std}")
+
+#############################################################################
+def DemoNet():
+  mols = [MolFromSmiles(smi) for smi in DEMOSMIS]
+  Mols2ScafNet(mols)
 
 #############################################################################
 def File2Molreader(ifile, idelim, smicol, namcol, iheader):
@@ -88,7 +106,7 @@ def File2Molwriter(ofile, odelim, oheader):
 #############################################################################
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="RDKit scaffold analysis", epilog="")
-  OPS = ["bmscaf", "scafnet", "demo"]
+  OPS = ["bmscaf", "scafnet", "demobm", "demonet"]
   parser.add_argument("op", choices=OPS, default="mol2scaf", help="OPERATION")
   parser.add_argument("--i", dest="ifile", help="input file, TSV or SDF")
   parser.add_argument("--o", dest="ofile", help="output file, TSV or SDF")
@@ -108,8 +126,12 @@ if __name__ == "__main__":
 
   t0=time.time()
 
-  if args.op=="demo":
-    Demo()
+  if args.op=="demobm":
+    DemoBM()
+    sys.exit()
+
+  elif args.op=="demonet":
+    DemoNet()
     sys.exit()
 
   if not (args.ifile): parser.error('--i required.')
@@ -117,11 +139,13 @@ if __name__ == "__main__":
   if args.op=="bmscaf":
     molReader = File2Molreader(args.ifile, args.idelim, args.smicol, args.namcol, args.iheader)
     molWriter = File2Molwriter(args.ofile, args.odelim, args.oheader)
-    Mols2BMScaffolds(molReader, molWriter)
+    mols = ReadMols(molReader)
+    Mols2BMScaffolds(mols, molWriter)
 
   elif args.op=="scafnet":
     molReader = File2Molreader(args.ifile, args.idelim, args.smicol, args.namcol, args.iheader)
-    Mols2ScafNet(molReader, args.ofile)
+    mols = ReadMols(molReader)
+    Mols2ScafNet(mols, args.ofile)
 
   else:
     parser.error(f"Unsupported operation: {args.op}")
