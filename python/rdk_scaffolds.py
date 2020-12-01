@@ -39,17 +39,20 @@ def Mols2BMScaffolds(mols, molWriter):
   logging.info(f'{len(mols)} mols written to {molWriter}')
 
 #############################################################################
-def Mols2ScafNet(mols, ofile=None):
-  params = rdScaffoldNetwork.BRICSScaffoldParams()
-  params.flattenChirality = True
-  params.flattenIsotopes = True
-  params.flattenKeepLargest = True
-  params.includeGenericBondScaffolds = False
-  params.includeGenericScaffolds = False
-  params.includeScaffoldsWithAttachments = False
-  params.includeScaffoldsWithoutAttachments = True
-  params.keepOnlyFirstFragment = False
-  params.pruneBeforeFragmenting = True
+def Mols2ScafNet(mols, brics=False, ofile=None):
+  if brics:
+    params = rdScaffoldNetwork.BRICSScaffoldParams()
+  else:
+    params = rdScaffoldNetwork.ScaffoldNetworkParams()
+    params.flattenChirality = True
+    params.flattenIsotopes = True
+    params.flattenKeepLargest = True
+    params.includeGenericBondScaffolds = False
+    params.includeGenericScaffolds = False
+    params.includeScaffoldsWithAttachments = False
+    params.includeScaffoldsWithoutAttachments = True
+    params.keepOnlyFirstFragment = False
+    params.pruneBeforeFragmenting = True
   for key in ('flattenChirality', 'flattenIsotopes', 'flattenKeepLargest', 'includeGenericBondScaffolds', 'includeGenericScaffolds', 'includeScaffoldsWithAttachments', 'includeScaffoldsWithoutAttachments', 'keepOnlyFirstFragment', 'pruneBeforeFragmenting'):
     logging.info(f"{key}: {params.__getattribute__(key)}") 
   for i,mol in enumerate(mols):
@@ -75,9 +78,9 @@ def DemoBM():
     logging.info(f"{smi:>28s} >> {smi_std}")
 
 #############################################################################
-def DemoNet():
+def DemoNet(brics):
   mols = [MolFromSmiles(smi) for smi in DEMOSMIS]
-  Mols2ScafNet(mols)
+  Mols2ScafNet(mols, brics)
 
 #############################################################################
 def File2Molreader(ifile, idelim, smicol, namcol, iheader):
@@ -116,6 +119,7 @@ if __name__ == "__main__":
   parser.add_argument("--odelim", default="\t", help="delim for output TSV")
   parser.add_argument("--iheader", action="store_true", help="input TSV has header")
   parser.add_argument("--oheader", action="store_true", help="output TSV has header")
+  parser.add_argument("--brics", action="store_true", help="BRICS fragmentation rules (Degen, 2008)")
   parser.add_argument("-v", "--verbose", action="count", default=0)
 
   args = parser.parse_args()
@@ -131,7 +135,7 @@ if __name__ == "__main__":
     sys.exit()
 
   elif args.op=="demonet":
-    DemoNet()
+    DemoNet(args.brics)
     sys.exit()
 
   if not (args.ifile): parser.error('--i required.')
@@ -145,7 +149,7 @@ if __name__ == "__main__":
   elif args.op=="scafnet":
     molReader = File2Molreader(args.ifile, args.idelim, args.smicol, args.namcol, args.iheader)
     mols = ReadMols(molReader)
-    Mols2ScafNet(mols, args.ofile)
+    Mols2ScafNet(mols, args.brics, args.ofile)
 
   else:
     parser.error(f"Unsupported operation: {args.op}")
