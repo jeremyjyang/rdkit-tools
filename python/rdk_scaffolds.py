@@ -5,21 +5,38 @@ https://www.rdkit.org/docs/source/rdkit.Chem.Scaffolds.rdScaffoldNetwork.html
 rdScaffoldNetwork available RDKit 2020.03.1+.
 """
 #############################################################################
-import os,sys,re,time,argparse,logging
+import os,sys,re,time,inspect,argparse,logging
+import matplotlib as mpl
+#from matplotlib import pyplot as plt
+import pyvis
+from pyvis.network import Network
 
 import rdkit
-from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolStandardize, MolToSmiles, MolFromSmiles
+from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolStandardize, MolToSmiles, MolFromSmiles, Draw, rdDepictor
+from rdkit.Chem.Draw import rdMolDraw2D
 from rdkit.Chem.Scaffolds import MurckoScaffold
 from rdkit.Chem.Scaffolds import rdScaffoldNetwork
 
 DEMOSMIS = [
-	'c1ccc(cc1)N(=O)=O',
-	'c1ccc(cc1)[N+](=O)[O-]',
 	'C[C@H]1CN(CCCN1[S+]([O-])(=O)C2=CC=CC3=C2C(=CN=C3)C)C(=O)CN',
 	'N[S+]([O-])(=O)C1=C(Cl)C=C2NC(N[S+]([O-])(=O)C2=C1)C(Cl)Cl',
 	'C[S+]([O-])C1=CC=C(C=C1)\C=C2\C(=C(\CC(O)=O)C3=C2C=CC(=C3)F)C',
 	'O=[N+]([O-])c1cc(S(=O)(=O)N2CCCC2)ccc1NN=Cc1ccccn1'
 	]
+DEMOSMIS.append('Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12') # flucloxacillin
+DEMOSMIS.append('CC1(C)S[C@@H]2[C@H](NC(=O)[C@H](N)c3ccccc3)C(=O)N2[C@H]1C(=O)O') # ampicillin
+DEMOSMIS.append('CC1(C)SC2C(NC(=O)Cc3ccccc3)C(=O)N2C1C(=O)O.[Na]') # penicillin
+DEMOSMIS.append('Cc1onc(-c2ccccc2)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12') # oxacillin
+
+#############################################################################
+def moltosvg(mol, molSize=(450,250), kekulize=True):
+    mc = rdMolDraw2D.PrepareMolForDrawing(mol)
+    drawer = rdMolDraw2D.MolDraw2DSVG(molSize[0], molSize[1])
+    opts = drawer.drawOptions()
+    drawer.DrawMolecule(mc)
+    drawer.FinishDrawing()
+    svg = drawer.GetDrawingText()
+    return svg.replace('svg:', '')
 
 #############################################################################
 def ReadMols(molReader):
@@ -53,8 +70,11 @@ def Mols2ScafNet(mols, brics=False, ofile=None):
     params.includeScaffoldsWithoutAttachments = True
     params.keepOnlyFirstFragment = False
     params.pruneBeforeFragmenting = True
-  for key in ('flattenChirality', 'flattenIsotopes', 'flattenKeepLargest', 'includeGenericBondScaffolds', 'includeGenericScaffolds', 'includeScaffoldsWithAttachments', 'includeScaffoldsWithoutAttachments', 'keepOnlyFirstFragment', 'pruneBeforeFragmenting'):
-    logging.info(f"{key}: {params.__getattribute__(key)}") 
+
+  attrs = [a for a in inspect.getmembers(params) if not(a[0].startswith('__'))]
+  for a in attrs:
+    logging.info(f"{a[0]}: {a[1]}")
+
   for i,mol in enumerate(mols):
     molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
     logging.debug(f'{i+1}. {molname}:')
@@ -71,16 +91,67 @@ def Mols2ScafNet(mols, brics=False, ofile=None):
 
 #############################################################################
 def DemoBM():
+  scafmols=[];
   for smi in DEMOSMIS:
-    mol1 = MolFromSmiles(smi)
-    mol2 = MurckoScaffold.GetScaffoldForMol(mol1) if mol1 else None
-    smi_std = MolToSmiles(mol2, isomericSmiles=False) if mol2 else None
+    mol = MolFromSmiles(smi)
+    scafmol = MurckoScaffold.GetScaffoldForMol(mol) if mol else None
+    scafmols.append(scafmol)
+    smi_std = MolToSmiles(scafmol, isomericSmiles=False) if scafmol else None
     logging.info(f"{smi:>28s} >> {smi_std}")
+  img = rdkit.Chem.Draw.MolsToGridImage(scafmols, molsPerRow=4)
+  img.show()
 
 #############################################################################
 def DemoNet(brics):
-  mols = [MolFromSmiles(smi) for smi in DEMOSMIS]
-  Mols2ScafNet(mols, brics)
+  DEMOSMI = ('Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12') # flucloxacillin
+  mols = [MolFromSmiles(DEMOSMI)]
+  scafnet = Mols2ScafNet(mols, brics)
+  scafmols = [MolFromSmiles(m) for m in scafnet.nodes]
+  img = rdkit.Chem.Draw.MolsToGridImage(scafmols, legends=[f'{i}, counts: {c}' for i,c in enumerate(scafnet.counts)], molsPerRow=4)
+  img.show()
+
+#############################################################################
+def DemoNet2(brics):
+  DEMOSMI = ('Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12') # flucloxacillin
+  mols = [MolFromSmiles(DEMOSMI)]
+  scafnet = Mols2ScafNet(mols, brics)
+  if not os.path.isdir('/tmp/illu_net'):
+    os.mkdir('/tmp/illu_net')
+    
+  g = Network(notebook=False, height='600px', width='800px')
+
+  for i,n in enumerate(scafnet.nodes):
+    svg = moltosvg(rdkit.Chem.MolFromSmiles(n))
+    with open(f'/tmp/illu_net/{i}.svg', 'w') as outf:
+      outf.write(svg)
+    g.add_node(i, shape="image", label=' ', image=f'./illu_net/{i}.svg', title=svg, size=60)
+  for e in scafnet.edges:
+    g.add_edge(e.beginIdx, e.endIdx, label=str(e.type))
+    
+  g.set_options(options="""{
+  "edges": {
+   "font":{
+   "size":20
+   }
+  },
+  "nodes": {
+    "font": {
+      "color": "rgba(214,47,66,1)",
+      "size": 16,
+      "face": "tahoma"
+    }
+  },
+  "physics": {
+    "forceAtlas2Based": {
+      "gravitationalConstant": -120,
+      "springLength": 200,
+      "avoidOverlap": 0.42
+    },
+    "minVelocity": 0.75,
+    "solver": "forceAtlas2Based"
+  }
+}""")
+  g.show("/tmp/scafnet_illu.html")
 
 #############################################################################
 def File2Molreader(ifile, idelim, smicol, namcol, iheader):
@@ -109,7 +180,7 @@ def File2Molwriter(ofile, odelim, oheader):
 #############################################################################
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="RDKit scaffold analysis", epilog="")
-  OPS = ["bmscaf", "scafnet", "demobm", "demonet"]
+  OPS = ["bmscaf", "scafnet", "demobm", "demonet", "demonet2"]
   parser.add_argument("op", choices=OPS, default="mol2scaf", help="OPERATION")
   parser.add_argument("--i", dest="ifile", help="input file, TSV or SDF")
   parser.add_argument("--o", dest="ofile", help="output file, TSV or SDF")
@@ -126,7 +197,9 @@ if __name__ == "__main__":
 
   logging.basicConfig(format='%(levelname)s:%(message)s', level=(logging.DEBUG if args.verbose>1 else logging.INFO))
 
-  logging.info(f"RDKit version: {rdkit.__version__}")
+  logging.info(f"RDKit version: {rdkit.rdBase.rdkitVersion}")
+  logging.info(f"MatplotLib version: {mpl.__version__}")
+  logging.info(f"Pyvis version: {pyvis.__version__}")
 
   t0=time.time()
 
@@ -136,6 +209,10 @@ if __name__ == "__main__":
 
   elif args.op=="demonet":
     DemoNet(args.brics)
+    sys.exit()
+
+  elif args.op=="demonet2":
+    DemoNet2(args.brics)
     sys.exit()
 
   if not (args.ifile): parser.error('--i required.')
