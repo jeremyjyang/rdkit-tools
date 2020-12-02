@@ -5,7 +5,7 @@ https://www.rdkit.org/docs/source/rdkit.Chem.Scaffolds.rdScaffoldNetwork.html
 rdScaffoldNetwork available RDKit 2020.03.1+.
 """
 #############################################################################
-import os,sys,re,time,inspect,argparse,logging
+import os,sys,re,json,time,inspect,argparse,logging
 import matplotlib as mpl
 #from matplotlib import pyplot as plt
 import pyvis
@@ -118,7 +118,7 @@ def DemoNetVis(brics, scratchdir, ofile):
   scafnet = Mols2ScafNet(mols, brics)
   if not os.path.isdir(scratchdir): os.mkdir(scratchdir)
     
-  g = pyvis.network.Network(notebook=False, height='600px', width='800px', heading="RDKit_ScafNet:"+re.sub(r'^[^\s]*\s+(.*)$', r'\1', DEMOSMI))
+  g = pyvis.network.Network(notebook=False, height='800px', width='1000px', heading="RDKit_ScafNet:"+re.sub(r'^[^\s]*\s+(.*)$', r'\1', DEMOSMI))
 
   for i,n in enumerate(scafnet.nodes):
     svg = moltosvg(rdkit.Chem.MolFromSmiles(n))
@@ -127,30 +127,31 @@ def DemoNetVis(brics, scratchdir, ofile):
     g.add_node(i, shape="image", label=' ', image=f'{scratchdir}/{i}.svg', title=svg, size=60)
   for e in scafnet.edges:
     g.add_edge(e.beginIdx, e.endIdx, label=str(e.type))
-    
-  g.set_options(options="""{
-  "edges": {
-   "font":{
-   "size":20
-   }
-  },
-  "nodes": {
-    "font": {
-      "color": "rgba(214,47,66,1)",
-      "size": 16,
-      "face": "tahoma"
-    }
-  },
-  "physics": {
-    "forceAtlas2Based": {
-      "gravitationalConstant": -120,
-      "springLength": 200,
-      "avoidOverlap": 0.42
+
+  VisJS_options = {
+    "edges": {
+     "font":{
+     "size":20
+     }
     },
-    "minVelocity": 0.75,
-    "solver": "forceAtlas2Based"
+    "nodes": {
+      "font": {
+        "color": "rgba(214,47,66,1)",
+        "size": 16,
+        "face": "tahoma"
+      }
+    },
+    "physics": {
+      "forceAtlas2Based": {
+        "gravitationalConstant": -120,
+        "springLength": 200,
+        "avoidOverlap": 0.42
+      },
+      "minVelocity": 0.75,
+      "solver": "forceAtlas2Based"
+    }
   }
-}""")
+  g.set_options(options=json.dumps(VisJS_options))
   #g.show_buttons()
   logging.info(f"Writing SCAFNET to: {ofile}")
   g.show(ofile)
