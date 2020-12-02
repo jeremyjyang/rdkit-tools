@@ -18,15 +18,15 @@ from rdkit.Chem.Scaffolds import MurckoScaffold
 from rdkit.Chem.Scaffolds import rdScaffoldNetwork
 
 DEMOSMIS = [
-	'C[C@H]1CN(CCCN1[S+]([O-])(=O)C2=CC=CC3=C2C(=CN=C3)C)C(=O)CN',
-	'N[S+]([O-])(=O)C1=C(Cl)C=C2NC(N[S+]([O-])(=O)C2=C1)C(Cl)Cl',
-	'C[S+]([O-])C1=CC=C(C=C1)\C=C2\C(=C(\CC(O)=O)C3=C2C=CC(=C3)F)C',
-	'O=[N+]([O-])c1cc(S(=O)(=O)N2CCCC2)ccc1NN=Cc1ccccn1'
+'C[C@H]1CN(CCCN1[S+]([O-])(=O)C2=CC=CC3=C2C(=CN=C3)C)C(=O)CN Rho Kinase Inhibitor IV',
+'N[S+]([O-])(=O)C1=C(Cl)C=C2NC(N[S+]([O-])(=O)C2=C1)C(Cl)Cl trichlormethiazide',
+'C[S+]([O-])C1=CC=C(C=C1)\C=C2\C(=C(\CC(O)=O)C3=C2C=CC(=C3)F)C Sulindac',
+'O=[N+]([O-])c1cc(S(=O)(=O)N2CCCC2)ccc1NN=Cc1ccccn1 PUBCHEM_CID:4036736',
+'Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 flucloxacillin',
+'CC1(C)S[C@@H]2[C@H](NC(=O)[C@H](N)c3ccccc3)C(=O)N2[C@H]1C(=O)O ampicillin',
+'CC1(C)SC2C(NC(=O)Cc3ccccc3)C(=O)N2C1C(=O)O.[Na] penicillin',
+'Cc1onc(-c2ccccc2)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 oxacillin'
 	]
-DEMOSMIS.append('Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12') # flucloxacillin
-DEMOSMIS.append('CC1(C)S[C@@H]2[C@H](NC(=O)[C@H](N)c3ccccc3)C(=O)N2[C@H]1C(=O)O') # ampicillin
-DEMOSMIS.append('CC1(C)SC2C(NC(=O)Cc3ccccc3)C(=O)N2C1C(=O)O.[Na]') # penicillin
-DEMOSMIS.append('Cc1onc(-c2ccccc2)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12') # oxacillin
 
 #############################################################################
 def moltosvg(mol, molSize=(450,250), kekulize=True):
@@ -93,7 +93,7 @@ def Mols2ScafNet(mols, brics=False, ofile=None):
 def DemoBM():
   scafmols=[];
   for smi in DEMOSMIS:
-    mol = MolFromSmiles(smi)
+    mol = MolFromSmiles(re.sub(r'\s.*$', '', smi))
     scafmol = MurckoScaffold.GetScaffoldForMol(mol) if mol else None
     scafmols.append(scafmol)
     smi_std = MolToSmiles(scafmol, isomericSmiles=False) if scafmol else None
@@ -103,28 +103,28 @@ def DemoBM():
 
 #############################################################################
 def DemoNet(brics):
-  DEMOSMI = ('Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12') # flucloxacillin
-  mols = [MolFromSmiles(DEMOSMI)]
+  smi = ('Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 flucloxacillin')
+  mols = [MolFromSmiles(re.sub(r'\s.*$', '', smi))]
   scafnet = Mols2ScafNet(mols, brics)
   scafmols = [MolFromSmiles(m) for m in scafnet.nodes]
+  #title="RDKit_ScafNet:"+re.sub(r'^[^\s]*\s+(.*)$', r'\1', smi)) #How to add title?
   img = rdkit.Chem.Draw.MolsToGridImage(scafmols, legends=[f'{i}, counts: {c}' for i,c in enumerate(scafnet.counts)], molsPerRow=4)
   img.show()
 
 #############################################################################
-def DemoNet2(brics):
-  DEMOSMI = ('Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12') # flucloxacillin
-  mols = [MolFromSmiles(DEMOSMI)]
+def DemoNetVis(brics, scratchdir, ofile):
+  DEMOSMI = ('Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 flucloxacillin')
+  mols = [MolFromSmiles(re.sub(r'\s.*$', '', DEMOSMI))]
   scafnet = Mols2ScafNet(mols, brics)
-  if not os.path.isdir('/tmp/illu_net'):
-    os.mkdir('/tmp/illu_net')
+  if not os.path.isdir(scratchdir): os.mkdir(scratchdir)
     
-  g = Network(notebook=False, height='600px', width='800px')
+  g = pyvis.network.Network(notebook=False, height='600px', width='800px', heading="RDKit_ScafNet:"+re.sub(r'^[^\s]*\s+(.*)$', r'\1', DEMOSMI))
 
   for i,n in enumerate(scafnet.nodes):
     svg = moltosvg(rdkit.Chem.MolFromSmiles(n))
-    with open(f'/tmp/illu_net/{i}.svg', 'w') as outf:
+    with open(f'{scratchdir}/{i}.svg', 'w') as outf:
       outf.write(svg)
-    g.add_node(i, shape="image", label=' ', image=f'./illu_net/{i}.svg', title=svg, size=60)
+    g.add_node(i, shape="image", label=' ', image=f'{scratchdir}/{i}.svg', title=svg, size=60)
   for e in scafnet.edges:
     g.add_edge(e.beginIdx, e.endIdx, label=str(e.type))
     
@@ -151,7 +151,9 @@ def DemoNet2(brics):
     "solver": "forceAtlas2Based"
   }
 }""")
-  g.show("/tmp/scafnet_illu.html")
+  #g.show_buttons()
+  logging.info(f"Writing SCAFNET to: {ofile}")
+  g.show(ofile)
 
 #############################################################################
 def File2Molreader(ifile, idelim, smicol, namcol, iheader):
@@ -180,10 +182,12 @@ def File2Molwriter(ofile, odelim, oheader):
 #############################################################################
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="RDKit scaffold analysis", epilog="")
-  OPS = ["bmscaf", "scafnet", "demobm", "demonet", "demonet2"]
+  OPS = ["bmscaf", "scafnet", "demobm", "demonet", "demonetvis"]
   parser.add_argument("op", choices=OPS, default="mol2scaf", help="OPERATION")
   parser.add_argument("--i", dest="ifile", help="input file, TSV or SDF")
-  parser.add_argument("--o", dest="ofile", help="output file, TSV or SDF")
+  parser.add_argument("--o", dest="ofile", help="output file, TSV|SDF")
+  parser.add_argument("--o_html", dest="ofile_html", default="/tmp/rdk_scafnet.html", help="output file, HTML")
+  parser.add_argument("--scratchdir", default="/tmp")
   parser.add_argument("--smicol", type=int, default=0, help="SMILES column from TSV (counting from 0)")
   parser.add_argument("--namcol", type=int, default=1, help="name column from TSV (counting from 0)")
   parser.add_argument("--idelim", default="\t", help="delim for input TSV")
@@ -211,8 +215,8 @@ if __name__ == "__main__":
     DemoNet(args.brics)
     sys.exit()
 
-  elif args.op=="demonet2":
-    DemoNet2(args.brics)
+  elif args.op=="demonetvis":
+    DemoNetVis(args.brics, args.scratchdir, args.ofile_html)
     sys.exit()
 
   if not (args.ifile): parser.error('--i required.')
