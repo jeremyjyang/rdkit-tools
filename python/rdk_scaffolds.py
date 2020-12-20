@@ -7,15 +7,15 @@ rdScaffoldNetwork available RDKit 2020.03.1+.
 #############################################################################
 import os,sys,re,json,time,inspect,argparse,logging
 import matplotlib as mpl
-#from matplotlib import pyplot as plt
 import pyvis
 from pyvis.network import Network
 
 import rdkit
-from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolStandardize, MolToSmiles, MolFromSmiles, Draw, rdDepictor
-from rdkit.Chem.Draw import rdMolDraw2D
+from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolStandardize, MolToSmiles, MolFromSmiles, Draw
 from rdkit.Chem.Scaffolds import MurckoScaffold
 from rdkit.Chem.Scaffolds import rdScaffoldNetwork
+
+import rdk_utils
 
 DEMOSMIS = [
 'C[C@H]1CN(CCCN1[S+]([O-])(=O)C2=CC=CC3=C2C(=CN=C3)C)C(=O)CN Rho Kinase Inhibitor IV',
@@ -27,67 +27,6 @@ DEMOSMIS = [
 'CC1(C)SC2C(NC(=O)Cc3ccccc3)C(=O)N2C1C(=O)O.[Na] penicillin',
 'Cc1onc(-c2ccccc2)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 oxacillin'
 	]
-
-#############################################################################
-def moltosvg(mol, molSize=(450,250), kekulize=True):
-    mc = rdMolDraw2D.PrepareMolForDrawing(mol)
-    drawer = rdMolDraw2D.MolDraw2DSVG(molSize[0], molSize[1])
-    opts = drawer.drawOptions()
-    drawer.DrawMolecule(mc)
-    drawer.FinishDrawing()
-    svg = drawer.GetDrawingText()
-    return svg.replace('svg:', '')
-
-#############################################################################
-def ReadMols(molReader):
-  mols=[]; 
-  for mol in molReader:
-    if mol is not None: mols.append(mol)
-  logging.info(f'{len(mols)} mols read from {molReader}')
-  return mols
-
-#############################################################################
-def Mols2BMScaffolds(mols, molWriter):
-  for i,mol in enumerate(mols):
-    molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-    logging.debug(f'{i+1}. {molname}')
-    scafmol = MurckoScaffold.GetScaffoldForMol(mol)
-    molWriter.write(scafmol)
-  logging.info(f'{len(mols)} mols written to {molWriter}')
-
-#############################################################################
-def Mols2ScafNet(mols, brics=False, ofile=None):
-  if brics:
-    params = rdScaffoldNetwork.BRICSScaffoldParams()
-  else:
-    params = rdScaffoldNetwork.ScaffoldNetworkParams()
-    params.flattenChirality = True
-    params.flattenIsotopes = True
-    params.flattenKeepLargest = True
-    params.includeGenericBondScaffolds = False
-    params.includeGenericScaffolds = False
-    params.includeScaffoldsWithAttachments = False
-    params.includeScaffoldsWithoutAttachments = True
-    params.keepOnlyFirstFragment = False
-    params.pruneBeforeFragmenting = True
-
-  attrs = [a for a in inspect.getmembers(params) if not(a[0].startswith('__'))]
-  for a in attrs:
-    logging.info(f"{a[0]}: {a[1]}")
-
-  for i,mol in enumerate(mols):
-    molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-    logging.debug(f'{i+1}. {molname}:')
-
-  scafnet = rdScaffoldNetwork.CreateScaffoldNetwork(mols, params)
-  fout = open(ofile, "w") if ofile else sys.stdout
-  for i in range(len(scafnet.nodes)):
-    fout.write(f"node\t{i}\t{scafnet.nodes[i]}\t{scafnet.counts[i]}\n")
-  for i in range(len(scafnet.edges)):
-    fout.write(f"edge\t{i}\t{scafnet.edges[i].beginIdx}\t{scafnet.edges[i].endIdx}\t{scafnet.edges[i].type}\n")
-  fout.flush()
-  logging.info(f"nodes: {len(scafnet.nodes)}; edges:{len(scafnet.edges)}")
-  return scafnet
 
 #############################################################################
 def DemoBM():
@@ -105,7 +44,7 @@ def DemoBM():
 def DemoNet(brics):
   smi = ('Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 flucloxacillin')
   mols = [MolFromSmiles(re.sub(r'\s.*$', '', smi))]
-  scafnet = Mols2ScafNet(mols, brics)
+  scafnet = rdk_utils.Mols2ScafNet(mols, brics)
   scafmols = [MolFromSmiles(m) for m in scafnet.nodes]
   #title="RDKit_ScafNet:"+re.sub(r'^[^\s]*\s+(.*)$', r'\1', smi)) #How to add title?
   img = rdkit.Chem.Draw.MolsToGridImage(scafmols, legends=[f'{i}, counts: {c}' for i,c in enumerate(scafnet.counts)], molsPerRow=4)
@@ -115,13 +54,13 @@ def DemoNet(brics):
 def DemoNetVis(brics, scratchdir, ofile):
   DEMOSMI = ('Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 flucloxacillin')
   mols = [MolFromSmiles(re.sub(r'\s.*$', '', DEMOSMI))]
-  scafnet = Mols2ScafNet(mols, brics)
+  scafnet = rdk_utils.Mols2ScafNet(mols, brics)
   if not os.path.isdir(scratchdir): os.mkdir(scratchdir)
     
   g = pyvis.network.Network(notebook=False, height='800px', width='1000px', heading="RDKit_ScafNet:"+re.sub(r'^[^\s]*\s+(.*)$', r'\1', DEMOSMI))
 
   for i,n in enumerate(scafnet.nodes):
-    svg = moltosvg(rdkit.Chem.MolFromSmiles(n))
+    svg = rdk_utils.moltosvg(rdkit.Chem.MolFromSmiles(n))
     with open(f'{scratchdir}/{i}.svg', 'w') as outf:
       outf.write(svg)
     g.add_node(i, shape="image", label=' ', image=f'{scratchdir}/{i}.svg', title=svg, size=60)
@@ -155,30 +94,6 @@ def DemoNetVis(brics, scratchdir, ofile):
   #g.show_buttons()
   logging.info(f"Writing SCAFNET to: {ofile}")
   g.show(ofile)
-
-#############################################################################
-def File2Molreader(ifile, idelim, smicol, namcol, iheader):
-  if re.sub(r'.*\.', '', ifile).lower()in ('smi', 'smiles', 'csv', 'tsv'):
-    molReader = SmilesMolSupplier(ifile, delimiter=idelim, smilesColumn=smicol, nameColumn=namcol, titleLine=iheader, sanitize=True)
-  elif re.sub(r'.*\.', '', ifile).lower() in ('sdf','sd','mdl','mol'):
-    molReader = SDMolSupplier(ifile, sanitize=True, removeHs=True)
-  else:
-    molReader = None
-    logging.error(f'Invalid file extension: {ifile}')
-  return molReader
-
-#############################################################################
-def File2Molwriter(ofile, odelim, oheader):
-  if not ofile:
-    molWriter = SmilesWriter("-", delimiter=odelim, nameHeader='Name', includeHeader=oheader, isomericSmiles=True, kekuleSmiles=False)
-  elif re.sub(r'.*\.', '', ofile).lower() in ('sdf','sd','mdl','mol'):
-    molWriter = SDWriter(ofile)
-  elif re.sub(r'.*\.', '', ofile).lower() in ('smi', 'smiles', 'csv', 'tsv'):
-    molWriter = SmilesWriter(ofile, delimiter=odelim, nameHeader='Name', includeHeader=oheader, isomericSmiles=True, kekuleSmiles=False)
-  else:
-    logging.error(f'Invalid file extension: {ofile}')
-    molWriter = None
-  return molWriter
 
 #############################################################################
 if __name__ == "__main__":
@@ -223,15 +138,15 @@ if __name__ == "__main__":
   if not (args.ifile): parser.error('--i required.')
 
   if args.op=="bmscaf":
-    molReader = File2Molreader(args.ifile, args.idelim, args.smicol, args.namcol, args.iheader)
-    molWriter = File2Molwriter(args.ofile, args.odelim, args.oheader)
-    mols = ReadMols(molReader)
-    Mols2BMScaffolds(mols, molWriter)
+    molReader = rdk_utils.File2Molreader(args.ifile, args.idelim, args.smicol, args.namcol, args.iheader)
+    molWriter = rdk_utils.File2Molwriter(args.ofile, args.odelim, args.oheader)
+    mols = rdk_utils.ReadMols(molReader)
+    rdk_utils.Mols2BMScaffolds(mols, molWriter)
 
   elif args.op=="scafnet":
-    molReader = File2Molreader(args.ifile, args.idelim, args.smicol, args.namcol, args.iheader)
-    mols = ReadMols(molReader)
-    Mols2ScafNet(mols, args.brics, args.ofile)
+    molReader = rdk_utils.File2Molreader(args.ifile, args.idelim, args.smicol, args.namcol, args.iheader)
+    mols = rdk_utils.ReadMols(molReader)
+    rdk_utils.Mols2ScafNet(mols, args.brics, args.ofile)
 
   else:
     parser.error(f"Unsupported operation: {args.op}")

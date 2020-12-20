@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+"""
+https://www.rdkit.org/docs/source/rdkit.Chem.Scaffolds.MurckoScaffold.html
+https://www.rdkit.org/docs/source/rdkit.Chem.Scaffolds.rdScaffoldNetwork.html
+rdScaffoldNetwork available RDKit 2020.03.1+.
+"""
 #############################################################################
 import os,sys,re,logging,json,time,inspect
 
@@ -8,11 +13,20 @@ import matplotlib as mpl
 import rdkit
 import rdkit.Chem
 import rdkit.Chem.AllChem
-#from rdkit import DataStructs
 from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolStandardize, MolToSmiles, MolFromSmiles, Draw, rdDepictor
+
+# fingerprints:
 from rdkit.Chem import RDKFingerprint, PatternFingerprint, LayeredFingerprint, LayeredFingerprint_substructLayers
 from rdkit.Chem.MACCSkeys import GenMACCSKeys
 from rdkit.Chem.AllChem import GetMorganFingerprint,GetMorganFingerprintAsBitVect
+
+# scaffolds:
+from rdkit.Chem.Draw import rdMolDraw2D
+from rdkit.Chem.Scaffolds import MurckoScaffold
+from rdkit.Chem.Scaffolds import rdScaffoldNetwork
+
+import pyvis
+from pyvis.network import Network
 
 from rdkit.Chem.Draw import rdMolDraw2D
 
@@ -147,5 +161,48 @@ def GenerateConformations(mol, nconf, ffname, optiters, etol):
     logging.info('ERROR: EmbedMultipleConfs() failed.') 
 
   return molh, list(confIds)
+
+#############################################################################
+def Mols2BMScaffolds(mols, molWriter):
+  for i,mol in enumerate(mols):
+    molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
+    logging.debug(f'{i+1}. {molname}')
+    scafmol = MurckoScaffold.GetScaffoldForMol(mol)
+    molWriter.write(scafmol)
+  logging.info(f'{len(mols)} mols written to {molWriter}')
+
+#############################################################################
+def Mols2ScafNet(mols, brics=False, ofile=None):
+  if brics:
+    params = rdScaffoldNetwork.BRICSScaffoldParams()
+  else:
+    params = rdScaffoldNetwork.ScaffoldNetworkParams()
+    params.flattenChirality = True
+    params.flattenIsotopes = True
+    params.flattenKeepLargest = True
+    params.includeGenericBondScaffolds = False
+    params.includeGenericScaffolds = False
+    params.includeScaffoldsWithAttachments = False
+    params.includeScaffoldsWithoutAttachments = True
+    params.keepOnlyFirstFragment = False
+    params.pruneBeforeFragmenting = True
+
+  attrs = [a for a in inspect.getmembers(params) if not(a[0].startswith('__'))]
+  for a in attrs:
+    logging.info(f"{a[0]}: {a[1]}")
+
+  for i,mol in enumerate(mols):
+    molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
+    logging.debug(f'{i+1}. {molname}:')
+
+  scafnet = rdScaffoldNetwork.CreateScaffoldNetwork(mols, params)
+  fout = open(ofile, "w") if ofile else sys.stdout
+  for i in range(len(scafnet.nodes)):
+    fout.write(f"node\t{i}\t{scafnet.nodes[i]}\t{scafnet.counts[i]}\n")
+  for i in range(len(scafnet.edges)):
+    fout.write(f"edge\t{i}\t{scafnet.edges[i].beginIdx}\t{scafnet.edges[i].endIdx}\t{scafnet.edges[i].type}\n")
+  fout.flush()
+  logging.info(f"nodes: {len(scafnet.nodes)}; edges:{len(scafnet.edges)}")
+  return scafnet
 
 #############################################################################
