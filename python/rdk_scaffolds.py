@@ -153,8 +153,8 @@ def DemoNetVis(brics, scratchdir, ofile):
   }
   g.set_options(options=json.dumps(VisJS_options))
   #g.show_buttons()
-  logging.info(f"Writing SCAFNET to: {ofile}")
-  g.show(ofile)
+  logging.info(f"Writing SCAFNET to: {scratchdir}/{ofile}")
+  g.show(f"{scratchdir}/{ofile}")
 
 #############################################################################
 def File2Molreader(ifile, idelim, smicol, namcol, iheader):
@@ -187,7 +187,7 @@ if __name__ == "__main__":
   parser.add_argument("op", choices=OPS, default="mol2scaf", help="OPERATION")
   parser.add_argument("--i", dest="ifile", help="input file, TSV or SDF")
   parser.add_argument("--o", dest="ofile", help="output file, TSV|SDF")
-  parser.add_argument("--o_html", dest="ofile_html", default="/tmp/rdk_scafnet.html", help="output file, HTML")
+  parser.add_argument("--o_html", dest="ofile_html", default="rdk_scafnet.html", help="output file, HTML")
   parser.add_argument("--scratchdir", default="/tmp")
   parser.add_argument("--smicol", type=int, default=0, help="SMILES column from TSV (counting from 0)")
   parser.add_argument("--namcol", type=int, default=1, help="name column from TSV (counting from 0)")
