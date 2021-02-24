@@ -21,7 +21,8 @@ import purgescratchdirs
 #############################################################################
 def JavaScript(progname):
   return """\
-function go_run_dgeom(form)
+var DEMO_SMI='c1(ccc(cc1)OC(c2ccccc2)CCNC)C(F)(F)F';
+function go_dgeom(form)
 {
   if (!checkform(form)) return;
   var x,y;
@@ -55,6 +56,12 @@ function go_run_dgeom(form)
   form.run_dgeom.value='TRUE';
   form.submit();
 }
+function go_demo(form)
+{
+  go_init(form)
+  form.intxt.value=DEMO_SMI;
+  go_dgeom(form)
+}
 function checkform(form)
 {
   if (!form.intxt.value && !form.infile.value) {
@@ -83,7 +90,7 @@ function go_init(form)
 /// JSME stuff:
 function StartJSME()
 {
-  window.open('/jsme_win.html','JSME','width=500,height=450,scrollbars=0,resizable=1,location=0');
+  window.open('"""+env_cgi.HTML_SUBDIR+"""/jsme_win.html','JSME','width=500,height=450,scrollbars=0,resizable=1,location=0');
 }
 function fromJSME(smiles) // function called from JSME window
 {
@@ -123,8 +130,8 @@ def PrintForm():
   print(f'<TABLE WIDTH="100%"><TR><TD><H2>{APPNAME}</H2></TD>')
   print('<TD><TD>- RDKit distance-geometry conformer generation</TD>')
   print('<TD ALIGN="right">')
-  print(f"""<BUTTON TYPE=BUTTON onClick="void window.open('{CGIURL}?help=TRUE','helpwin','width=600,height=400,scrollbars=1,resizable=1')">""")
-  print('<B>Help</B></BUTTON>')
+  print(f"""<BUTTON TYPE=BUTTON onClick="void window.open('{CGIURL}?help=TRUE','helpwin','width=600,height=400,scrollbars=1,resizable=1')"><B>Help</B></BUTTON>""")
+  print('<BUTTON TYPE="button" onClick="go_demo(this.form)"><B>Demo</B></BUTTON>')
   print(f"""<BUTTON TYPE=BUTTON onClick="window.location.replace('{CGIURL}')"><B>Reset</B></BUTTON>&nbsp;""")
   print('</TD></TR></TABLE>')
   print('<HR>')
@@ -160,7 +167,7 @@ def PrintForm():
   print('</TABLE>')
   print('</TD></TR>')
   print('<TR><TD COLSPAN=2 ALIGN=CENTER>')
-  print(f'<BUTTON TYPE=BUTTON onClick="go_run_dgeom(this.form)"><B>Go {APPNAME}</B></BUTTON>')
+  print(f'<BUTTON TYPE=BUTTON onClick="go_dgeom(this.form)"><B>Go {APPNAME}</B></BUTTON>')
   print('</TD></TR>')
   print('</TABLE>')
   print('</FORM>')
@@ -189,8 +196,9 @@ def DgeomSingle(imol,outfile,maxconf,ff,optiters,etol):
     return
 
   filecode = urllib.parse.quote(SCRATCHDIRURL+'/'+os.path.basename(outfile), safe='')
+  ERRORS.append("DEBUG: filecode: "+filecode)
   bhtm = (f"""<FORM><BUTTON TYPE=BUTTON onClick="go_view3d('{VIEW3D}','{filecode}',{600},'view3d_dgeom','multiconf')">""")
-  bhtm += (f"""<IMG SRC="/images/Jmol_icon_128.png" HEIGHT="60" VALIGN="middle">JSmol; view output ({len(confIds)} confs)</BUTTON></FORM>""")
+  bhtm += (f'''<IMG SRC="'''+env_cgi.HTML_SUBDIR+f'''/images/Jmol_icon_128.png" HEIGHT="60" VALIGN="middle">JSmol; view output ({len(confIds)} confs)</BUTTON></FORM>''')
   OUTPUTS.append('<BLOCKQUOTE>'+bhtm+'</BLOCKQUOTE>')
 
   fname = 'dgeom_out.sdf'
@@ -330,11 +338,13 @@ def Initialize():
 
   ### Assure that writeable tmp directory exists.
   if not os.access(SCRATCHDIR,os.F_OK):
-    ERRORS.append(f'ERROR: missing scratch dir "{SCRATCHDIR}"')
+    ERRORS.append("ERROR: missing SCRATCHDIR: "+SCRATCHDIR)
     return False
   elif not os.access(SCRATCHDIR,os.W_OK):
-    ERRORS.append(f'ERROR: non-writable scratch dir "{SCRATCHDIR}"')
+    ERRORS.append("ERROR: non-writable SCRATCHDIR: "+SCRATCHDIR)
     return False
+  ERRORS.append("DEBUG: SCRATCHDIR: "+SCRATCHDIR)
+  ERRORS.append("DEBUG: SCRATCHDIRURL: "+SCRATCHDIRURL)
 
   if not FORM.getvalue('run_dgeom'):
     return True
