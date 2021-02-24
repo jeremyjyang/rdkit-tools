@@ -20,7 +20,7 @@ import purgescratchdirs
 
 #############################################################################
 def JavaScript(progname):
-  return '''\
+  return """\
 function go_run_dgeom(form)
 {
   if (!checkform(form)) return;
@@ -37,7 +37,7 @@ function go_run_dgeom(form)
   }
   if (form.runmode.value=='multi')
   {
-    var pwin=window.open('','%(PROGRESS_WIN_NAME)s',
+    var pwin=window.open('','"""+PROGRESS_WIN_NAME+"""',
 	'width=400,height=100,left='+x+',top='+y+',scrollbars=1,resizable=1,location=0,status=0,toolbar=0');
     if (!pwin) {
       alert('ERROR: popup windows must be enabled for progress indicator.');
@@ -47,10 +47,10 @@ function go_run_dgeom(form)
     pwin.document.close(); //if window exists, clear
     pwin.document.open('text/html');
     pwin.document.writeln('<HTML><HEAD>');
-    pwin.document.writeln('<LINK REL=\"stylesheet\" type=\"text/css\" HREF=\"%(HTML_SUBDIR)s/css/biocomp.css\" />');
+    pwin.document.writeln('<LINK REL=\"stylesheet\" type=\"text/css\" HREF=\""""+env_cgi.HTML_SUBDIR+"""/css/biocomp.css\" />');
     pwin.document.writeln('</HEAD><BODY BGCOLOR=\"#DDDDDD\">');
     if (navigator.appName.match('Explorer'))
-      pwin.document.title='%(PROG)s progress'; //not-ok for IE
+      pwin.document.title='"""+progname+""" progress'; //not-ok for IE
   }
   form.run_dgeom.value='TRUE';
   form.submit();
@@ -99,7 +99,7 @@ function fromJSME(smiles) // function called from JSME window
     if (form.ifmt.options[i].value==1) form.ifmt.options[i].selected=true;
   }
 }
-'''%{'PROG':progname,'PROGRESS_WIN_NAME':PROGRESS_WIN_NAME,'HTML_SUBDIR':env_cgi.HTML_SUBDIR}
+"""
 
 #############################################################################
 def PrintForm():
@@ -118,51 +118,49 @@ def PrintForm():
   if FF=='mmff': FF_MMFF='CHECKED';
   elif FF=='uff': FF_UFF='CHECKED';
 
-  print('<FORM NAME="mainform" ACTION="%s" METHOD="POST" ENCTYPE="multipart/form-data">'%(CGIURL))
+  print(f'<FORM NAME="mainform" ACTION="{CGIURL}" METHOD="POST" ENCTYPE="multipart/form-data">')
   print('<INPUT TYPE=HIDDEN NAME="run_dgeom">')
-  print('<TABLE WIDTH="100%%"><TR><TD><H2>%s</H2></TD>'%APPNAME)
+  print(f'<TABLE WIDTH="100%"><TR><TD><H2>{APPNAME}</H2></TD>')
   print('<TD><TD>- RDKit distance-geometry conformer generation</TD>')
   print('<TD ALIGN="right">')
-  print('<BUTTON TYPE=BUTTON onClick="void window.open(\'%s?help=TRUE\',\'helpwin\',\'width=600,height=400,scrollbars=1,resizable=1\')">'%CGIURL)
+  print(f"""<BUTTON TYPE=BUTTON onClick="void window.open('{CGIURL}?help=TRUE','helpwin','width=600,height=400,scrollbars=1,resizable=1')">""")
   print('<B>Help</B></BUTTON>')
-  print('<BUTTON TYPE=BUTTON onClick="window.location.replace(\'%s\')"><B>Reset</B></BUTTON>&nbsp;'%CGIURL)
+  print(f"""<BUTTON TYPE=BUTTON onClick="window.location.replace('{CGIURL}')"><B>Reset</B></BUTTON>&nbsp;""")
   print('</TD></TR></TABLE>')
   print('<HR>')
   print('<TABLE WIDTH=100% CELLPADDING=5>')
   print('<TR>')
   print('<TD VALIGN=TOP>')
-  print('input format:%s \n'%ifmtmenu)
-  print('file2txt:<INPUT TYPE=CHECKBOX NAME="infile2txt" VALUE="CHECKED"')
-  print(' %s><BR>'%INFILE2TXT)
+  print(f'input format:{ifmtmenu}\n')
+  print(f'file2txt:<INPUT TYPE=CHECKBOX NAME="infile2txt" VALUE="CHECKED" {INFILE2TXT}><BR>')
   print('upload:<INPUT TYPE="FILE" NAME="infile">&nbsp;')
   print('or paste...<BR>')
-  print('<TEXTAREA NAME="intxt" ROWS=12 COLS=50 WRAP=OFF>%s</TEXTAREA><BR>'%INTXT)
+  print(f'<TEXTAREA NAME="intxt" ROWS=12 COLS=50 WRAP=OFF>{INTXT}</TEXTAREA><BR>')
   print('or draw:')
   print('<BUTTON TYPE=BUTTON onClick="StartJSME()">JSME</BUTTON>')
   print('</TD>')
   print('<TD VALIGN=TOP>')
   print('<TABLE WIDTH="100%" BGCOLOR="#EEEEEE" CELLPADDING=2>')
   print('<TR><TD COLSPAN=2><B>options:</B></TD></TR>')
-  print('<TR><TD ALIGN="RIGHT" VALIGN="TOP">mode:</TD><TD><INPUT TYPE=RADIO NAME="runmode" VALUE="single" %s>single <I>(interactive)</I><BR>'%(RUNMODE_SINGLE))
-  print('<INPUT TYPE=RADIO NAME="runmode" VALUE="multi" %s>multi <I>(batch)</I></TD></TR>'%(RUNMODE_MULTI))
+  print(f'<TR><TD ALIGN="RIGHT" VALIGN="TOP">mode:</TD><TD><INPUT TYPE=RADIO NAME="runmode" VALUE="single" {RUNMODE_SINGLE}>single <I>(interactive)</I><BR>')
+  print(f'<INPUT TYPE=RADIO NAME="runmode" VALUE="multi" {RUNMODE_MULTI}>multi <I>(batch)</I></TD></TR>')
   print('<TR><TD ALIGN=RIGHT>maxconf:</TD>')
-  print('<TD><INPUT TYPE=TEXT SIZE=3 NAME="maxconf" VALUE="%s"></TD></TR>'%MAXCONF)
-  print('<TR><TD ALIGN="RIGHT">forcefield:</TD><TD><INPUT TYPE=RADIO NAME="ff" VALUE="mmff" %s>MMFF</I>'%(FF_MMFF))
-  print('<INPUT TYPE=RADIO NAME="ff" VALUE="uff" %s>UFF</TD></TR>'%(FF_UFF))
+  print(f'<TD><INPUT TYPE=TEXT SIZE=3 NAME="maxconf" VALUE="{MAXCONF}"></TD></TR>')
+  print(f'<TR><TD ALIGN="RIGHT">forcefield:</TD><TD><INPUT TYPE=RADIO NAME="ff" VALUE="mmff" {FF_MMFF}>MMFF</I>')
+  print(f'<INPUT TYPE=RADIO NAME="ff" VALUE="uff" {FF_UFF}>UFF</TD></TR>')
   print('<TR><TD ALIGN=RIGHT>optimizer iters:</TD>')
-  print('<TD><INPUT TYPE=TEXT SIZE=3 NAME="optiters" VALUE="%s"></TD></TR>'%OPTITERS)
+  print(f'<TD><INPUT TYPE=TEXT SIZE=3 NAME="optiters" VALUE="{OPTITERS}"></TD></TR>')
   print('<TR><TD ALIGN=RIGHT>optimizer E-tolerance:</TD>')
-  print('<TD><INPUT TYPE=TEXT SIZE=5 NAME="etol" VALUE="%s"></TD></TR>'%ETOL)
+  print(f'<TD><INPUT TYPE=TEXT SIZE=5 NAME="etol" VALUE="{ETOL}"></TD></TR>')
   print('<TR><TD COLSPAN=2><B>misc:</B></TD></TR>')
   print('<TR><TD ALIGN=RIGHT>smifile header:</TD>')
-  print('<TD ALIGN=LEFT><INPUT TYPE=CHECKBOX NAME="smifile_header" VALUE="CHECKED" %s></TD></TR>'%SMIFILE_HEADER)
+  print(f'<TD ALIGN=LEFT><INPUT TYPE=CHECKBOX NAME="smifile_header" VALUE="CHECKED" {SMIFILE_HEADER}></TD></TR>')
   print('<TR><TD ALIGN=RIGHT>verbose:</TD>')
-  print('<TD ALIGN=LEFT><INPUT TYPE=CHECKBOX NAME="verbose" VALUE="CHECKED" %s></TD></TR>'%VERBOSE)
+  print(f'<TD ALIGN=LEFT><INPUT TYPE=CHECKBOX NAME="verbose" VALUE="CHECKED" {VERBOSE}></TD></TR>')
   print('</TABLE>')
   print('</TD></TR>')
   print('<TR><TD COLSPAN=2 ALIGN=CENTER>')
-  print('<BUTTON TYPE=BUTTON onClick="go_run_dgeom(this.form)"')
-  print('><B>Go %s</B></BUTTON>'%APPNAME)
+  print(f'<BUTTON TYPE=BUTTON onClick="go_run_dgeom(this.form)"><B>Go {APPNAME}</B></BUTTON>')
   print('</TD></TR>')
   print('</TABLE>')
   print('</FORM>')
@@ -174,13 +172,12 @@ def DgeomSingle(imol,outfile,maxconf,ff,optiters,etol):
     return
   OUTPUTS.append("<H2>input:</H2>")
   molname = imol.GetProp('_Name') if imol.HasProp('_Name') else ''
-  thtm=('<TABLE><TR><TD VALIGN=TOP><TT>%s</TT></TD></TR>'%molname)
+  thtm=('<TABLE><TR><TD VALIGN=TOP><TT>'+molname+'</TT></TD></TR>')
   ismi=rdkit.Chem.MolToSmiles(imol,isomericSmiles=True)
-  thtm+=("<TR><TD>%s</TD></TR>"%(ismi))
+  thtm+=("<TR><TD>"+ismi+"</TD></TR>")
   imghtm=(mol2imghtm.Smi2ImgHtm((ismi+' '+molname if molname else ismi),'',180,220,SMI2IMG))
-  thtm+=('<TR><TD BGCOLOR="white">%s</TD></TR></TABLE>'%(imghtm))
-  OUTPUTS.append("<BLOCKQUOTE>%s</BLOCKQUOTE>"%thtm)
-
+  thtm+=('<TR><TD BGCOLOR="white">'+imghtm+'</TD></TR></TABLE>')
+  OUTPUTS.append("<BLOCKQUOTE>"+thtm+"</BLOCKQUOTE>")
   OUTPUTS.append('<H2>output:</H2>')
 
   molwriter=rdkit.Chem.SDWriter(outfile)
@@ -191,34 +188,26 @@ def DgeomSingle(imol,outfile,maxconf,ff,optiters,etol):
     OUTPUTS.append('<B>Dgeom failed.</B>')
     return
 
-  filecode=urllib.parse.quote(SCRATCHDIRURL+'/'+os.path.basename(outfile), safe='')
-  bhtm=('<FORM><BUTTON TYPE=BUTTON')
-  bhtm+=(" onClick=\"go_view3d('%s','%s',%d,'view3d_dgeom','multiconf')\">"%(VIEW3D,filecode,600))
-  bhtm+=('<IMG SRC="/images/Jmol_icon_128.png" HEIGHT="60" VALIGN="middle">JSmol; ')
-  bhtm+=('view output (%d confs)</BUTTON></FORM>'%(len(confIds)))
-  OUTPUTS.append('<BLOCKQUOTE>%s</BLOCKQUOTE>'%bhtm)
+  filecode = urllib.parse.quote(SCRATCHDIRURL+'/'+os.path.basename(outfile), safe='')
+  bhtm = (f"""<FORM><BUTTON TYPE=BUTTON onClick="go_view3d('{VIEW3D}','{filecode}',{600},'view3d_dgeom','multiconf')">""")
+  bhtm += (f"""<IMG SRC="/images/Jmol_icon_128.png" HEIGHT="60" VALIGN="middle">JSmol; view output ({len(confIds)} confs)</BUTTON></FORM>""")
+  OUTPUTS.append('<BLOCKQUOTE>'+bhtm+'</BLOCKQUOTE>')
 
-  fname='dgeom_out.sdf'
-  bhtm=('<FORM ACTION="%s/%s" METHOD="POST">'%(CGIURL,fname))
-  bhtm+=('<INPUT TYPE=HIDDEN NAME="downloadfile" VALUE="%s">'%outfile)
-  bhtm+=('<BUTTON TYPE=BUTTON onClick="this.form.submit()">')
-  bhtm+=('%s (%s)</BUTTON></FORM>'%(fname,htm_utils.NiceBytes(os.stat(outfile).st_size)))
-  OUTPUTS.append('<BLOCKQUOTE><b>Download:</b> %s</BLOCKQUOTE>'%bhtm)
-
-  DATE=time.strftime('%Y%m%d%H%M',time.localtime())
-  LOG.write('%s\t%s\t%d\n' % (DATE,os.environ['REMOTE_ADDR'],1))
-  LOG.close()
+  fname = 'dgeom_out.sdf'
+  bhtm = (f'<FORM ACTION="{CGIURL}/{fname}" METHOD="POST">')
+  bhtm += ('<INPUT TYPE=HIDDEN NAME="downloadfile" VALUE="'+outfile+'">')
+  bhtm += (f"""<BUTTON TYPE=BUTTON onClick="this.form.submit()"> {fname} ({htm_utils.NiceBytes(os.stat(outfile).st_size)})</BUTTON></FORM>""")
+  OUTPUTS.append('<BLOCKQUOTE><b>Download:</b> '+bhtm+'</BLOCKQUOTE>')
 
 #############################################################################
-def DgeomLaunchProcess(infile,smifile_header,outfile,logfile,statusfile,maxconf,ff,optiters,etol,job):
-  proc = Process(target=rdk_mp.dgeom_process, args=(infile,smifile_header,outfile,logfile,statusfile,maxconf,ff,optiters,etol))
-  t0=time.time()
+def DgeomLaunchProcess(infile, smifile_header, outfile, logfile, statusfile, maxconf, ff, optiters, etol, job):
+  proc = Process(target=rdk_mp.dgeom_process, args=(infile, smifile_header, outfile, logfile, statusfile, maxconf, ff, optiters, etol))
+  t0 = time.time()
   proc.start()
-  rdk_mp.DgeomProgress(proc,statusfile,t0,1,PROGRESS_WIN_NAME,job)
-  ERRORS.append("%s execution time: %s"%(job, time.strftime('%Hh:%Mm:%Ss',time.gmtime(time.time()-t0))
-))
+  rdk_mp.DgeomProgress(proc, statusfile, t0, 1, PROGRESS_WIN_NAME, job)
+  ERRORS.append(f"{job} execution time: "+time.strftime('%Hh:%Mm:%Ss', time.gmtime(time.time()-t0)))
   if VERBOSE:
-    ERRORS.append("<PRE>%s</PRE>"%(open(logfile).read()))
+    ERRORS.append("<PRE>"+open(logfile).read()+"</PRE>")
   return
 
 #############################################################################
@@ -232,7 +221,7 @@ def ParseStatusFile(statusfile):
 #############################################################################
 def DgeomResultsMulti(status,logfile):
   if OUTPUT_TRUNCATED:
-    OUTPUTS.append('Warning: output truncated; limit reached NMAX=%d.'%NMAX)
+    OUTPUTS.append(f'Warning: output truncated; limit reached NMAX={NMAX}.')
 
   n_in = status['n_in'] if 'n_in' in status else 0
   n_mol_out = status['n_mol_out'] if 'n_mol_out' in status else 0
@@ -240,89 +229,82 @@ def DgeomResultsMulti(status,logfile):
   n_conf_converged = status['n_conf_converged'] if 'n_conf_converged' in status else 0
   n_err = status['n_err'] if 'n_err' in status else 0
   OUTPUTS.append('<H2>output:</H2>')
-  OUTPUTS.append('mols in: %d'%n_in)
-  OUTPUTS.append('mols out: %d'%n_mol_out)
-  OUTPUTS.append('confs out: %d'%n_conf_out)
-  OUTPUTS.append('confs converged: %d ; NOT converged: %d'%(n_conf_converged,n_conf_out-n_conf_converged))
-  OUTPUTS.append('errors: %d'%n_err)
-
+  OUTPUTS.append('mols in: '+n_in)
+  OUTPUTS.append('mols out: '+n_mol_out)
+  OUTPUTS.append('confs out: '+n_conf_out)
+  OUTPUTS.append(f'confs converged: {n_conf_converged} ; NOT converged: {n_conf_out-n_conf_converged}')
+  OUTPUTS.append('errors: '+n_err)
   OUTPUTS.append('<H2>download:</H2>')
 
-  fname=('dgeom_out.sdf')
-  bhtm=('<FORM ACTION="%s/%s" METHOD="POST">'%(CGIURL,fname))
-  bhtm+=('<INPUT TYPE=HIDDEN NAME="downloadfile" VALUE="%s">'%OUTFILE)
-  bhtm+=('<BUTTON TYPE=BUTTON onClick="this.form.submit()">')
-  bhtm+=('%s (%s)</BUTTON></FORM>'%(fname,htm_utils.NiceBytes(os.stat(OUTFILE).st_size)))
-  OUTPUTS.append('<BLOCKQUOTE><b>%s</b> - output conformations (SDF)</BLOCKQUOTE>'%bhtm)
+  fname = ('dgeom_out.sdf')
+  bhtm = (f'<FORM ACTION="{CGIURL}/{fname}" METHOD="POST">')
+  bhtm += (f'<INPUT TYPE=HIDDEN NAME="downloadfile" VALUE="{OUTFILE}">')
+  bhtm += (f'<BUTTON TYPE=BUTTON onClick="this.form.submit()">{fname} ({htm_utils.NiceBytes(os.stat(OUTFILE).st_size)})</BUTTON></FORM>')
+  OUTPUTS.append(f'<BLOCKQUOTE><b>{bhtm}</b> - output conformations (SDF)</BLOCKQUOTE>')
 
-  fname=('dgeom_log.txt')
-  bhtm=('<FORM ACTION="%s/%s" METHOD="POST">'%(CGIURL,fname))
-  bhtm+=('<INPUT TYPE=HIDDEN NAME="downloadfile" VALUE="%s">'%logfile)
-  bhtm+=('<BUTTON TYPE=BUTTON onClick="this.form.submit()">')
-  bhtm+=('%s (%s)</BUTTON></FORM>'%(fname,htm_utils.NiceBytes(os.stat(logfile).st_size)))
-  OUTPUTS.append('<BLOCKQUOTE><b>%s</b> - log file</BLOCKQUOTE>'%bhtm)
-
-  DATE=time.strftime('%Y%m%d%H%M',time.localtime())
-  LOG.write('%s\t%s\t%d\n' % (DATE,os.environ['REMOTE_ADDR'],n_in))
-  LOG.close()
+  fname = ('dgeom_log.txt')
+  bhtm = (f'<FORM ACTION="{CGIURL}/{fname}" METHOD="POST">')
+  bhtm += (f'<INPUT TYPE=HIDDEN NAME="downloadfile" VALUE="{logfile}">')
+  bhtm += (f'<BUTTON TYPE=BUTTON onClick="this.form.submit()">{fname} ({htm_utils.NiceBytes(os.stat(logfile).st_size)})</BUTTON></FORM>')
+  OUTPUTS.append(f'<BLOCKQUOTE><b>{bhtm}</b> - log file</BLOCKQUOTE>')
 
 #############################################################################
 def Initialize():
-  global FORM,VERBOSE,INTXT,FIXTXT,LOG,INFILE2TXT,APPNAME
+  global FORM,VERBOSE,INTXT,FIXTXT,INFILE2TXT,APPNAME
   global ERRORS,OUTPUTS,CGIURL,PROG,FMTS,FMTS3D,IFMT
   global SMI2IMG,VIEW3D,FIXFMT,SMIFILE_HEADER
   global RUNMODE
   ERRORS=[]; OUTPUTS=[];
-  FORM=cgi.FieldStorage(keep_blank_values=1)
-  CGIURL=os.environ['SCRIPT_NAME']
-  PROG=os.path.basename(sys.argv[0])
-  APPNAME='DGeom'
+  FORM = cgi.FieldStorage(keep_blank_values=1)
+  CGIURL = os.environ['SCRIPT_NAME']
+  PROG = os.path.basename(sys.argv[0])
+  APPNAME = 'DGeom'
 
-  logohtm="<TABLE CELLSPACING=5 CELLPADDING=5>\n<TR><TD>"
-  href="http://medicine.unm.edu/informatics/"
-  imghtm=('<IMG SRC="'+env_cgi.HTML_SUBDIR+'/images/biocomp_logo_only.gif">')
-  tiphtm=('%s web app from UNM Translational Informatics Divsion'%APPNAME)
-  logohtm+=(htm_utils.HtmTipper(imghtm,'',tiphtm,href,200,"white"))
+  logohtm = "<TABLE CELLSPACING=5 CELLPADDING=5>\n<TR><TD>"
+  href = "http://medicine.unm.edu/informatics/"
+  imghtm = ('<IMG SRC="'+env_cgi.HTML_SUBDIR+'/images/biocomp_logo_only.gif">')
+  tiphtm = (f'{APPNAME} web app from UNM Translational Informatics Divsion')
+  logohtm += (htm_utils.HtmTipper(imghtm, '', tiphtm, href, 200, "white"))
 
-  href="http://www.rdkit.org"
-  imghtm=('<IMG HEIGHT="70" SRC="'+env_cgi.HTML_SUBDIR+'/images/rdkit_logo_only.png">')
-  tiphtm=('RDKit: Cheminformatics and Machine Learning Software')
-  logohtm+=(htm_utils.HtmTipper(imghtm,'',tiphtm,href,200,"white"))
+  href = "http://www.rdkit.org"
+  imghtm = ('<IMG HEIGHT="70" SRC="'+env_cgi.HTML_SUBDIR+'/images/rdkit_logo_only.png">')
+  tiphtm = ('RDKit: Cheminformatics and Machine Learning Software')
+  logohtm += (htm_utils.HtmTipper(imghtm, '', tiphtm, href, 200, "white"))
 
-  href="http://www.jmol.org"
-  imghtm=('<IMG HEIGHT="60" SRC="'+env_cgi.HTML_SUBDIR+'/images/Jmol_icon_128.png">')
-  tiphtm=('JSmol 3D viewer from the Jmol project')
-  logohtm+=(htm_utils.HtmTipper(imghtm,'',tiphtm,href,200,"white"))
+  href = "http://www.jmol.org"
+  imghtm = ('<IMG HEIGHT="60" SRC="'+env_cgi.HTML_SUBDIR+'/images/Jmol_icon_128.png">')
+  tiphtm = ('JSmol 3D viewer from the Jmol project')
+  logohtm += (htm_utils.HtmTipper(imghtm, '', tiphtm, href, 200, "white"))
 
-  logohtm+="</TD></TR></TABLE>"
+  logohtm += "</TD></TR></TABLE>"
   ERRORS.append("<CENTER>"+logohtm+"</CENTER>")
 
-  VERBOSE=FORM.getvalue('verbose')
-  INTXT=FORM.getvalue('intxt','')
-  FIXTXT=FORM.getvalue('fixtxt','')
-  INFILE2TXT=FORM.getvalue('infile2txt')
-  URLHOST=os.environ['SERVER_NAME']
-  urldir=os.path.dirname(os.environ['REQUEST_URI'])
-  SMI2IMG=urldir+'/mol2img.cgi'
-  VIEW3D=urldir+'/view3d_jsmol.cgi'
-  SMIFILE_HEADER=FORM.getvalue('smifile_header')
+  VERBOSE = FORM.getvalue('verbose')
+  INTXT = FORM.getvalue('intxt','')
+  FIXTXT = FORM.getvalue('fixtxt','')
+  INFILE2TXT = FORM.getvalue('infile2txt')
+  URLHOST = os.environ['SERVER_NAME']
+  urldir = os.path.dirname(os.environ['REQUEST_URI'])
+  SMI2IMG = urldir+'/mol2img.cgi'
+  VIEW3D = urldir+'/view3d_jsmol.cgi'
+  SMIFILE_HEADER = FORM.getvalue('smifile_header')
 
   global NMAX,NOLIMIT,OUTPUT_TRUNCATED
-  NOLIMIT=FORM.getvalue('nolimit')
+  NOLIMIT = FORM.getvalue('nolimit')
   NMAX=2000
   if NOLIMIT and env_cgi.ENABLE_NOLIMIT:
     NMAX=0
     MAXFILESIZE=0
-  OUTPUT_TRUNCATED=False
-  RUNMODE=FORM.getvalue('runmode','single')
+  OUTPUT_TRUNCATED = False
+  RUNMODE = FORM.getvalue('runmode','single')
 
   global FF,MAXCONF,OPTITERS,ETOL
-  FF=FORM.getvalue('ff')
-  MAXCONF=int(FORM.getvalue('maxconf','1'))
-  OPTITERS=int(FORM.getvalue('optiters','400'))
-  ETOL=float(FORM.getvalue('etol','1e-6'))
+  FF = FORM.getvalue('ff')
+  MAXCONF = int(FORM.getvalue('maxconf','1'))
+  OPTITERS = int(FORM.getvalue('optiters','400'))
+  ETOL = float(FORM.getvalue('etol','1e-6'))
 
-  IFMT=FORM.getvalue('ifmt','smiles')
+  IFMT = FORM.getvalue('ifmt','smiles')
   FMTS={
 	'smi':'SMILES',
 	'smiles':'SMILES',
@@ -332,47 +314,26 @@ def Initialize():
 	}
 
   global PROGRESS_WIN_NAME
-  PROGRESS_WIN_NAME='dgeom_progress_win'
+  PROGRESS_WIN_NAME = 'dgeom_progress_win'
 
-  logfile = './logs/'+PROG+'.log'	# web-app logfile
-  logfields=['ip','N']
-  if os.access(logfile,os.R_OK):
-    tmp=open(logfile)
-    lines=tmp.readlines()
-    tmp.close()
-    if len(lines)>1:
-      date=lines[1].split('\t')[0][:8]
-      date='%s/%s/%s'%(date[4:6],date[6:8],date[:4])
-      ERRORS.append('%s has been used %d times since %s.'%(PROG,len(lines)-1,date))
-  if os.access(logfile,os.W_OK):
-    LOG=open(logfile,'a')
-    if os.path.getsize(logfile)==0:
-      LOG.write('date\t' + '\t'.join(logfields) + '\n')
-  else:
-    LOG=open(logfile,'w+')
-    LOG.write('date\t' + '\t'.join(logfields) + '\n')
-  if not LOG:
-    ERRORS.append('LOGFILE error.')
-    return False
-
-  ERRORS.append('RDKit version: %s'%rdkit.rdBase.rdkitVersion)
-  ERRORS.append('Boost version: %s'%rdkit.rdBase.boostVersion)
+  ERRORS.append('RDKit version: '+rdkit.rdBase.rdkitVersion)
+  ERRORS.append('Boost version: '+rdkit.rdBase.boostVersion)
 
   global SCRATCHDIR,SCRATCHDIRURL,SCRATCHDIR_LIFETIME
-  SCRATCHDIR=env_cgi.scratchdir
-  SCRATCHDIRURL=env_cgi.scratchdirurl
-  SCRATCHDIR_LIFETIME=env_cgi.scratchdir_lifetime
+  SCRATCHDIR = env_cgi.scratchdir
+  SCRATCHDIRURL = env_cgi.scratchdirurl
+  SCRATCHDIR_LIFETIME = env_cgi.scratchdir_lifetime
 
   global TS,PREFIX
-  TS=time.strftime('%Y%m%d%H%M%S',time.localtime())
-  PREFIX=SCRATCHDIR+'/'+re.sub('\..*$','',PROG)+'.'+TS+'.'+str(random.randint(100,999))
+  TS = time.strftime('%Y%m%d%H%M%S',time.localtime())
+  PREFIX = SCRATCHDIR+'/'+re.sub('\..*$','',PROG)+'.'+TS+'.'+str(random.randint(100,999))
 
   ### Assure that writeable tmp directory exists.
   if not os.access(SCRATCHDIR,os.F_OK):
-    ERRORS.append('ERROR: missing scratch dir "%s"'%SCRATCHDIR)
+    ERRORS.append(f'ERROR: missing scratch dir "{SCRATCHDIR}"')
     return False
   elif not os.access(SCRATCHDIR,os.W_OK):
-    ERRORS.append('ERROR: non-writable scratch dir "%s"'%SCRATCHDIR)
+    ERRORS.append(f'ERROR: non-writable scratch dir "{SCRATCHDIR}"')
     return False
 
   if not FORM.getvalue('run_dgeom'):
@@ -382,20 +343,15 @@ def Initialize():
 
   global INFILE,OUTFILE,LOGFILE_DGEOM,STATUSFILE_DGEOM
   os.chdir(SCRATCHDIR)
-  tempfile.tempdir=os.getcwd()
-  fd,INFILE=tempfile.mkstemp('.'+IFMT,PREFIX)
-  os.close(fd)
-  fd,OUTFILE=tempfile.mkstemp('.sdf',PREFIX)
-  os.close(fd)
-  fd,LOGFILE_DGEOM=tempfile.mkstemp('.log',PREFIX)
-  os.close(fd)
-  fd,STATUSFILE_DGEOM=tempfile.mkstemp('.status',PREFIX)
-  os.close(fd)
+  tempfile.tempdir = os.getcwd()
+  fd,INFILE = tempfile.mkstemp('.'+IFMT, PREFIX); os.close(fd)
+  fd,OUTFILE = tempfile.mkstemp('.sdf', PREFIX); os.close(fd)
+  fd,LOGFILE_DGEOM = tempfile.mkstemp('.log', PREFIX); os.close(fd)
+  fd,STATUSFILE_DGEOM = tempfile.mkstemp('.status', PREFIX); os.close(fd)
 
   global DELFILES
-  DELFILES=[INFILE,LOGFILE_DGEOM,STATUSFILE_DGEOM]
+  DELFILES = [INFILE, LOGFILE_DGEOM, STATUSFILE_DGEOM]
 
-  f = open(INFILE,'w+')
   intxt=''
   if FORM['infile'].file and FORM['infile'].filename:
     intxt = FORM['infile'].value.decode("utf-8") #bytes
@@ -405,15 +361,15 @@ def Initialize():
   else:
     ERRORS.append('ERROR: No input data.')
     return False
-  intxt = re.sub('\t',' ',intxt) ##Fix TABs
-  intxt = re.sub('\r\n*','\n',intxt) ##Fix CRs
-  f.write(intxt)
-  f.close()
+  intxt = re.sub('\t', ' ', intxt) ##Fix TABs
+  intxt = re.sub('\r\n*', '\n', intxt) ##Fix CRs
+  with open(INFILE,'w+') as f:
+    f.write(intxt)
 
   if IFMT in ('smi','smiles'):
-    molreader=rdkit.Chem.SmilesMolSupplier(INFILE,delimiter=' ',smilesColumn=0,nameColumn=1,titleLine=bool(SMIFILE_HEADER),sanitize=True)
+    molreader = rdkit.Chem.SmilesMolSupplier(INFILE, delimiter=' ', smilesColumn=0, nameColumn=1, titleLine=bool(SMIFILE_HEADER), sanitize=True)
   else:
-    molreader=rdkit.Chem.SDMolSupplier(INFILE,sanitize=True,removeHs=True)
+    molreader = rdkit.Chem.SDMolSupplier(INFILE, sanitize=True, removeHs=True)
 
   global IMOL
   for mol in molreader:
@@ -436,9 +392,9 @@ def Initialize():
 
 #############################################################################
 def Help():
-  print('''\
+  print(f'''\
 <HR>
-<H3>%(APPNAME)s help</H3>
+<H3>{APPNAME} help</H3>
 <P>
 RDKit distance-geometry conformer generation.
 </P><P>
@@ -502,12 +458,9 @@ Epub 2012 Apr 19 (http://www.ncbi.nlm.nih.gov/pubmed/22482737).
 
 </UL>
 <P>
-NMAX = %(NMAX)d<BR>
-Depictions by %(DEPICT_TOOL)s.<BR>
-''' % {	'APPNAME':APPNAME,
-	'NMAX':NMAX,
-	'DEPICT_TOOL':env_cgi.DEPICT_TOOL
-	})
+NMAX = {NMAX}<BR>
+Depictions by {env_cgi.DEPICT_TOOL}.<BR>
+''')
 
 #############################################################################
 if __name__=='__main__':
@@ -521,26 +474,26 @@ if __name__=='__main__':
     if RUNMODE=='single':
       DgeomSingle(IMOL,OUTFILE,MAXCONF,FF,OPTITERS,ETOL)
     else:
-      DgeomLaunchProcess(INFILE,bool(SMIFILE_HEADER),OUTFILE,LOGFILE_DGEOM,STATUSFILE_DGEOM,MAXCONF,FF,OPTITERS,ETOL,'Dgeom')
+      DgeomLaunchProcess(INFILE, bool(SMIFILE_HEADER), OUTFILE, LOGFILE_DGEOM, STATUSFILE_DGEOM, MAXCONF, FF, OPTITERS, ETOL, 'Dgeom')
       status = ParseStatusFile(STATUSFILE_DGEOM)
-      DgeomResultsMulti(status,LOGFILE_DGEOM)
+      DgeomResultsMulti(status, LOGFILE_DGEOM)
       print('<SCRIPT>pwin.parent.focus(); pwin.focus(); pwin.close();</SCRIPT>')
     htm_utils.PrintOutput(OUTPUTS)
     htm_utils.PrintFooter(ERRORS)
     htm_utils.Cleanup(DELFILES)
-    purgescratchdirs.PurgeScratchDirs([SCRATCHDIR],SCRATCHDIR_LIFETIME,0)
+    purgescratchdirs.PurgeScratchDirs([SCRATCHDIR], SCRATCHDIR_LIFETIME, 0)
   elif FORM.getvalue('downloadtxt'):
     htm_utils.DownloadString(FORM.getvalue('downloadtxt'))
   elif FORM.getvalue('downloadfile'):
     htm_utils.DownloadFile(FORM.getvalue('downloadfile'))
   elif FORM.getvalue('help'):
-    htm_utils.PrintHeader(APPNAME,JavaScript(PROG))
+    htm_utils.PrintHeader(APPNAME, JavaScript(PROG))
     Help()
     htm_utils.PrintFooter(ERRORS)
   elif FORM.getvalue('test'):
-    htm_utils.PrintTestText(APPNAME,{})
+    htm_utils.PrintTestText(APPNAME, {})
   else:
-    htm_utils.PrintHeader(APPNAME,JavaScript(PROG))
+    htm_utils.PrintHeader(APPNAME, JavaScript(PROG))
     PrintForm()
     print('<SCRIPT>go_init(window.document.mainform);</SCRIPT>')
     htm_utils.PrintFooter(ERRORS)
