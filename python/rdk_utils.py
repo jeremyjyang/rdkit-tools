@@ -23,7 +23,11 @@ from rdkit.Chem.AllChem import GetMorganFingerprint,GetMorganFingerprintAsBitVec
 # scaffolds:
 from rdkit.Chem.Draw import rdMolDraw2D
 from rdkit.Chem.Scaffolds import MurckoScaffold
-from rdkit.Chem.Scaffolds import rdScaffoldNetwork
+try:
+  from rdkit.Chem.Scaffolds import rdScaffoldNetwork
+except Exception as e:
+  #logging.error(e)
+  logging.info("rdScaffoldNetwork not available.")
 
 import pyvis
 from pyvis.network import Network
