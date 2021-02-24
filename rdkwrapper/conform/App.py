@@ -11,11 +11,12 @@ import os,sys,re,time,argparse,logging
 import rdkit.rdBase
 import rdkit.Chem
 
-import rdk_utils
+from .. import util
+from .. import conform
 
 #############################################################################
 if __name__=='__main__':
-  FFS=['UFF', 'MMFF'];
+  FFS=['UFF','MMFF'];
   NCONF=1; OPTITERS=200; ETOL=1e-6;
 
   parser = argparse.ArgumentParser(description="RDKit Conformer Generation", epilog="Based on distance geometry method by Blaney et al.")
@@ -27,46 +28,47 @@ if __name__=='__main__':
   parser.add_argument("--etol", type=float, default=ETOL, help="energy tolerance")
   parser.add_argument("--title_in_header", action="store_true", help="title line in header")
   parser.add_argument("-v", "--verbose", action="count", default=0)
+
   args = parser.parse_args()
 
   logging.basicConfig(format='%(levelname)s:%(message)s', level=(logging.DEBUG if args.verbose>1 else logging.INFO))
 
-  logging.info(f"RDK_VERSION: {rdkit.rdBase.rdkitVersion}")
+  logging.info('RDK_VERSION: %s'%rdkit.rdBase.rdkitVersion)
 
   if not (args.ifile and args.ofile): parser.error('--i and --o required.')
 
   if re.sub(r'.*\.', '', args.ifile).lower()=='smi':
-    molreader = rdkit.Chem.SmilesMolSupplier(args.ifile, delimiter=' ', smilesColumn=0, nameColumn=1, titleLine=args.title_in_header, sanitize=True)
+    molreader=rdkit.Chem.SmilesMolSupplier(args.ifile, delimiter=' ', smilesColumn=0, nameColumn=1, titleLine=args.title_in_header, sanitize=True)
   
   elif re.sub(r'.*\.', '', args.ifile).lower() in ('sdf','sd','mdl','mol'):
-    molreader = rdkit.Chem.SDMolSupplier(args.ifile, sanitize=True, removeHs=True)
+    molreader=rdkit.Chem.SDMolSupplier(args.ifile, sanitize=True, removeHs=True)
   else:
-    parser.error(f"Unrecognized file extension: {args.ifile}")
+    parser.error('unrecognized file extension: %s'%args.ifile)
 
-  if re.sub(r'.*\.', '', args.ofile).lower() in ('sdf', 'sd', 'mdl', 'mol'):
-    molwriter = rdkit.Chem.SDWriter(args.ofile)
+  if re.sub(r'.*\.', '', args.ofile).lower() in ('sdf','sd','mdl','mol'):
+    molwriter=rdkit.Chem.SDWriter(args.ofile)
   else:
-    parser.error(f"Unrecognized file extension: {args.ofile}")
+    parser.error('unrecognized file extension: %s'%args.ofile)
 
   if args.ff.upper() not in FFS:
-    parser.error(f'''Unrecognized force field: "{args.ff}"''')
+    parser.error('unrecognized force field: "%s"'%args.ff)
 
   t0=time.time()
   n_mol=0; n_conf=0;
   for mol in molreader:
     n_mol+=1
     molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-    logging.debug(f"{n_mol}. {molname}:")
+    logging.debug('%d. %s:'%(n_mol, molname))
     ###
     ### redirect sys.stderr
     #fmsg = open('/tmp/z.err','w')
     #old_target, sys.stderr = sys.stderr, fmsg
     ###
 
-    mol, confIds = rdk_utils.GenerateConformations(mol, args.nconf, args.ff, args.optiters, args.etol)
+    mol, confIds = conform.Utils.GenerateConformations(mol, args.nconf, args.ff, args.optiters, args.etol)
 
     ###
-    #logging.debug(f'''fmsg = "{open('/tmp/z.err').read()}"''')
+    #print >>sys.stderr, 'DEBUG: fmsg = "%s"'%(open('/tmp/z.err').read())
     #os.remove('/tmp/z.err')
     ### restore sys.stderr
     #sys.stderr = old_target
@@ -76,5 +78,5 @@ if __name__=='__main__':
       molwriter.write(mol, confId = confId)
     n_conf+=len(confIds)
 
-  logging.info(f"{n_mol} mols, {n_conf} confs written to {args.ofile}")
-  logging.info(f"total elapsed time: {time.strftime('%Hh:%Mm:%Ss', time.gmtime(time.time()-t0))}")
+  logging.info('%d mols, %d confs written to %s' %(n_mol, n_conf, args.ofile))
+  logging.info('total elapsed time: %s'%(time.strftime('%Hh:%Mm:%Ss', time.gmtime(time.time()-t0))))
