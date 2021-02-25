@@ -172,7 +172,7 @@ def PrintForm():
   print('</FORM>')
 
 #############################################################################
-def DgeomSingle(imol,outfile,maxconf,ff,optiters,etol):
+def DgeomSingle(imol, outfile, maxconf, ff, optiters, etol):
   if not imol:
     OUTPUTS.append("<H2>ERROR: no input molecule</H2>")
     return
@@ -194,9 +194,10 @@ def DgeomSingle(imol,outfile,maxconf,ff,optiters,etol):
     OUTPUTS.append('<B>Dgeom failed.</B>')
     return
 
-  #filecode = urllib.parse.quote(SCRATCHDIRURL+'/'+os.path.basename(outfile), safe='')
-  filecode = urllib.parse.quote(SCRATCHDIR+'/'+os.path.basename(outfile), safe='')
-  ERRORS.append("DEBUG: filecode: "+filecode)
+  # furl (file URL) must refer to URL, since JSMOL (JavaScript) runs in client!
+  furl = 'http://'+URLHOST+SCRATCHDIRURL+'/'+os.path.basename(outfile)
+  ERRORS.append("DEBUG: furl: "+furl)
+  filecode = urllib.parse.quote(furl, safe='')
   bhtm = (f"""<FORM><BUTTON TYPE=BUTTON onClick="go_view3d('{VIEW3D}','{filecode}',{600},'view3d_dgeom','multiconf')">"""
 	+ f'''<IMG SRC="'''+env_cgi.HTML_SUBDIR+f'''/images/Jmol_icon_128.png" HEIGHT="60" VALIGN="middle">JSmol; view output ({len(confIds)} confs)</BUTTON></FORM>''')
   OUTPUTS.append('<BLOCKQUOTE>'+bhtm+'</BLOCKQUOTE>')
@@ -261,7 +262,7 @@ def Initialize():
   global FORM,VERBOSE,INTXT,FIXTXT,INFILE2TXT,APPNAME
   global ERRORS,OUTPUTS,CGIURL,PROG,FMTS,FMTS3D,IFMT
   global SMI2IMG,VIEW3D,FIXFMT,SMIFILE_HEADER
-  global RUNMODE
+  global RUNMODE,URLHOST
   ERRORS=[]; OUTPUTS=[];
   FORM = cgi.FieldStorage(keep_blank_values=1)
   CGIURL = os.environ['SCRIPT_NAME']
@@ -291,18 +292,14 @@ def Initialize():
   INTXT = FORM.getvalue('intxt','')
   FIXTXT = FORM.getvalue('fixtxt','')
   INFILE2TXT = FORM.getvalue('infile2txt')
-  URLHOST = os.environ['SERVER_NAME']
+  URLHOST = os.environ['HTTP_HOST'] if 'HTTP_HOST' in os.environ else os.environ['SERVER_NAME']
   urldir = os.path.dirname(os.environ['REQUEST_URI'])
   SMI2IMG = urldir+'/mol2img.cgi'
   VIEW3D = urldir+'/view3d_jsmol.cgi'
   SMIFILE_HEADER = FORM.getvalue('smifile_header')
 
-  global NMAX,NOLIMIT,OUTPUT_TRUNCATED
-  NOLIMIT = FORM.getvalue('nolimit')
+  global NMAX,OUTPUT_TRUNCATED
   NMAX=2000
-  if NOLIMIT and env_cgi.ENABLE_NOLIMIT:
-    NMAX=0
-    MAXFILESIZE=0
   OUTPUT_TRUNCATED = False
   RUNMODE = FORM.getvalue('runmode','single')
 

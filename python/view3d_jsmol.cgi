@@ -214,12 +214,13 @@ def ViewMolecule(fpath, molname=''):
   """
 https://chemapps.stolaf.edu/jmol/docs/#load
 "Loads the specified file or URL."
+MUST USE URL SINCE JS RUNS ON CLIENT!
 http://wiki.jmol.org/index.php/Jmol_JavaScript_Object/Functions#loadFile
 Jmol.loadFile = function(JmolObject, fileName, params)
 Use instead Jmol.script(myJmol, "load '" + fileName + "'....")
 """
   js_init = (f"""\
-Jmol.loadFile(JMOL1, '{fpath}');
+Jmol.loadFile(JMOL1, '{furl}');
 var jmolscript='';
 jmolscript+='set showHydrogens off; set measurements angstroms;';
 jmolscript+='color echo yellow; ';
@@ -247,7 +248,7 @@ spin:<INPUT TYPE="CHECKBOX" NAME="spin" onChange="update_checkbox_spin(this.form
 """)
 
 #############################################################################
-def ViewMulticonformer(fpath):
+def ViewMulticonformer(furl):
   js_extra = ("""
 function JmolCBFunc(app, frameno, fileno, modelno, firstno, lastno) {{
   var n_conf=lastno-firstno+1;
@@ -255,7 +256,7 @@ function JmolCBFunc(app, frameno, fileno, modelno, firstno, lastno) {{
 }}
 """)
   js_init = ("""\
-Jmol.loadFile(JMOL1, '"""+fpath+"""');
+Jmol.loadFile(JMOL1, '"""+furl+"""');
 var jmolscript='';
 jmolscript+='set showHydrogens off; set measurements angstroms;';
 jmolscript+='color echo yellow; ';
@@ -303,11 +304,11 @@ slideshow:<INPUT TYPE="CHECKBOX" NAME="animation" onChange="update_checkbox_anim
 """)
 
 #############################################################################
-def ViewComplex(fpathP, fpathL):
+def ViewComplex(furlP, furlL):
   js_init = ("""\
 var jmolscript='';
 jmolscript+='set showHydrogens off; set measurements angstroms;';
-jmolscript+='load FILES "'''+fpathP+'''" "'''+fpathL+'''";';
+jmolscript+='load FILES "'''+furlP+'''" "'''+furlL+'''";';
 jmolscript+='select 1.1; wireframe on; cpk off;';
 //jmolscript+='isosurface ID psurf RESOLUTION 0 SOLVENT 0.0 COLOR yellow; ';
 jmolscript+='model 2; select 2.1; cpk on; center 2.1; zoom 200; ';
@@ -342,9 +343,9 @@ showinfo:<INPUT TYPE="CHECKBOX" NAME="showinfo" onChange="Jmol.showInfo(JMOL1, t
 """)
 
 #############################################################################
-def ViewOverlay(fpath):
+def ViewOverlay(furl):
   js_init = ("""\
-Jmol.loadFile(JMOL1, '"""+fpath+"""');
+Jmol.loadFile(JMOL1, '"""+furl+"""');
 var jmolscript='';
 jmolscript+='set showHydrogens off; set measurements angstroms;';
 jmolscript+='model 1.0;';
@@ -373,11 +374,11 @@ showinfo:<INPUT TYPE="CHECKBOX" NAME="showinfo" onChange="Jmol.showInfo(JMOL1, t
 """)
 
 #############################################################################
-def ViewOverlay1xN(fpathQ, fpathD):
+def ViewOverlay1xN(furlQ, furlD):
   js_init = ("""\
 var jmolscript='';
 jmolscript+='set showHydrogens off; set measurements angstroms;';
-jmolscript+='load FILES "'''+fpathQ+'''" "'''+fpathD+'''";';
+jmolscript+='load FILES "'''+furlQ+'''" "'''+furlD+'''";';
 jmolscript+='center 1.1; zoom IN; ';
 jmolscript+='dots ON; ';
 jmolscript+='display 1.1,2.2; ';
@@ -455,6 +456,7 @@ def Initialize():
   else:
     HEIGHT=500
 
+  # FILEA and FILEB must be URLs, since JS runs on client!
   FILEA = FORM.getvalue('file')
   if not FILEA: FILEA = FORM.getvalue('filecode')
   if not FILEA: FILEA = FORM.getvalue('fileA')
@@ -468,14 +470,17 @@ def Initialize():
   if FILEA: FILEA = urllib.parse.unquote(FILEA)
   if FILEB: FILEB = urllib.parse.unquote(FILEB)
 
+  #Convert URLs to filepaths.
   #fpath = os.environ['DOCUMENT_ROOT']+re.sub('^[^/]*/', '/', FILEA)
-  if not os.access(FILEA, os.R_OK):
-    ERRORS.append('ERROR: file not found: '+FILEA)
+  fpath = env_cgi.scratchdir+re.sub(r'^.*/', '/', FILEA)
+  if not os.access(fpath, os.R_OK):
+    ERRORS.append('ERROR: file not found: '+fpath)
     return False
   if re.search('complex', MODE) or MODE=='overlay1xN':
     #fpath = os.environ['DOCUMENT_ROOT']+re.sub('^[^/]*/', '/', FILEB)
-    if not os.access(FILEB, os.R_OK):
-      ERRORS.append('ERROR: file not found: '+FILEB)
+    fpath = env_cgi.scratchdir+re.sub(r'^.*/', '/', FILEB)
+    if not os.access(fpath, os.R_OK):
+      ERRORS.append('ERROR: file not found: '+fpath)
       return False
   global MOLNAMEA, MOLNAMEB
   MOLNAMEA = FORM.getvalue('molnameA')
@@ -495,7 +500,7 @@ def Initialize():
 def PrintHeader(title='', js='', initjs='', css=''):
   print('Content-type: text/html\n\n<HTML STYLE="height:100%">')
   print('<HEAD><TITLE>'+title+'</TITLE>')
-  print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/js/Mol2Img.js"></SCRIPT>')
+  print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/js/biocomp.js"></SCRIPT>')
   print('<SCRIPT src="'+env_cgi.HTML_SUBDIR+'/jsmol/js/JSmoljQuery.js"></SCRIPT>')
   print('<SCRIPT src="'+env_cgi.HTML_SUBDIR+'/jsmol/js/JSmolCore.js"></SCRIPT>')
   print('<SCRIPT src="'+env_cgi.HTML_SUBDIR+'/jsmol/js/JSmolApplet.js"></SCRIPT>')
