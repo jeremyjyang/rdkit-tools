@@ -211,8 +211,14 @@ function update_checkbox_animation(form)
 
 #############################################################################
 def ViewMolecule(fpath, molname=''):
-  """Paths should be URLs? Or file paths?"""
-  js_init=f"""
+  """
+https://chemapps.stolaf.edu/jmol/docs/#load
+"Loads the specified file or URL."
+http://wiki.jmol.org/index.php/Jmol_JavaScript_Object/Functions#loadFile
+Jmol.loadFile = function(JmolObject, fileName, params)
+Use instead Jmol.script(myJmol, "load '" + fileName + "'....")
+"""
+  js_init = (f"""\
 Jmol.loadFile(JMOL1, '{fpath}');
 var jmolscript='';
 jmolscript+='set showHydrogens off; set measurements angstroms;';
@@ -220,7 +226,7 @@ jmolscript+='color echo yellow; ';
 jmolscript+='set echo top left; ';
 // jmolscript+='echo "{molname}";');
 Jmol.script(JMOL1, jmolscript);
-"""
+""")
 
   PrintHeader(title=TITLE, js=JavaScript(), initjs=js_init, css='')
 
@@ -242,13 +248,13 @@ spin:<INPUT TYPE="CHECKBOX" NAME="spin" onChange="update_checkbox_spin(this.form
 
 #############################################################################
 def ViewMulticonformer(fpath):
-  js_extra="""
+  js_extra = ("""
 function JmolCBFunc(app, frameno, fileno, modelno, firstno, lastno) {{
   var n_conf=lastno-firstno+1;
   Jmol.script(JMOL1, 'echo "conformer: '+modelno+' / '+n_conf+'";');
 }}
-"""
-  js_init="""
+""")
+  js_init = ("""\
 Jmol.loadFile(JMOL1, '"""+fpath+"""');
 var jmolscript='';
 jmolscript+='set showHydrogens off; set measurements angstroms;';
@@ -258,7 +264,7 @@ jmolscript+='model 1; ';
 //jmolscript+='echo "conformer: 1";');
 jmolscript+='set AnimFrameCallback "JmolCBFunc"; ';
 Jmol.script(JMOL1, jmolscript);
-"""
+""")
   PrintHeader(title=TITLE, js=JavaScript()+js_extra, initjs=js_init, css='')
 
   print("""\
@@ -298,7 +304,7 @@ slideshow:<INPUT TYPE="CHECKBOX" NAME="animation" onChange="update_checkbox_anim
 
 #############################################################################
 def ViewComplex(fpathP, fpathL):
-  js_init='''
+  js_init = ("""\
 var jmolscript='';
 jmolscript+='set showHydrogens off; set measurements angstroms;';
 jmolscript+='load FILES "'''+fpathP+'''" "'''+fpathL+'''";';
@@ -309,8 +315,7 @@ jmolscript+='model ALL; display ALL; ';
 jmolscript+='slab on; slab 80; depth 40; ';
 jmolscript+='hover %%a %%D (%%n,%%c)|%%.2x,%%.2y,%%.2z;';
 Jmol.script(JMOL1, jmolscript);
-'''
-
+""")
   PrintHeader(title=TITLE, js=JavaScript(), initjs=js_init, css='')
 
   print("""\
@@ -338,15 +343,14 @@ showinfo:<INPUT TYPE="CHECKBOX" NAME="showinfo" onChange="Jmol.showInfo(JMOL1, t
 
 #############################################################################
 def ViewOverlay(fpath):
-  js_init="""
+  js_init = ("""\
 Jmol.loadFile(JMOL1, '"""+fpath+"""');
 var jmolscript='';
 jmolscript+='set showHydrogens off; set measurements angstroms;';
 jmolscript+='model 1.0;';
 jmolscript+='dots ON; ';
 Jmol.script(JMOL1, jmolscript);
-"""
-
+""")
   PrintHeader(title=TITLE, js=JavaScript(), initjs=js_init, css='')
 
   print("""\
@@ -370,7 +374,7 @@ showinfo:<INPUT TYPE="CHECKBOX" NAME="showinfo" onChange="Jmol.showInfo(JMOL1, t
 
 #############################################################################
 def ViewOverlay1xN(fpathQ, fpathD):
-  js_init='''
+  js_init = ("""\
 var jmolscript='';
 jmolscript+='set showHydrogens off; set measurements angstroms;';
 jmolscript+='load FILES "'''+fpathQ+'''" "'''+fpathD+'''";';
@@ -381,8 +385,7 @@ jmolscript+='model 2; ';
 jmolscript+='display ALL; ';
 jmolscript+='set backgroundModel 1.1; ';
 Jmol.script(JMOL1, jmolscript);
-'''
-
+""")
   PrintHeader(title=TITLE, js=JavaScript(), initjs=js_init, css='')
 
   print("""\
@@ -412,11 +415,11 @@ showinfo:<INPUT TYPE="CHECKBOX" NAME="showinfo" onChange="Jmol.showInfo(JMOL1, t
 
 #############################################################################
 def ViewEmpty():
-  js_init="""
+  js_init = ("""\
 var jmolscript='';
 jmolscript+='set showHydrogens off; set measurements angstroms;';
 Jmol.script(JMOL1, jmolscript);
-"""
+""")
   PrintHeader(title=TITLE, js=JavaScript(), initjs=js_init, css='')
   print("""\
 <DIV ID="JMOLDIV1" style="width:100%%;height:85%%;background-color:white"></DIV>
@@ -561,7 +564,7 @@ if __name__=='__main__':
   elif MODE=='overlay1xN':	##Used by rocs.cgi, 1xN mode.
     ViewOverlay1xN(FILEA, FILEB)
   elif FILEA:
-    ViewMolecule(FILEA, MOLNAMEA)
+    ViewMolecule(FILEA, MOLNAMEA)	##Used by rdk_dgeom.cgi.
   else:
     ViewEmpty()
   htm_utils.PrintFooter(ERRORS)

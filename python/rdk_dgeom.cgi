@@ -111,10 +111,9 @@ function fromJSME(smiles) // function called from JSME window
 #############################################################################
 def PrintForm():
   ifmtmenu='<SELECT NAME="ifmt">\n'
-  for fmt in ('smiles','sdf'):
-    if fmt==IFMT: s=' SELECTED'
-    else: s=''
-    ifmtmenu+='<OPTION VALUE="%s"%s>%s'%(fmt,s,FMTS[fmt])
+  for fmt in ('smiles', 'sdf'):
+    s = ' SELECTED' if fmt==IFMT else ''
+    ifmtmenu+=(f'<OPTION VALUE="{fmt}"{s}>{FMTS[fmt]}')
   ifmtmenu+='</SELECT>'
 
   RUNMODE_SINGLE=''; RUNMODE_MULTI='';
@@ -177,17 +176,17 @@ def DgeomSingle(imol,outfile,maxconf,ff,optiters,etol):
   if not imol:
     OUTPUTS.append("<H2>ERROR: no input molecule</H2>")
     return
-  OUTPUTS.append("<H2>input:</H2>")
   molname = imol.GetProp('_Name') if imol.HasProp('_Name') else ''
-  thtm=('<TABLE><TR><TD VALIGN=TOP><TT>'+molname+'</TT></TD></TR>')
-  ismi=rdkit.Chem.MolToSmiles(imol,isomericSmiles=True)
-  thtm+=("<TR><TD>"+ismi+"</TD></TR>")
-  imghtm=(mol2imghtm.Smi2ImgHtm((ismi+' '+molname if molname else ismi),'',180,220,SMI2IMG))
-  thtm+=('<TR><TD BGCOLOR="white">'+imghtm+'</TD></TR></TABLE>')
+  ismi = rdkit.Chem.MolToSmiles(imol, isomericSmiles=True)
+  imghtm = (mol2imghtm.Smi2ImgHtm((ismi+' '+molname if molname else ismi), '', 180, 220, SMI2IMG))
+  thtm = ('<TABLE><TR><TD VALIGN=TOP><TT>'+molname+'</TT></TD></TR>'
+ 	+ "<TR><TD>"+ismi+"</TD></TR>"
+ 	+ '<TR><TD BGCOLOR="white">'+imghtm+'</TD></TR></TABLE>')
+  OUTPUTS.append("<H2>input:</H2>")
   OUTPUTS.append("<BLOCKQUOTE>"+thtm+"</BLOCKQUOTE>")
   OUTPUTS.append('<H2>output:</H2>')
 
-  molwriter=rdkit.Chem.SDWriter(outfile)
+  molwriter = rdkit.Chem.SDWriter(outfile)
   outmol, confIds = rdk_utils.GenerateConformations(imol,maxconf,ff,optiters,etol)
   for confId in confIds:
     molwriter.write(outmol,confId=confId)
@@ -195,7 +194,8 @@ def DgeomSingle(imol,outfile,maxconf,ff,optiters,etol):
     OUTPUTS.append('<B>Dgeom failed.</B>')
     return
 
-  filecode = urllib.parse.quote(SCRATCHDIRURL+'/'+os.path.basename(outfile), safe='')
+  #filecode = urllib.parse.quote(SCRATCHDIRURL+'/'+os.path.basename(outfile), safe='')
+  filecode = urllib.parse.quote(SCRATCHDIR+'/'+os.path.basename(outfile), safe='')
   ERRORS.append("DEBUG: filecode: "+filecode)
   bhtm = (f"""<FORM><BUTTON TYPE=BUTTON onClick="go_view3d('{VIEW3D}','{filecode}',{600},'view3d_dgeom','multiconf')">"""
 	+ f'''<IMG SRC="'''+env_cgi.HTML_SUBDIR+f'''/images/Jmol_icon_128.png" HEIGHT="60" VALIGN="middle">JSmol; view output ({len(confIds)} confs)</BUTTON></FORM>''')
@@ -244,17 +244,17 @@ def DgeomResultsMulti(status,logfile):
   OUTPUTS.append('errors: '+n_err)
   OUTPUTS.append('<H2>download:</H2>')
 
-  fname = ('dgeom_out.sdf')
-  bhtm = (f'<FORM ACTION="{CGIURL}/{fname}" METHOD="POST">')
-  bhtm += (f'<INPUT TYPE=HIDDEN NAME="downloadfile" VALUE="{OUTFILE}">')
-  bhtm += (f'<BUTTON TYPE=BUTTON onClick="this.form.submit()">{fname} ({htm_utils.NiceBytes(os.stat(OUTFILE).st_size)})</BUTTON></FORM>')
-  OUTPUTS.append(f'<BLOCKQUOTE><b>{bhtm}</b> - output conformations (SDF)</BLOCKQUOTE>')
+  fname = 'dgeom_out.sdf'
+  bhtm = (f'<FORM ACTION="{CGIURL}/{fname}" METHOD="POST">'
+	+ f'<INPUT TYPE=HIDDEN NAME="downloadfile" VALUE="{OUTFILE}">'
+	+ f'<BUTTON TYPE=BUTTON onClick="this.form.submit()"><B>{fname} ({htm_utils.NiceBytes(os.stat(OUTFILE).st_size)})</B></BUTTON></FORM>')
+  OUTPUTS.append('<BLOCKQUOTE>'+bhtm+' - output conformations (SDF)</BLOCKQUOTE>')
 
-  fname = ('dgeom_log.txt')
-  bhtm = (f'<FORM ACTION="{CGIURL}/{fname}" METHOD="POST">')
-  bhtm += (f'<INPUT TYPE=HIDDEN NAME="downloadfile" VALUE="{logfile}">')
-  bhtm += (f'<BUTTON TYPE=BUTTON onClick="this.form.submit()">{fname} ({htm_utils.NiceBytes(os.stat(logfile).st_size)})</BUTTON></FORM>')
-  OUTPUTS.append(f'<BLOCKQUOTE><b>{bhtm}</b> - log file</BLOCKQUOTE>')
+  fname = 'dgeom_log.txt'
+  bhtm = (f'<FORM ACTION="{CGIURL}/{fname}" METHOD="POST">'
+	+ f'<INPUT TYPE=HIDDEN NAME="downloadfile" VALUE="{logfile}">'
+	+ f'<BUTTON TYPE=BUTTON onClick="this.form.submit()"><B>{fname} ({htm_utils.NiceBytes(os.stat(logfile).st_size)})</B></BUTTON></FORM>')
+  OUTPUTS.append('<BLOCKQUOTE><b>'+bhtm+' - log file</BLOCKQUOTE>')
 
 #############################################################################
 def Initialize():
@@ -402,7 +402,7 @@ def Initialize():
 
 #############################################################################
 def Help():
-  print(f'''\
+  print(f"""\
 <HR>
 <H3>{APPNAME} help</H3>
 <P>
@@ -470,19 +470,19 @@ Epub 2012 Apr 19 (http://www.ncbi.nlm.nih.gov/pubmed/22482737).
 <P>
 NMAX = {NMAX}<BR>
 Depictions by {env_cgi.DEPICT_TOOL}.<BR>
-''')
+""")
 
 #############################################################################
 if __name__=='__main__':
   ok=Initialize()
   if not ok:
-    htm_utils.PrintHeader(APPNAME,JavaScript(PROG))
+    htm_utils.PrintHeader(APPNAME, JavaScript(PROG))
     htm_utils.PrintFooter(ERRORS)
   elif FORM.getvalue('run_dgeom'):
-    htm_utils.PrintHeader(APPNAME,JavaScript(PROG))
+    htm_utils.PrintHeader(APPNAME, JavaScript(PROG))
     PrintForm()
     if RUNMODE=='single':
-      DgeomSingle(IMOL,OUTFILE,MAXCONF,FF,OPTITERS,ETOL)
+      DgeomSingle(IMOL, OUTFILE, MAXCONF, FF, OPTITERS, ETOL)
     else:
       DgeomLaunchProcess(INFILE, bool(SMIFILE_HEADER), OUTFILE, LOGFILE_DGEOM, STATUSFILE_DGEOM, MAXCONF, FF, OPTITERS, ETOL, 'Dgeom')
       status = ParseStatusFile(STATUSFILE_DGEOM)
