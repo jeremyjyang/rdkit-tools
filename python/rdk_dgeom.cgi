@@ -197,14 +197,14 @@ def DgeomSingle(imol,outfile,maxconf,ff,optiters,etol):
 
   filecode = urllib.parse.quote(SCRATCHDIRURL+'/'+os.path.basename(outfile), safe='')
   ERRORS.append("DEBUG: filecode: "+filecode)
-  bhtm = (f"""<FORM><BUTTON TYPE=BUTTON onClick="go_view3d('{VIEW3D}','{filecode}',{600},'view3d_dgeom','multiconf')">""")
-  bhtm += (f'''<IMG SRC="'''+env_cgi.HTML_SUBDIR+f'''/images/Jmol_icon_128.png" HEIGHT="60" VALIGN="middle">JSmol; view output ({len(confIds)} confs)</BUTTON></FORM>''')
+  bhtm = (f"""<FORM><BUTTON TYPE=BUTTON onClick="go_view3d('{VIEW3D}','{filecode}',{600},'view3d_dgeom','multiconf')">"""
+	+ f'''<IMG SRC="'''+env_cgi.HTML_SUBDIR+f'''/images/Jmol_icon_128.png" HEIGHT="60" VALIGN="middle">JSmol; view output ({len(confIds)} confs)</BUTTON></FORM>''')
   OUTPUTS.append('<BLOCKQUOTE>'+bhtm+'</BLOCKQUOTE>')
 
   fname = 'dgeom_out.sdf'
-  bhtm = (f'<FORM ACTION="{CGIURL}/{fname}" METHOD="POST">')
-  bhtm += ('<INPUT TYPE=HIDDEN NAME="downloadfile" VALUE="'+outfile+'">')
-  bhtm += (f"""<BUTTON TYPE=BUTTON onClick="this.form.submit()"> {fname} ({htm_utils.NiceBytes(os.stat(outfile).st_size)})</BUTTON></FORM>""")
+  bhtm = (f'<FORM ACTION="{CGIURL}/{fname}" METHOD="POST">'
+	+ '<INPUT TYPE=HIDDEN NAME="downloadfile" VALUE="'+outfile+'">'
+	+ f"""<BUTTON TYPE=BUTTON onClick="this.form.submit()"> {fname} ({htm_utils.NiceBytes(os.stat(outfile).st_size)})</BUTTON></FORM>""")
   OUTPUTS.append('<BLOCKQUOTE><b>Download:</b> '+bhtm+'</BLOCKQUOTE>')
 
 #############################################################################
