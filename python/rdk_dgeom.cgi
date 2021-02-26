@@ -195,8 +195,8 @@ def DgeomSingle(imol, outfile, maxconf, ff, optiters, etol):
     return
 
   # furl (file URL) must refer to URL, since JSMOL (JavaScript) runs in client!
-  furl = 'http://'+URLHOST+SCRATCHDIRURL+'/'+os.path.basename(outfile)
-  ERRORS.append("DEBUG: furl: "+furl)
+  furl = 'https://'+URLHOST+SCRATCHDIRURL+'/'+os.path.basename(outfile)
+  #ERRORS.append("DEBUG: furl: "+furl)
   filecode = urllib.parse.quote(furl, safe='')
   bhtm = (f"""<FORM><BUTTON TYPE=BUTTON onClick="go_view3d('{VIEW3D}','{filecode}',{600},'view3d_dgeom','multiconf')">"""
 	+ f'''<IMG SRC="'''+env_cgi.HTML_SUBDIR+f'''/images/Jmol_icon_128.png" HEIGHT="60" VALIGN="middle">JSmol; view output ({len(confIds)} confs)</BUTTON></FORM>''')
@@ -340,8 +340,8 @@ def Initialize():
   elif not os.access(SCRATCHDIR,os.W_OK):
     ERRORS.append("ERROR: non-writable SCRATCHDIR: "+SCRATCHDIR)
     return False
-  ERRORS.append("DEBUG: SCRATCHDIR: "+SCRATCHDIR)
-  ERRORS.append("DEBUG: SCRATCHDIRURL: "+SCRATCHDIRURL)
+  #ERRORS.append("DEBUG: SCRATCHDIR: "+SCRATCHDIR)
+  #ERRORS.append("DEBUG: SCRATCHDIRURL: "+SCRATCHDIRURL)
 
   if not FORM.getvalue('run_dgeom'):
     return True

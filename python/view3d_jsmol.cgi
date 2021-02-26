@@ -210,15 +210,14 @@ function update_checkbox_animation(form)
 """
 
 #############################################################################
-def ViewMolecule(fpath, molname=''):
-  """
-https://chemapps.stolaf.edu/jmol/docs/#load
-"Loads the specified file or URL."
-MUST USE URL SINCE JS RUNS ON CLIENT!
-http://wiki.jmol.org/index.php/Jmol_JavaScript_Object/Functions#loadFile
-Jmol.loadFile = function(JmolObject, fileName, params)
-Use instead Jmol.script(myJmol, "load '" + fileName + "'....")
-"""
+### https://chemapps.stolaf.edu/jmol/docs/#load
+### "Loads the specified file or URL."
+### MUST USE URL SINCE JS RUNS ON CLIENT!
+### http://wiki.jmol.org/index.php/Jmol_JavaScript_Object/Functions#loadFile
+### Jmol.loadFile = function(JmolObject, fileName, params)
+### Use instead Jmol.script(myJmol, "load '" + fileName + "'....")
+#############################################################################
+def ViewMolecule(furl, molname=''):
   js_init = (f"""\
 Jmol.loadFile(JMOL1, '{furl}');
 var jmolscript='';
@@ -228,9 +227,7 @@ jmolscript+='set echo top left; ';
 // jmolscript+='echo "{molname}";');
 Jmol.script(JMOL1, jmolscript);
 """)
-
   PrintHeader(title=TITLE, js=JavaScript(), initjs=js_init, css='')
-
   print("""
 <DIV ID="JMOLDIV1" style="width:100%%;height:95%%;background-color:white"></DIV>
 <FORM>
@@ -267,7 +264,6 @@ jmolscript+='set AnimFrameCallback "JmolCBFunc"; ';
 Jmol.script(JMOL1, jmolscript);
 """)
   PrintHeader(title=TITLE, js=JavaScript()+js_extra, initjs=js_init, css='')
-
   print("""\
 <DIV ID="JMOLDIV1" style="width:100%%;height:85%%;background-color:white"></DIV>
 <br />
@@ -318,7 +314,6 @@ jmolscript+='hover %%a %%D (%%n,%%c)|%%.2x,%%.2y,%%.2z;';
 Jmol.script(JMOL1, jmolscript);
 """)
   PrintHeader(title=TITLE, js=JavaScript(), initjs=js_init, css='')
-
   print("""\
 <DIV ID="JMOLDIV1" style="width:100%%;height:85%%;background-color:white"></DIV>
 <FORM>
@@ -353,7 +348,6 @@ jmolscript+='dots ON; ';
 Jmol.script(JMOL1, jmolscript);
 """)
   PrintHeader(title=TITLE, js=JavaScript(), initjs=js_init, css='')
-
   print("""\
 <DIV ID="JMOLDIV1" style="width:100%%;height:85%%;background-color:white"></DIV>
 <FORM>
@@ -388,7 +382,6 @@ jmolscript+='set backgroundModel 1.1; ';
 Jmol.script(JMOL1, jmolscript);
 """)
   PrintHeader(title=TITLE, js=JavaScript(), initjs=js_init, css='')
-
   print("""\
 <DIV ID="JMOLDIV1" style="width:100%%;height:85%%;background-color:white"></DIV>
 <FORM>
@@ -438,7 +431,7 @@ showinfo:<INPUT TYPE="CHECKBOX" NAME="showinfo" onChange="Jmol.showInfo(JMOL1, t
 def Initialize():
   global FORM,FILEA,FILEB,TITLE,ERRORS,MODE,APPNAME
   APPNAME = 'MolView3D'
-  ERRORS=[]
+  ERRORS=[];
   FORM = cgi.FieldStorage(keep_blank_values=1)
   TITLE = FORM.getvalue('title', 'JSMol')
   MODE = FORM.getvalue('mode')
@@ -471,13 +464,11 @@ def Initialize():
   if FILEB: FILEB = urllib.parse.unquote(FILEB)
 
   #Convert URLs to filepaths.
-  #fpath = os.environ['DOCUMENT_ROOT']+re.sub('^[^/]*/', '/', FILEA)
   fpath = env_cgi.scratchdir+re.sub(r'^.*/', '/', FILEA)
   if not os.access(fpath, os.R_OK):
     ERRORS.append('ERROR: file not found: '+fpath)
     return False
   if re.search('complex', MODE) or MODE=='overlay1xN':
-    #fpath = os.environ['DOCUMENT_ROOT']+re.sub('^[^/]*/', '/', FILEB)
     fpath = env_cgi.scratchdir+re.sub(r'^.*/', '/', FILEB)
     if not os.access(fpath, os.R_OK):
       ERRORS.append('ERROR: file not found: '+fpath)
@@ -501,13 +492,13 @@ def PrintHeader(title='', js='', initjs='', css=''):
   print('Content-type: text/html\n\n<HTML STYLE="height:100%">')
   print('<HEAD><TITLE>'+title+'</TITLE>')
   print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/js/biocomp.js"></SCRIPT>')
-  print('<SCRIPT src="'+env_cgi.HTML_SUBDIR+'/jsmol/js/JSmoljQuery.js"></SCRIPT>')
-  print('<SCRIPT src="'+env_cgi.HTML_SUBDIR+'/jsmol/js/JSmolCore.js"></SCRIPT>')
-  print('<SCRIPT src="'+env_cgi.HTML_SUBDIR+'/jsmol/js/JSmolApplet.js"></SCRIPT>')
-  print('<SCRIPT src="'+env_cgi.HTML_SUBDIR+'/jsmol/js/JSmolApi.js"></SCRIPT>')
-  print('<SCRIPT src="'+env_cgi.HTML_SUBDIR+'/jsmol/js/j2sjmol.js"></SCRIPT>')
-  print('<SCRIPT src="'+env_cgi.HTML_SUBDIR+'/jsmol/js/JSmol.js"></SCRIPT>')
-  print("""\
+  print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/jsmol/js/JSmoljQuery.js"></SCRIPT>')
+  print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/jsmol/js/JSmolCore.js"></SCRIPT>')
+  print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/jsmol/js/JSmolApplet.js"></SCRIPT>')
+  print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/jsmol/js/JSmolApi.js"></SCRIPT>')
+  print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/jsmol/js/j2sjmol.js"></SCRIPT>')
+  print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/jsmol/js/JSmol.js"></SCRIPT>')
+  print('''\
 <script type="text/javascript">
 
 //Jmol.debugCode=true;
@@ -527,7 +518,7 @@ JSMolParams = {
         addSelectionOptions: false,
         serverURL: "http://chemapps.stolaf.edu/jmol/jsmol/jsmol.php",
         use: "HTML5",
-        j2sPath: "/jsmol/j2s",
+        j2sPath: "'''+env_cgi.HTML_SUBDIR+'''/jsmol/j2s",
         readyFunction: jmol_isReady,
         script: "background black; set antialiasDisplay;"
 };
@@ -540,13 +531,13 @@ $(document).ready(function(){
   Jmol.setDocument(0);
   JMOL1 = Jmol.getApplet("JMOL1", JSMolParams)    
   $("#JMOLDIV1").html(Jmol.getAppletHtml(JMOL1));
-"""+initjs+"""
+'''+initjs+'''
 });
 </script>
-""")
+''')
   print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/js/tip_main.js"></SCRIPT>')
   print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/js/tip_style.js"></SCRIPT>')
-  print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/js/ddtip.js" TYPE="text/javascript"></SCRIPT>')
+  print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/js/ddtip.js"></SCRIPT>')
   if js: print('<SCRIPT LANGUAGE="JavaScript">'+js+'</SCRIPT>')
   print('<LINK REL="stylesheet" type="text/css" HREF="'+env_cgi.HTML_SUBDIR+'/css/biocomp.css" />')
   if css: print('<STYLE TYPE="text/css">'+css+'</STYLE>')
