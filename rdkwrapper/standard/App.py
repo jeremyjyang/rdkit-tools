@@ -10,7 +10,7 @@ from .. import standard
 
 #############################################################################
 def Demo(norms):
-  stdzr = MyStandardizer(norms)
+  stdzr = standard.MyStandardizer(norms)
   smis = [
 	'CCC(=O)O',
 	'c1ccc(cc1)N(=O)=O',

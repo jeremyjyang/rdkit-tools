@@ -141,5 +141,5 @@ if __name__ == "__main__":
   else:
     parser.error(f"Unsupported operation: {args.op}")
 
-  logging.info('Elapsed: %s'%(time.strftime('%Hh:%Mm:%Ss', time.gmtime(time.time()-t0))))
+  logging.info(f"""Elapsed: {time.strftime('%Hh:%Mm:%Ss', time.gmtime(time.time()-t0))}""")
 
