@@ -9,11 +9,20 @@ Tools for use with RDKit.
 
 * RDKit Python package (possibly via conda).
 
+```
+$ conda create -n rdkit -c conda-forge rdkit ipykernel
+$ conda activate rdkit
+(rdkit) $ conda install -c conda-forge pyvis 
+(rdkit) $ conda install -c conda-forge networkx=2.5 
+```
+
 ## Execution
 
+Scaffold analysis:
+
 ```
-$ conda activate
-(base) $ python3 -m rdkwrapper.scaffold.App -h
+$ conda activate rdkit
+(rdkit) $ python3 -m rdkwrapper.scaffold.App -h
 usage: App.py [-h] [--i IFILE] [--o OFILE] [--o_html OFILE_HTML]
               [--scratchdir SCRATCHDIR] [--smicol SMICOL] [--namcol NAMCOL]
               [--idelim IDELIM] [--odelim ODELIM] [--iheader] [--oheader]
@@ -41,3 +50,58 @@ optional arguments:
   --brics               BRICS fragmentation rules (Degen, 2008)
   -v, --verbose
 ```
+
+Standardization:
+
+```
+(rdkit) $ python3 -m rdkwrapper.standard.App
+usage: App.py [-h] [--i IFILE] [--o OFILE] [--norms {default,unm}]
+              [--i_norms IFILE_NORMS] [--remove_isomerism] [-v]
+              {standardize,list_norms,show_params,demo}
+App.py: error: the following arguments are required: op
+lengua$ python3 -m rdkwrapper.standard.App -h
+usage: App.py [-h] [--i IFILE] [--o OFILE] [--norms {default,unm}]
+              [--i_norms IFILE_NORMS] [--remove_isomerism] [-v]
+              {standardize,list_norms,show_params,demo}
+
+RDKit chemical standardizer
+
+positional arguments:
+  {standardize,list_norms,show_params,demo}
+                        operation
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --i IFILE             input file, SMI or SDF
+  --o OFILE             output file, SMI or SDF
+  --norms {default,unm}
+                        normalizations
+  --i_norms IFILE_NORMS
+                        input normalizations file, format: SMIRKS<space>NAME
+  --remove_isomerism    if true, output SMILES isomerism removed
+  -v, --verbose
+```
+
+Conformation generation:
+
+```
+(rdkit) $ python3 -m rdkwrapper.conform.App -h
+usage: App.py [-h] [--i IFILE] [--o OFILE] [--ff {UFF,MMFF}] [--optiters OPTITERS]
+              [--nconf NCONF] [--etol ETOL] [--title_in_header] [-v]
+
+RDKit Conformer Generation
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --i IFILE            input file, SMI or SDF
+  --o OFILE            output SDF with 3D
+  --ff {UFF,MMFF}      force-field
+  --optiters OPTITERS  optimizer iterations per conf
+  --nconf NCONF        # confs per mol
+  --etol ETOL          energy tolerance
+  --title_in_header    title line in header
+  -v, --verbose
+
+Based on distance geometry method by Blaney et al.
+```
+

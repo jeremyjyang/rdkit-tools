@@ -6,7 +6,7 @@ Problem: RDKit hard coded to write to both stderr and stdout.  Logging a
 known issue.
 """
 #############################################################################
-import os,sys,re,time,argparse,logging
+import os,sys,io,re,time,argparse,logging,tempfile
 
 import rdkit.rdBase
 import rdkit.Chem
@@ -15,11 +15,40 @@ from .. import util
 from .. import conform
 
 #############################################################################
-if __name__=='__main__':
-  FFS=['UFF','MMFF'];
-  NCONF=1; OPTITERS=200; ETOL=1e-6;
+def GenerateConformers(molreader, molwriter, ff, nconf, optiters, etol):
+  n_mol=0; n_conf=0;
+  for mol in molreader:
+    n_mol+=1
+    molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
+    logging.info(f"{n_mol}. {molname}: {rdkit.Chem.MolToSmiles(mol, isomericSmiles=False)}")
+    ###
+    ### redirect sys.stderr
+    #fmsg = open("/tmp/z.err", "w")
+    #old_target, sys.stderr = sys.stderr, fmsg
+    ###
 
+    mol, confIds = conform.Utils.GenerateConformations(mol, nconf, ff, optiters, etol)
+
+    ###
+    #logging.debug('''fmsg = "{0}"'''.format(open("/tmp/z.err").read()))
+    #os.remove("/tmp/z.err")
+    ### restore sys.stderr
+    #sys.stderr = old_target
+    ###
+
+    for confId in confIds:
+      molwriter.write(mol, confId = confId)
+    n_conf+=len(confIds)
+  logging.info(f"mols: {n_mol}; confs: {n_conf}")
+
+#############################################################################
+if __name__=="__main__":
+  FFS = ["UFF", "MMFF"];
+  MDLEXTS = ["sdf", "sd", "mdl", "mol"]
+  NCONF=1; OPTITERS=200; ETOL=1e-6;
+  OPS = ["generate", "demo"]
   parser = argparse.ArgumentParser(description="RDKit Conformer Generation", epilog="Based on distance geometry method by Blaney et al.")
+  parser.add_argument("op", choices=OPS, help="OPERATION")
   parser.add_argument("--i", dest="ifile", help="input file, SMI or SDF")
   parser.add_argument("--o", dest="ofile", help="output SDF with 3D")
   parser.add_argument("--ff", choices=FFS, default="MMFF", help="force-field")
@@ -28,55 +57,43 @@ if __name__=='__main__':
   parser.add_argument("--etol", type=float, default=ETOL, help="energy tolerance")
   parser.add_argument("--title_in_header", action="store_true", help="title line in header")
   parser.add_argument("-v", "--verbose", action="count", default=0)
-
   args = parser.parse_args()
 
   logging.basicConfig(format='%(levelname)s:%(message)s', level=(logging.DEBUG if args.verbose>1 else logging.INFO))
 
-  logging.info('RDK_VERSION: %s'%rdkit.rdBase.rdkitVersion)
-
-  if not (args.ifile and args.ofile): parser.error('--i and --o required.')
-
-  if re.sub(r'.*\.', '', args.ifile).lower()=='smi':
-    molreader=rdkit.Chem.SmilesMolSupplier(args.ifile, delimiter=' ', smilesColumn=0, nameColumn=1, titleLine=args.title_in_header, sanitize=True)
-  
-  elif re.sub(r'.*\.', '', args.ifile).lower() in ('sdf','sd','mdl','mol'):
-    molreader=rdkit.Chem.SDMolSupplier(args.ifile, sanitize=True, removeHs=True)
-  else:
-    parser.error('unrecognized file extension: %s'%args.ifile)
-
-  if re.sub(r'.*\.', '', args.ofile).lower() in ('sdf','sd','mdl','mol'):
-    molwriter=rdkit.Chem.SDWriter(args.ofile)
-  else:
-    parser.error('unrecognized file extension: %s'%args.ofile)
-
-  if args.ff.upper() not in FFS:
-    parser.error('unrecognized force field: "%s"'%args.ff)
+  logging.info(f"RDK_VERSION: {rdkit.rdBase.rdkitVersion}")
 
   t0=time.time()
-  n_mol=0; n_conf=0;
-  for mol in molreader:
-    n_mol+=1
-    molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-    logging.debug('%d. %s:'%(n_mol, molname))
-    ###
-    ### redirect sys.stderr
-    #fmsg = open('/tmp/z.err','w')
-    #old_target, sys.stderr = sys.stderr, fmsg
-    ###
 
-    mol, confIds = conform.Utils.GenerateConformations(mol, args.nconf, args.ff, args.optiters, args.etol)
+  if args.op == "demo":
+    fin = tempfile.NamedTemporaryFile(mode="w+b", suffix=".smi", delete=False)
+    fin.write(b"NCCc1ccc(O)c(O)c1\tdopamine\n")
+    fin.close()
+    molreader = rdkit.Chem.SmilesMolSupplier(fin.name, delimiter='\t', smilesColumn=0, nameColumn=1, titleLine=False, sanitize=True)
+    fout = tempfile.NamedTemporaryFile(delete=False)
+    molwriter = rdkit.Chem.SDWriter(fout.name)
+    GenerateConformers(molreader, molwriter, args.ff, args.nconf, args.optiters, args.etol)
+    print(fout.read().decode('utf8'))
+    fout.close()
+    os.remove(fin.name)
+    os.remove(fout.name)
+  else:
+    if not (args.ifile and args.ofile): parser.error('--i and --o required.')
+    if args.ff.upper() not in FFS: parser.error(f"Invalid force field: {args.ff}; allowed values: {','.join(FFS)}")
 
-    ###
-    #print >>sys.stderr, 'DEBUG: fmsg = "%s"'%(open('/tmp/z.err').read())
-    #os.remove('/tmp/z.err')
-    ### restore sys.stderr
-    #sys.stderr = old_target
-    ###
+    if re.sub(r'.*\.', '', args.ifile).lower()=='smi':
+      molreader = rdkit.Chem.SmilesMolSupplier(args.ifile, delimiter=' ', smilesColumn=0, nameColumn=1, titleLine=args.title_in_header, sanitize=True)
+  
+    elif re.sub(r'.*\.', '', args.ifile).lower() in MDLEXTS:
+      molreader = rdkit.Chem.SDMolSupplier(args.ifile, sanitize=True, removeHs=True)
+    else:
+      parser.error(f"Invalid file extension: {args.ifile}")
 
-    for confId in confIds:
-      molwriter.write(mol, confId = confId)
-    n_conf+=len(confIds)
+    if re.sub(r'.*\.', '', args.ofile).lower() in MDLEXTS:
+      molwriter = rdkit.Chem.SDWriter(args.ofile)
+    else:
+      parser.error(f"Invalid file extension: {args.ofile}")
 
-  logging.info('%d mols, %d confs written to %s' %(n_mol, n_conf, args.ofile))
-  logging.info('total elapsed time: %s'%(time.strftime('%Hh:%Mm:%Ss', time.gmtime(time.time()-t0))))
+    GenerateConformers(molreader, molwriter, args.ff, args.nconf, args.optiters, args.etol)
+
+  logging.info(f"Total elapsed time: {time.strftime('%Hh:%Mm:%Ss', time.gmtime(time.time()-t0))}")
