@@ -6,11 +6,18 @@
 #	https://rdkit.readthedocs.org/en/latest/Cartridge.html#reference-guide
 #	https://github.com/rdkit/rdkit/issues/1762
 #############################################################################
-#
-cd $RDBASE/Code/PgSQL/rdkit
-make
-make install
-make installcheck
+# Old way; build from source:
+# cd $RDBASE/Code/PgSQL/rdkit
+# make
+# make install
+# make installcheck
+#############################################################################
+# New way; Ubuntu 20.04
+# apt install postgresql-12
+# apt-cache policy postgresql-12
+# apt install postgresql-server-dev-12
+# apt install postgresql-12-rdkit
+#############################################################################
 #
 DBNAME="scratch"
 DBSCHEMA="pdb"

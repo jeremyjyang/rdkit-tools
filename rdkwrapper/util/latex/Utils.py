@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 #############################################################################
-### 
-#############################################################################
-import sys,os,re,argparse,tempfile,time
+import sys,os,re,argparse,tempfile,time,logging
 import pylatex
-
 
 #############################################################################
 class SAGPlus(pylatex.StandAloneGraphic):
@@ -23,7 +20,7 @@ def PILImage2SAGPlus(img):
   return sagp
 
 #############################################################################
-def WriteImageGrid(imgs, img_width, img_height, npr, npc, title, ofile, verbose=0):
+def WriteImageGrid(imgs, img_width, img_height, npr, npc, title, ofile):
   title = title if title else 'Depictions'
 
   geo_opts = {
@@ -61,7 +58,7 @@ def WriteImageGrid(imgs, img_width, img_height, npr, npc, title, ofile, verbose=
           page_row+=1
           imgs_this = imgs[i_img:i_img+npr]
           imgnames_this = [img.name for img in imgs_this]
-          print >>sys.stderr, 'DEBUG: page %d ; row %d (%s)...'%(i_page,page_row,','.join(imgnames_this))
+          logging.debug('DEBUG: page %d ; row %d (%s)...'%(i_page,page_row,','.join(imgnames_this)))
           table.add_row(imgs_this+['' for j in range(npr-len(imgs_this))])
           #table.add_hline()
           table.add_row(imgnames_this+['' for j in range(npr-len(imgs_this))])
@@ -71,9 +68,8 @@ def WriteImageGrid(imgs, img_width, img_height, npr, npc, title, ofile, verbose=
             break #page-break
 
   ofile=re.sub('\.pdf$','', ofile, re.I)
-  if verbose:
-    for ext in ('tex', 'pdf'):
-      print >>sys.stderr, 'Output file: %s.%s'%(ofile,ext)
+  for ext in ('tex', 'pdf'):
+    logging.debug('Output file: %s.%s'%(ofile,ext))
 
   #Create .tex and .pdf files (adds extensions).
   doc.generate_pdf(ofile, clean_tex=False, silent=True)
@@ -81,7 +77,7 @@ def WriteImageGrid(imgs, img_width, img_height, npr, npc, title, ofile, verbose=
   #Delete temp files:
   for img in imgs:
     tmpfile = str(img.arguments.__dict__['_positional_args'][0])
-    #print >>sys.stderr, 'DEBUG: deleting %s...'%tmpfile
+    #logging.debug('DEBUG: deleting %s...'%tmpfile)
     os.unlink(tmpfile)
 
   return doc
@@ -109,8 +105,8 @@ def Test():
     imgs[i].name = fnames[i]
 
   for ext in ('tex', 'pdf'):
-    print >>sys.stderr, 'DEBUG: output file: %s.%s'%(OFILE,ext)
-  doc = WriteImageGrid(imgs, IMG_WIDTH, IMG_HEIGHT, NPR, NPC, "TEST", OFILE, verbose=2)
+    logging.debug('DEBUG: output file: %s.%s'%(OFILE,ext))
+  doc = WriteImageGrid(imgs, IMG_WIDTH, IMG_HEIGHT, NPR, NPC, "TEST", OFILE)
 
 
 #############################################################################
