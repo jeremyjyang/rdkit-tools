@@ -13,29 +13,29 @@ from rdkit import Geometry
 #############################################################################
 def MyAlignDepict(mol,core,corepat=None,acceptFailure=False):
   if core and corepat: 
-    coreMatch=core.GetSubstructMatch(corepat) 
+    coreMatch = core.GetSubstructMatch(corepat) 
     if not coreMatch and not acceptFailure: 
-      raise ValueError,"Core smarts does not map to core." 
+      raise ValueError("Core smarts does not map to core.")
   else: 
-    coreMatch=range(core.GetNumAtoms(onlyHeavy=True)) 
+    coreMatch = range(core.GetNumAtoms(onlyHeavy=True)) 
   if corepat: 
-    match=mol.GetSubstructMatch(corepat) 
+    match = mol.GetSubstructMatch(corepat) 
   else: 
-    match=mol.GetSubstructMatch(core) 
+    match = mol.GetSubstructMatch(core) 
    
   if not match: 
     if not acceptFailure: 
-      raise ValueError,'Substructure match with core not found.' 
+      raise ValueError("Substructure match with core not found.")
     else: 
       coordMap={} 
   else: 
-    conf=core.GetConformer() 
+    conf = core.GetConformer() 
     coordMap={} 
     for i,idx in enumerate(match): 
-      pt3=conf.GetAtomPosition(coreMatch[i]) 
-      pt2=Geometry.Point2D(pt3.x,pt3.y) 
+      pt3 = conf.GetAtomPosition(coreMatch[i]) 
+      pt2 = Geometry.Point2D(pt3.x, pt3.y) 
       coordMap[idx]=pt2 
-  rdDepictor.Compute2DCoords(mol,clearConfs=True,coordMap=coordMap) 
+  rdDepictor.Compute2DCoords(mol, clearConfs=True, coordMap=coordMap) 
 
 
 #############################################################################
@@ -49,24 +49,24 @@ if __name__=='__main__':
     logging.info('Bad smarts: %s'%(smarts))
     sys.exit()
 
-  sdreader=Chem.SDMolSupplier(fpath_in,sanitize=True,removeHs=True)
+  sdreader = Chem.SDMolSupplier(fpath_in, sanitize=True, removeHs=True)
 
   sdwriter=Chem.SDWriter(fpath_out)
 
   i_mol=0
   i_fail=0
-  core=sdreader.next()
+  core = sdreader.next()
   sdreader.reset()
   for mol in sdreader:
     i_mol+=1
-    logging.info('%d. %s' %(i_mol,mol.GetProp('_Name')))
+    logging.info('%d. %s' %(i_mol, mol.GetProp('_Name')))
 
     try:
-      MyAlignDepict(mol,core,corepat,acceptFailure=False)
+      MyAlignDepict(mol, core, corepat, acceptFailure=False)
     except ValueError:
       i_fail+=1
       logging.info('%d. alignment failed.' %(i_mol))
 
     sdwriter.write(mol)
 
-  logging.info('%d mols written to %s' %(i_mol,fpath_out))
+  logging.info('%d mols written to %s' %(i_mol, fpath_out))

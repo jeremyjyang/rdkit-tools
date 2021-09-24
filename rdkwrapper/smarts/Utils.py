@@ -57,7 +57,7 @@ def Demo():
       logging.info('\tmatches: %d'%nmatches,)
       umatches = DeduplicateMatches(matches)
       nmatches_usa = len(umatches),
-      logging.info(f"""\tusa matches: {nmatches_usa}{'<-- LOOK !!!' if nmatches!=nmatches_usa' else ''}""")
+      logging.info(f"""\tusa matches: {nmatches_usa}{'<-- LOOK !!!' if nmatches!=nmatches_usa else ''}""")
 
 #############################################################################
 if __name__=='__main__':

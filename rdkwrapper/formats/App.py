@@ -1,27 +1,36 @@
 #!/usr/bin/env python3
 #
-import sys,os,logging
+import sys,os,argparse,logging
 
-from rdkit import Chem
+import rdkit
 from rdkit.Chem import AllChem
 
-
+#############################################################################
 if __name__=='__main__':
-  fpath_in=sys.argv[1]
-  fpath_out=sys.argv[2]
-  #sniffer=csv.Sniffer()
-  #d=file(fpath_in,'r').read(1000)
-  #delim=sniffer.sniff(d).delimiter
-  molsuppl = Chem.SmilesMolSupplier(fpath_in,delimiter=' ', smilesColumn=0,nameColumn=1,titleLine=False, sanitize=False)
+  parser = argparse.ArgumentParser(description='RDKit chemical format utility')
+  parser.add_argument("--i", dest="ifile", help="input file (SMILES/TSV)")
+  parser.add_argument("--kekulize", action="store_true", help="Kekulize")
+  parser.add_argument("--sanitize", action="store_true", help="Sanitize")
+  parser.add_argument("--header", action="store_true", help="input file has header line")
+  parser.add_argument("--o", dest="ofile", help="output file")
+  parser.add_argument("--delim", default="\t", help="input molecule file")
+  parser.add_argument("--smicol", type=int, default=0, help="input SMILES column")
+  parser.add_argument("--namcol", type=int, default=1, help="input name column")
+  parser.add_argument("-v", "--verbose", action="count", default=0)
+  args = parser.parse_args()
 
-  sdwriter=Chem.SDWriter(fpath_out)
+  logging.basicConfig(format='%(levelname)s:%(message)s', level=(logging.DEBUG if args.verbose>1 else logging.INFO))
+
+  molsuppl = rdkit.Chem.SmilesMolSupplier(args.ifile, delimiter=args.delim, smilesColumn=args.smicol, nameColumn=args.namcol, titleLine=args.header, sanitize=args.sanitize)
+
+  sdwriter = rdkit.Chem.SDWriter(args.ofile if args.ofile else "-")
 
   i_mol=0
   for mol in molsuppl:
     i_mol+=1
-    logging.info('%d. %s' %(i_mol,mol.GetProp('_Name'))) 
-    Chem.SanitizeMol(mol)
+    logging.info(f"{i_mol}. {mol.GetProp('_Name')}") 
+    rdkit.Chem.SanitizeMol(mol)
     AllChem.Compute2DCoords(mol)
     sdwriter.write(mol)
 
-  logging.info('%d mols written to %s' %(i_mol,fpath_out)) 
+  logging.info(f"n_out: {i_mol}")
