@@ -10,12 +10,11 @@ import re,base64
 import rdkit.Chem.AllChem
 import rdkit.Chem.Draw
 
-import mol2img_rdk_utils
-import htm_utils
+from .. import util
+from .. import depict
 
 #############################################################################
 def Mol2Img(form):
-  logging.basicConfig(level=logging.DEBUG)
   mol=None; smi=None; molname=None;
   for tag in ('smi', 'smiles', 'smicode'):
     if form.getvalue(tag, ''):
@@ -29,7 +28,7 @@ def Mol2Img(form):
   if form.getvalue('fcode', ''):
     fdata = base64.decodestring(form.getvalue('fcode'))
     if form.getvalue('gz', 'false')=='true':
-      fdata = htm_utils.GunzipBytes(fdata)
+      fdata = util.http.Utils.GunzipBytes(fdata)
     if molfmt.upper() in ('MDL', 'SDF', 'MOL'): 
       sdms = rdkit.Chem.AllChem.SDMolSupplier()
       sdms.SetData(fdata, sanitize=True, removeHs=True)
@@ -92,7 +91,7 @@ def Mol2Img(form):
   #img = rdkit.Chem.Draw.MolToImage(mol, size=(width,height), kekulize=kekule, highlightAtoms=hitatoms, wedgeBonds=True, legend=molname)
 
   # PIL.Image.Image
-  img = mol2img_rdk_utils.Mol2Image(mol, width=width, height=height, highlightAtoms=hitatoms, kekulize=True, wedgeBonds=True)
+  img = depict.Utils.Mol2Image(mol, width=width, height=height, highlightAtoms=hitatoms, kekulize=True, wedgeBonds=True)
 
   sys.stdout.buffer.write(b'Content-type: image/png\n\n')
   img.save(sys.stdout.buffer, format='PNG')
@@ -100,5 +99,6 @@ def Mol2Img(form):
 
 #############################################################################
 if __name__=='__main__':
+  logging.basicConfig(level=logging.DEBUG)
   form = cgi.FieldStorage(keep_blank_values=1)
   Mol2Img(form)

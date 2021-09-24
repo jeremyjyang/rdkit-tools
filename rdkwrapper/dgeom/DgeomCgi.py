@@ -10,13 +10,7 @@ import rdkit.Chem
 import rdkit.rdBase
 import rdkit.Chem.AllChem
   
-import rdk_utils
-import rdk_mp
-
-import env_cgi
-import mol2imghtm
-import htm_utils
-import purgescratchdirs
+from .. import util
 
 #############################################################################
 def JavaScript(progname):
@@ -48,7 +42,7 @@ function go_dgeom(form)
     pwin.document.close(); //if window exists, clear
     pwin.document.open('text/html');
     pwin.document.writeln('<HTML><HEAD>');
-    pwin.document.writeln('<LINK REL=\"stylesheet\" type=\"text/css\" HREF=\""""+env_cgi.HTML_SUBDIR+"""/css/biocomp.css\" />');
+    pwin.document.writeln('<LINK REL=\"stylesheet\" type=\"text/css\" HREF=\""""+util.http.env_cgi.HTML_SUBDIR+"""/css/biocomp.css\" />');
     pwin.document.writeln('</HEAD><BODY BGCOLOR=\"#DDDDDD\">');
     if (navigator.appName.match('Explorer'))
       pwin.document.title='"""+progname+""" progress'; //not-ok for IE
@@ -90,7 +84,7 @@ function go_init(form)
 /// JSME stuff:
 function StartJSME()
 {
-  window.open('"""+env_cgi.HTML_SUBDIR+"""/jsme_win.html','JSME','width=500,height=450,scrollbars=0,resizable=1,location=0');
+  window.open('"""+util.http.env_cgi.HTML_SUBDIR+"""/jsme_win.html','JSME','width=500,height=450,scrollbars=0,resizable=1,location=0');
 }
 function fromJSME(smiles) // function called from JSME window
 {
@@ -178,7 +172,7 @@ def DgeomSingle(imol, outfile, maxconf, ff, optiters, etol):
     return
   molname = imol.GetProp('_Name') if imol.HasProp('_Name') else ''
   ismi = rdkit.Chem.MolToSmiles(imol, isomericSmiles=True)
-  imghtm = (mol2imghtm.Smi2ImgHtm((ismi+' '+molname if molname else ismi), '', 180, 220, SMI2IMG))
+  imghtm = (util.http.mol2imghtm.Smi2ImgHtm((ismi+' '+molname if molname else ismi), '', 180, 220, SMI2IMG))
   thtm = ('<TABLE><TR><TD VALIGN=TOP><TT>'+molname+'</TT></TD></TR>'
  	+ "<TR><TD>"+ismi+"</TD></TR>"
  	+ '<TR><TD BGCOLOR="white">'+imghtm+'</TD></TR></TABLE>')
@@ -187,7 +181,7 @@ def DgeomSingle(imol, outfile, maxconf, ff, optiters, etol):
   OUTPUTS.append('<H2>output:</H2>')
 
   molwriter = rdkit.Chem.SDWriter(outfile)
-  outmol, confIds = rdk_utils.GenerateConformations(imol,maxconf,ff,optiters,etol)
+  outmol, confIds = util.Utils.GenerateConformations(imol,maxconf,ff,optiters,etol)
   for confId in confIds:
     molwriter.write(outmol,confId=confId)
   if not confIds:
@@ -199,21 +193,21 @@ def DgeomSingle(imol, outfile, maxconf, ff, optiters, etol):
   #ERRORS.append("DEBUG: furl: "+furl)
   filecode = urllib.parse.quote(furl, safe='')
   bhtm = (f"""<FORM><BUTTON TYPE=BUTTON onClick="go_view3d('{VIEW3D}','{filecode}',{600},'view3d_dgeom','multiconf')">"""
-	+ f'''<IMG SRC="'''+env_cgi.HTML_SUBDIR+f'''/images/Jmol_icon_128.png" HEIGHT="60" VALIGN="middle">JSmol; view output ({len(confIds)} confs)</BUTTON></FORM>''')
+	+ f'''<IMG SRC="'''+util.http.env_cgi.HTML_SUBDIR+f'''/images/Jmol_icon_128.png" HEIGHT="60" VALIGN="middle">JSmol; view output ({len(confIds)} confs)</BUTTON></FORM>''')
   OUTPUTS.append('<BLOCKQUOTE>'+bhtm+'</BLOCKQUOTE>')
 
   fname = 'dgeom_out.sdf'
   bhtm = (f'<FORM ACTION="{CGIURL}/{fname}" METHOD="POST">'
 	+ '<INPUT TYPE=HIDDEN NAME="downloadfile" VALUE="'+outfile+'">'
-	+ f"""<BUTTON TYPE=BUTTON onClick="this.form.submit()"> {fname} ({htm_utils.NiceBytes(os.stat(outfile).st_size)})</BUTTON></FORM>""")
+	+ f"""<BUTTON TYPE=BUTTON onClick="this.form.submit()"> {fname} ({util.http.Utils.NiceBytes(os.stat(outfile).st_size)})</BUTTON></FORM>""")
   OUTPUTS.append('<BLOCKQUOTE><b>Download:</b> '+bhtm+'</BLOCKQUOTE>')
 
 #############################################################################
 def DgeomLaunchProcess(infile, smifile_header, outfile, logfile, statusfile, maxconf, ff, optiters, etol, job):
-  proc = Process(target=rdk_mp.dgeom_process, args=(infile, smifile_header, outfile, logfile, statusfile, maxconf, ff, optiters, etol))
+  proc = Process(target=util.mp.Utils.dgeom_process, args=(infile, smifile_header, outfile, logfile, statusfile, maxconf, ff, optiters, etol))
   t0 = time.time()
   proc.start()
-  rdk_mp.DgeomProgress(proc, statusfile, t0, 1, PROGRESS_WIN_NAME, job)
+  util.mp.Utils.DgeomProgress(proc, statusfile, t0, 1, PROGRESS_WIN_NAME, job)
   ERRORS.append(f"{job} execution time: "+time.strftime('%Hh:%Mm:%Ss', time.gmtime(time.time()-t0)))
   if VERBOSE:
     ERRORS.append("<PRE>"+open(logfile).read()+"</PRE>")
@@ -248,13 +242,13 @@ def DgeomResultsMulti(status,logfile):
   fname = 'dgeom_out.sdf'
   bhtm = (f'<FORM ACTION="{CGIURL}/{fname}" METHOD="POST">'
 	+ f'<INPUT TYPE=HIDDEN NAME="downloadfile" VALUE="{OUTFILE}">'
-	+ f'<BUTTON TYPE=BUTTON onClick="this.form.submit()"><B>{fname} ({htm_utils.NiceBytes(os.stat(OUTFILE).st_size)})</B></BUTTON></FORM>')
+	+ f'<BUTTON TYPE=BUTTON onClick="this.form.submit()"><B>{fname} ({util.http.Utils.NiceBytes(os.stat(OUTFILE).st_size)})</B></BUTTON></FORM>')
   OUTPUTS.append('<BLOCKQUOTE>'+bhtm+' - output conformations (SDF)</BLOCKQUOTE>')
 
   fname = 'dgeom_log.txt'
   bhtm = (f'<FORM ACTION="{CGIURL}/{fname}" METHOD="POST">'
 	+ f'<INPUT TYPE=HIDDEN NAME="downloadfile" VALUE="{logfile}">'
-	+ f'<BUTTON TYPE=BUTTON onClick="this.form.submit()"><B>{fname} ({htm_utils.NiceBytes(os.stat(logfile).st_size)})</B></BUTTON></FORM>')
+	+ f'<BUTTON TYPE=BUTTON onClick="this.form.submit()"><B>{fname} ({util.http.Utils.NiceBytes(os.stat(logfile).st_size)})</B></BUTTON></FORM>')
   OUTPUTS.append('<BLOCKQUOTE><b>'+bhtm+' - log file</BLOCKQUOTE>')
 
 #############################################################################
@@ -271,19 +265,19 @@ def Initialize():
 
   logohtm = "<TABLE CELLSPACING=5 CELLPADDING=5>\n<TR><TD>"
   href = "http://medicine.unm.edu/informatics/"
-  imghtm = ('<IMG SRC="'+env_cgi.HTML_SUBDIR+'/images/biocomp_logo_only.gif">')
+  imghtm = ('<IMG SRC="'+util.http.env_cgi.HTML_SUBDIR+'/images/biocomp_logo_only.gif">')
   tiphtm = (f'{APPNAME} web app from UNM Translational Informatics Divsion')
-  logohtm += (htm_utils.HtmTipper(imghtm, '', tiphtm, href, 200, "white"))
+  logohtm += (util.http.Utils.HtmTipper(imghtm, '', tiphtm, href, 200, "white"))
 
   href = "http://www.rdkit.org"
-  imghtm = ('<IMG HEIGHT="70" SRC="'+env_cgi.HTML_SUBDIR+'/images/rdkit_logo_only.png">')
+  imghtm = ('<IMG HEIGHT="70" SRC="'+util.http.env_cgi.HTML_SUBDIR+'/images/rdkit_logo_only.png">')
   tiphtm = ('RDKit: Cheminformatics and Machine Learning Software')
-  logohtm += (htm_utils.HtmTipper(imghtm, '', tiphtm, href, 200, "white"))
+  logohtm += (util.http.Utils.HtmTipper(imghtm, '', tiphtm, href, 200, "white"))
 
   href = "http://www.jmol.org"
-  imghtm = ('<IMG HEIGHT="60" SRC="'+env_cgi.HTML_SUBDIR+'/images/Jmol_icon_128.png">')
+  imghtm = ('<IMG HEIGHT="60" SRC="'+util.http.env_cgi.HTML_SUBDIR+'/images/Jmol_icon_128.png">')
   tiphtm = ('JSmol 3D viewer from the Jmol project')
-  logohtm += (htm_utils.HtmTipper(imghtm, '', tiphtm, href, 200, "white"))
+  logohtm += (util.http.Utils.HtmTipper(imghtm, '', tiphtm, href, 200, "white"))
 
   logohtm += "</TD></TR></TABLE>"
   ERRORS.append("<CENTER>"+logohtm+"</CENTER>")
@@ -325,9 +319,9 @@ def Initialize():
   ERRORS.append('Boost version: '+rdkit.rdBase.boostVersion)
 
   global SCRATCHDIR,SCRATCHDIRURL,SCRATCHDIR_LIFETIME
-  SCRATCHDIR = env_cgi.scratchdir
-  SCRATCHDIRURL = env_cgi.scratchdirurl
-  SCRATCHDIR_LIFETIME = env_cgi.scratchdir_lifetime
+  SCRATCHDIR = util.http.env_cgi.scratchdir
+  SCRATCHDIRURL = util.http.env_cgi.scratchdirurl
+  SCRATCHDIR_LIFETIME = util.http.env_cgi.scratchdir_lifetime
 
   global TS,PREFIX
   TS = time.strftime('%Y%m%d%H%M%S',time.localtime())
@@ -466,17 +460,17 @@ Epub 2012 Apr 19 (http://www.ncbi.nlm.nih.gov/pubmed/22482737).
 </UL>
 <P>
 NMAX = {NMAX}<BR>
-Depictions by {env_cgi.DEPICT_TOOL}.<BR>
+Depictions by {util.http.env_cgi.DEPICT_TOOL}.<BR>
 """)
 
 #############################################################################
 if __name__=='__main__':
   ok=Initialize()
   if not ok:
-    htm_utils.PrintHeader(APPNAME, JavaScript(PROG))
-    htm_utils.PrintFooter(ERRORS)
+    util.http.Utils.PrintHeader(APPNAME, JavaScript(PROG))
+    util.http.Utils.PrintFooter(ERRORS)
   elif FORM.getvalue('run_dgeom'):
-    htm_utils.PrintHeader(APPNAME, JavaScript(PROG))
+    util.http.Utils.PrintHeader(APPNAME, JavaScript(PROG))
     PrintForm()
     if RUNMODE=='single':
       DgeomSingle(IMOL, OUTFILE, MAXCONF, FF, OPTITERS, ETOL)
@@ -485,22 +479,22 @@ if __name__=='__main__':
       status = ParseStatusFile(STATUSFILE_DGEOM)
       DgeomResultsMulti(status, LOGFILE_DGEOM)
       print('<SCRIPT>pwin.parent.focus(); pwin.focus(); pwin.close();</SCRIPT>')
-    htm_utils.PrintOutput(OUTPUTS)
-    htm_utils.PrintFooter(ERRORS)
-    htm_utils.Cleanup(DELFILES)
-    purgescratchdirs.PurgeScratchDirs([SCRATCHDIR], SCRATCHDIR_LIFETIME, 0)
+    util.http.Utils.PrintOutput(OUTPUTS)
+    util.http.Utils.PrintFooter(ERRORS)
+    util.http.Utils.Cleanup(DELFILES)
+    util.http.purgescratchdirs.PurgeScratchDirs([SCRATCHDIR], SCRATCHDIR_LIFETIME, 0)
   elif FORM.getvalue('downloadtxt'):
-    htm_utils.DownloadString(FORM.getvalue('downloadtxt'))
+    util.http.Utils.DownloadString(FORM.getvalue('downloadtxt'))
   elif FORM.getvalue('downloadfile'):
-    htm_utils.DownloadFile(FORM.getvalue('downloadfile'))
+    util.http.Utils.DownloadFile(FORM.getvalue('downloadfile'))
   elif FORM.getvalue('help'):
-    htm_utils.PrintHeader(APPNAME, JavaScript(PROG))
+    util.http.Utils.PrintHeader(APPNAME, JavaScript(PROG))
     Help()
-    htm_utils.PrintFooter(ERRORS)
+    util.http.Utils.PrintFooter(ERRORS)
   elif FORM.getvalue('test'):
-    htm_utils.PrintTestText(APPNAME, {})
+    util.http.Utils.PrintTestText(APPNAME, {})
   else:
-    htm_utils.PrintHeader(APPNAME, JavaScript(PROG))
+    util.http.Utils.PrintHeader(APPNAME, JavaScript(PROG))
     PrintForm()
     print('<SCRIPT>go_init(window.document.mainform);</SCRIPT>')
-    htm_utils.PrintFooter(ERRORS)
+    util.http.Utils.PrintFooter(ERRORS)

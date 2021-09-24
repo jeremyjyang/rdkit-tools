@@ -1,6 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
-import sys,os
+import sys,os,logging
+
 from rdkit import Chem
 from rdkit.Chem import AllChem
 #from rdkit.Chem.rdMolAlign import AlignMol  ##3D
@@ -45,7 +46,7 @@ if __name__=='__main__':
 
   corepat=Chem.MolFromSmarts(smarts)
   if not corepat:
-    print >>sys.stderr,('Bad smarts: %s'%(smarts))
+    logging.info('Bad smarts: %s'%(smarts))
     sys.exit()
 
   sdreader=Chem.SDMolSupplier(fpath_in,sanitize=True,removeHs=True)
@@ -58,14 +59,14 @@ if __name__=='__main__':
   sdreader.reset()
   for mol in sdreader:
     i_mol+=1
-    print >>sys.stderr, '%d. %s' %(i_mol,mol.GetProp('_Name'))
+    logging.info('%d. %s' %(i_mol,mol.GetProp('_Name')))
 
     try:
       MyAlignDepict(mol,core,corepat,acceptFailure=False)
     except ValueError:
       i_fail+=1
-      print >>sys.stderr, '%d. alignment failed.' %(i_mol)
+      logging.info('%d. alignment failed.' %(i_mol))
 
     sdwriter.write(mol)
 
-  print >>sys.stderr, '%d mols written to %s' %(i_mol,fpath_out)
+  logging.info('%d mols written to %s' %(i_mol,fpath_out))

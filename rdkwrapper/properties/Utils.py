@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 #
-import sys,os
+import sys,os,logging
+
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.Crippen import MolLogP
-
-#import csv
 
 if __name__=='__main__':
   fpath_in=sys.argv[1]
@@ -13,9 +12,7 @@ if __name__=='__main__':
   #sniffer=csv.Sniffer()
   #d=file(fpath_in,'r').read(1000)
   #delim=sniffer.sniff(d).delimiter
-  molsuppl=Chem.SmilesMolSupplier(fpath_in,delimiter=' ',
-	smilesColumn=0,nameColumn=1,titleLine=False,
-	sanitize=False)
+  molsuppl = Chem.SmilesMolSupplier(fpath_in,delimiter=' ', smilesColumn=0,nameColumn=1,titleLine=False, sanitize=False)
 
   sdwriter=Chem.SDWriter(fpath_out)
 
@@ -26,11 +23,11 @@ if __name__=='__main__':
       name=mol.GetProp('_Name')
     else:
       name=''
-    print('%d. %s' %(i_mol,name), file=sys.stderr)
+    logging.info('%d. %s' %(i_mol,name))
     Chem.SanitizeMol(mol)
     AllChem.Compute2DCoords(mol)
     logp=MolLogP(mol)
     mol.SetProp('WildmanCrippenLogP','%.2f'%logp)
     sdwriter.write(mol)
 
-  print('%d mols written to %s' %(i_mol,fpath_out), file=sys.stderr)
+  logging.info('%d mols written to %s' %(i_mol,fpath_out))

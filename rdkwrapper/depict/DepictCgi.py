@@ -1,11 +1,4 @@
-#! /usr/bin/env python
-#############################################################################
-### depict_rdk.cgi - RDKit depictions
-### 
-### All free and open-source.
-### 
-### Jeremy J Yang
-### 30 Jun 2014
+#! /usr/bin/env python3
 #############################################################################
 import os,sys,cgi,platform
 import re,time,urllib,tempfile,base64,zlib,random
@@ -15,8 +8,7 @@ import rdkit.rdBase
 import rdkit.Chem.AllChem
 import rdkit.Chem.Draw
 
-import htm_utils
-import mol2imghtm
+from .. import util
 
 #############################################################################
 def JavaScript():
@@ -27,25 +19,21 @@ function go_init(form)
   for (i=0;i<form.ifmt.length;++i)
     if (form.ifmt.options[i].value=='auto')
         form.ifmt.options[i].selected=true;
-
   form.file2txt.checked=true;
   form.verbose.checked=false;
   form.smarts.value='';
   form.intxt.value='';
-
   form.hilight_smarts.checked=true;
   form.align_smarts.checked=false;
   form.showarom.checked=false;
   form.showh.checked=false;
   form.gen2d.checked=false;
-
   for (i=0;i<form.ncols.length;++i)
     if (form.ncols.options[i].value=='auto')
       form.ncols.options[i].selected=true;
   for (i=0;i<form.imgsize.length;++i)
     if (form.imgsize.options[i].value=='m')
       form.imgsize.options[i].selected=true;
-
   //form.transparent.checked=true;
   form.zoomable.checked=true;
 }
@@ -88,49 +76,50 @@ def PrintForm():
   ncols_menu+='</SELECT>'
   ncols_menu=re.sub('"%s">'%NCOLS,'"%s" SELECTED>'%NCOLS,ncols_menu)
 
-  print '<FORM NAME="mainform" ACTION="%s" METHOD="POST" ENCTYPE="multipart/form-data">'%CGIURL
-  print '<INPUT TYPE="HIDDEN" NAME="depict">'
-  print '<TABLE WIDTH="100%" CELLPADDING="0" CELLSPACING="0">'
-  print '<TR><TD><H1>%s</H1></TD><TD>%s</TD>'%(APPNAME,'- depictions from RDKit')
-  print '<TD ALIGN=RIGHT>'
-  print '<BUTTON TYPE=BUTTON onClick="window.location.replace(\'%s\')"><B>Reset</B></BUTTON>'%CGIURL 
-  print '<BUTTON TYPE="BUTTON" onClick="void window.open(\'%s?help=TRUE\',\'helpwin\',\'width=600,height=400,scrollbars=1,resizable=1\')"><B>Help</B></BUTTON>'%CGIURL
-  print '</TD></TR></TABLE>'
-  print '<TABLE WIDTH="100%" CELLPADDING="3" CELLSPACING="3">'
-  print '<TR BGCOLOR="#CCCCCC">'
-  print '<TD WIDTH="50%" VALIGN="top">'
-  print 'input format:%s<BR>\n'%ifmt_menu
-  print 'upload:<INPUT TYPE="FILE" NAME="infile">&nbsp;'
-  print '<INPUT TYPE="CHECKBOX" NAME="file2txt" VALUE="CHECKED" %s>file2txt<BR>'%FILE2TXT
-  print 'or paste...<BR>'
-  print '<TEXTAREA NAME="intxt" WRAP="OFF" ROWS="12" COLS="50">%s</TEXTAREA>'%INTXT
-  print '</TD>'
-  print '<TD VALIGN="top">'
-  print '<B>options:</B><BR/>'
-  print '<TABLE WIDTH="100%" CELLPADDING="0" CELLSPACING="0"><TR><TD VALIGN="top">'
-  print '<INPUT TYPE="CHECKBOX" NAME="showarom" VALUE="CHECKED" %s>showarom<BR>'%SHOWAROM
-  print '<INPUT TYPE="CHECKBOX" NAME="showh" VALUE="CHECKED" %s>show Hs<BR>'%SHOWH
-  print '</TD><TD VALIGN="top">'
-  print '<INPUT TYPE=CHECKBOX NAME="gen2d" VALUE="CHECKED" %s>force gen2D<BR>'%GEN2D
-  print '</TD></TR></TABLE>'
-  print '<HR>'
-  print 'smarts:<INPUT TYPE="TEXT" NAME="smarts" SIZE="25" VALUE="%s">'%SMARTS
-  print '<INPUT TYPE="CHECKBOX" NAME="hilight_smarts" VALUE="CHECKED" %s>highlight'%HILIGHT_SMARTS
-  print '<INPUT TYPE="CHECKBOX" NAME="align_smarts" VALUE="CHECKED" %s>align<BR>'%ALIGN_SMARTS
-  print '<HR>'
-  print ncols_menu
-  print imgsize_menu
-  print '<HR>'
-  ##print '<INPUT TYPE="CHECKBOX" NAME="transparent" VALUE="CHECKED" %s>transparent<BR>'%TRANSPARENT
-  print '<INPUT TYPE="CHECKBOX" NAME="zoomable" VALUE="CHECKED" %s>zoomable<BR>'%('CHECKED' if ZOOMABLE else '')
-  print '<INPUT TYPE="CHECKBOX" NAME="verbose" VALUE="CHECKED" %s>verbose<BR>'%VERBOSE
-  print '</TD></TR>'
-  print '<TR BGCOLOR="#CCCCCC">'
-  print '<TD COLSPAN="2" ALIGN="CENTER">'
-  print '<BUTTON TYPE="BUTTON" onClick="go_depict(this.form)"><B>Go %s</B></BUTTON>'%APPNAME
-  print '</TD></TR>'
-  print '</TABLE>'
-  print '</FORM>'
+  htm = (('<FORM NAME="mainform" ACTION="%s" METHOD="POST" ENCTYPE="multipart/form-data">\n'%CGIURL)
+    +('<INPUT TYPE="HIDDEN" NAME="depict">\n')
+    +('<TABLE WIDTH="100%" CELLPADDING="0" CELLSPACING="0">\n')
+    +('<TR><TD><H1>%s</H1></TD><TD>%s</TD>'%(APPNAME,'- depictions from RDKit\n'))
+    +('<TD ALIGN=RIGHT>')
+    +('<BUTTON TYPE=BUTTON onClick="window.location.replace(\'%s\')"><B>Reset</B></BUTTON>'%CGIURL )
+    +('<BUTTON TYPE="BUTTON" onClick="void window.open(\'%s?help=TRUE\',\'helpwin\',\'width=600,height=400,scrollbars=1,resizable=1\')"><B>Help</B></BUTTON>'%CGIURL)
+    +('</TD></TR></TABLE>\n')
+    +('<TABLE WIDTH="100%" CELLPADDING="3" CELLSPACING="3">\n')
+    +('<TR BGCOLOR="#CCCCCC">\n')
+    +('<TD WIDTH="50%" VALIGN="top">')
+    +('input format:%s<BR>\n'%ifmt_menu)
+    +('upload:<INPUT TYPE="FILE" NAME="infile">&nbsp;')
+    +('<INPUT TYPE="CHECKBOX" NAME="file2txt" VALUE="CHECKED" %s>file2txt<BR>'%FILE2TXT)
+    +('or paste...<BR>')
+    +('<TEXTAREA NAME="intxt" WRAP="OFF" ROWS="12" COLS="50">%s</TEXTAREA>'%INTXT)
+    +('</TD>')
+    +('<TD VALIGN="top">')
+    +('<B>options:</B><BR/>')
+    +('<TABLE WIDTH="100%" CELLPADDING="0" CELLSPACING="0"><TR><TD VALIGN="top">\n')
+    +('<INPUT TYPE="CHECKBOX" NAME="showarom" VALUE="CHECKED" %s>showarom<BR>'%SHOWAROM)
+    +('<INPUT TYPE="CHECKBOX" NAME="showh" VALUE="CHECKED" %s>show Hs<BR>'%SHOWH)
+    +('</TD><TD VALIGN="top">')
+    +('<INPUT TYPE=CHECKBOX NAME="gen2d" VALUE="CHECKED" %s>force gen2D<BR>'%GEN2D)
+    +('</TD></TR></TABLE>\n')
+    +('<HR>\n')
+    +('smarts:<INPUT TYPE="TEXT" NAME="smarts" SIZE="25" VALUE="%s">'%SMARTS)
+    +('<INPUT TYPE="CHECKBOX" NAME="hilight_smarts" VALUE="CHECKED" %s>highlight'%HILIGHT_SMARTS)
+    +('<INPUT TYPE="CHECKBOX" NAME="align_smarts" VALUE="CHECKED" %s>align<BR>'%ALIGN_SMARTS)
+    +('<HR>')
+    +(ncols_menu)
+    +(imgsize_menu)
+    +('<HR>')
+    ##  +('<INPUT TYPE="CHECKBOX" NAME="transparent" VALUE="CHECKED" %s>transparent<BR>'%TRANSPARENT)
+    +('<INPUT TYPE="CHECKBOX" NAME="zoomable" VALUE="CHECKED" %s>zoomable<BR>'%('CHECKED' if ZOOMABLE else ''))
+    +('<INPUT TYPE="CHECKBOX" NAME="verbose" VALUE="CHECKED" %s>verbose<BR>'%VERBOSE)
+    +('</TD></TR>\n')
+    +('<TR BGCOLOR="#CCCCCC">')
+    +('<TD COLSPAN="2" ALIGN="CENTER">')
+    +('<BUTTON TYPE="BUTTON" onClick="go_depict(this.form)"><B>Go %s</B></BUTTON>'%APPNAME)
+    +('</TD></TR>\n')
+    +('</TABLE>\n')
+    +('</FORM>\n'))
+  print(htm)
 
 #############################################################################
 def Depict():
@@ -162,10 +151,10 @@ def Depict():
 
     if IFMT in ('MDL','SDF','MOL'):
       mdl = rdkit.Chem.MolToMolBlock(mol)
-      imghtm=mol2imghtm.Mol2ImgHtm(mdl,opts_this,height,width,MOL2IMG,ZOOMABLE,'go_zoom_mol2img',4,'','<CENTER>%s</CENTER>'%molname)
+      imghtm= util.http.mol2imghtm.Mol2ImgHtm(mdl,opts_this,height,width,MOL2IMG,ZOOMABLE,'go_zoom_mol2img',4,'','<CENTER>%s</CENTER>'%molname)
     else:
       smi = rdkit.Chem.MolToSmiles(mol,isomericSmiles=True)
-      imghtm=mol2imghtm.Smi2ImgHtm(smi,opts_this,height,width,MOL2IMG,ZOOMABLE,'go_zoom_smi2img',4,'','<CENTER>%s</CENTER>'%molname)
+      imghtm= util.http.mol2imghtm.Smi2ImgHtm(smi,opts_this,height,width,MOL2IMG,ZOOMABLE,'go_zoom_smi2img',4,'','<CENTER>%s</CENTER>'%molname)
 
     thtm+=('<TD ALIGN="center" BGCOLOR="white">%s<BR>%s</TD>\n'%(imghtm,molname))
     if not n_mols%ncols: thtm+='</TR>\n'
@@ -202,12 +191,12 @@ def Initialize():
   href="http://medicine.unm.edu/informatics/"
   imghtm=('<IMG SRC="/images/biocomp_logo_only.gif">')
   tiphtm=('%s web app from UNM Translational Informatics Divsion'%APPNAME)
-  logohtm+=(htm_utils.HtmTipper(imghtm,'',tiphtm,href,200,"white"))
+  logohtm+=(util.http.Utils.HtmTipper(imghtm,'',tiphtm,href,200,"white"))
 
   href="http://www.rdkit.org"
   imghtm=('<IMG HEIGHT="60" BORDER="0" SRC="/images/rdkit_logo.png">')
   tiphtm=('RDKit')
-  logohtm+=(htm_utils.HtmTipper(imghtm,'',tiphtm,href,200,"white"))
+  logohtm+=(util.http.Utils.HtmTipper(imghtm,'',tiphtm,href,200,"white"))
 
   logohtm+="</TD></TR></TABLE>"
   ERRORS.append(logohtm)
@@ -346,28 +335,28 @@ NMAX = %(NMAX)d
 author/support: Jeremy Yang
 </P>
 '''%{'APPNAME':APPNAME,'NMAX':NMAX}
-  print htm
+  print(htm)
 
 #############################################################################
 if __name__=='__main__':
   ok=Initialize()
   if not ok:
-    htm_utils.PrintHeader(PROG,JavaScript())
-    htm_utils.PrintFooter(ERRORS)
+    util.http.Utils.PrintHeader(PROG,JavaScript())
+    util.http.Utils.PrintFooter(ERRORS)
   elif FORM.getvalue('depict'):
-    htm_utils.PrintHeader(PROG,JavaScript())
+    util.http.Utils.PrintHeader(PROG,JavaScript())
     Depict()
     PrintForm()
-    htm_utils.PrintOutput(OUTPUTS)
-    htm_utils.PrintFooter(ERRORS)
+    util.http.Utils.PrintOutput(OUTPUTS)
+    util.http.Utils.PrintFooter(ERRORS)
   elif FORM.getvalue('downloadtxt'):
-    htm_utils.DownloadString(FORM.getvalue('downloadtxt'))
+    util.http.Utils.DownloadString(FORM.getvalue('downloadtxt'))
   elif FORM.has_key('help'):
-    htm_utils.PrintHeader(PROG,JavaScript())
+    util.http.Utils.PrintHeader(PROG,JavaScript())
     Help()
-    htm_utils.PrintFooter(ERRORS)
+    util.http.Utils.PrintFooter(ERRORS)
   else:
-    htm_utils.PrintHeader(PROG,JavaScript())
+    util.http.Utils.PrintHeader(PROG,JavaScript())
     PrintForm()
-    print '<SCRIPT>go_init(window.document.mainform)</SCRIPT>'
-    htm_utils.PrintFooter(ERRORS)
+    print('<SCRIPT>go_init(window.document.mainform)</SCRIPT>')
+    util.http.Utils.PrintFooter(ERRORS)

@@ -8,8 +8,7 @@ http://wiki.jmol.org/index.php/JSmol
 ###
 import os,sys,cgi,urllib.parse,re
 
-import env_cgi
-import htm_utils
+from .. import util
 
 #############################################################################
 def JavaScript():
@@ -464,12 +463,12 @@ def Initialize():
   if FILEB: FILEB = urllib.parse.unquote(FILEB)
 
   #Convert URLs to filepaths.
-  fpath = env_cgi.scratchdir+re.sub(r'^.*/', '/', FILEA)
+  fpath = util.http.env_cgi.scratchdir+re.sub(r'^.*/', '/', FILEA)
   if not os.access(fpath, os.R_OK):
     ERRORS.append('ERROR: file not found: '+fpath)
     return False
   if re.search('complex', MODE) or MODE=='overlay1xN':
-    fpath = env_cgi.scratchdir+re.sub(r'^.*/', '/', FILEB)
+    fpath = util.http.env_cgi.scratchdir+re.sub(r'^.*/', '/', FILEB)
     if not os.access(fpath, os.R_OK):
       ERRORS.append('ERROR: file not found: '+fpath)
       return False
@@ -491,13 +490,13 @@ def Initialize():
 def PrintHeader(title='', js='', initjs='', css=''):
   print('Content-type: text/html\n\n<HTML STYLE="height:100%">')
   print('<HEAD><TITLE>'+title+'</TITLE>')
-  print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/js/biocomp.js"></SCRIPT>')
-  print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/jsmol/js/JSmoljQuery.js"></SCRIPT>')
-  print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/jsmol/js/JSmolCore.js"></SCRIPT>')
-  print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/jsmol/js/JSmolApplet.js"></SCRIPT>')
-  print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/jsmol/js/JSmolApi.js"></SCRIPT>')
-  print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/jsmol/js/j2sjmol.js"></SCRIPT>')
-  print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/jsmol/js/JSmol.js"></SCRIPT>')
+  print('<SCRIPT SRC="'+util.http.env_cgi.HTML_SUBDIR+'/js/biocomp.js"></SCRIPT>')
+  print('<SCRIPT SRC="'+util.http.env_cgi.HTML_SUBDIR+'/jsmol/js/JSmoljQuery.js"></SCRIPT>')
+  print('<SCRIPT SRC="'+util.http.env_cgi.HTML_SUBDIR+'/jsmol/js/JSmolCore.js"></SCRIPT>')
+  print('<SCRIPT SRC="'+util.http.env_cgi.HTML_SUBDIR+'/jsmol/js/JSmolApplet.js"></SCRIPT>')
+  print('<SCRIPT SRC="'+util.http.env_cgi.HTML_SUBDIR+'/jsmol/js/JSmolApi.js"></SCRIPT>')
+  print('<SCRIPT SRC="'+util.http.env_cgi.HTML_SUBDIR+'/jsmol/js/j2sjmol.js"></SCRIPT>')
+  print('<SCRIPT SRC="'+util.http.env_cgi.HTML_SUBDIR+'/jsmol/js/JSmol.js"></SCRIPT>')
   print('''\
 <script type="text/javascript">
 
@@ -518,7 +517,7 @@ JSMolParams = {
         addSelectionOptions: false,
         serverURL: "http://chemapps.stolaf.edu/jmol/jsmol/jsmol.php",
         use: "HTML5",
-        j2sPath: "'''+env_cgi.HTML_SUBDIR+'''/jsmol/j2s",
+        j2sPath: "'''+util.http.env_cgi.HTML_SUBDIR+'''/jsmol/j2s",
         readyFunction: jmol_isReady,
         script: "background black; set antialiasDisplay;"
 };
@@ -535,11 +534,11 @@ $(document).ready(function(){
 });
 </script>
 ''')
-  print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/js/tip_main.js"></SCRIPT>')
-  print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/js/tip_style.js"></SCRIPT>')
-  print('<SCRIPT SRC="'+env_cgi.HTML_SUBDIR+'/js/ddtip.js"></SCRIPT>')
+  print('<SCRIPT SRC="'+util.http.env_cgi.HTML_SUBDIR+'/js/tip_main.js"></SCRIPT>')
+  print('<SCRIPT SRC="'+util.http.env_cgi.HTML_SUBDIR+'/js/tip_style.js"></SCRIPT>')
+  print('<SCRIPT SRC="'+util.http.env_cgi.HTML_SUBDIR+'/js/ddtip.js"></SCRIPT>')
   if js: print('<SCRIPT LANGUAGE="JavaScript">'+js+'</SCRIPT>')
-  print('<LINK REL="stylesheet" type="text/css" HREF="'+env_cgi.HTML_SUBDIR+'/css/biocomp.css" />')
+  print('<LINK REL="stylesheet" type="text/css" HREF="'+util.http.env_cgi.HTML_SUBDIR+'/css/biocomp.css" />')
   if css: print('<STYLE TYPE="text/css">'+css+'</STYLE>')
   print('</HEAD>')
   print('<BODY HEIGHT="100%" BGCOLOR="#DDDDDD">')
@@ -563,4 +562,4 @@ if __name__=='__main__':
     ViewMolecule(FILEA, MOLNAMEA)	##Used by rdk_dgeom.cgi.
   else:
     ViewEmpty()
-  htm_utils.PrintFooter(ERRORS)
+  util.http.Utils.PrintFooter(ERRORS)
