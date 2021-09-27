@@ -22,7 +22,7 @@ Scaffold analysis:
 
 ```
 $ conda activate rdkit
-(rdkit) $ python3 -m rdkwrapper.scaffold.App -h
+(rdkit) $ python3 -m rdktools.scaffold.App -h
 usage: App.py [-h] [--i IFILE] [--o OFILE] [--o_html OFILE_HTML]
               [--scratchdir SCRATCHDIR] [--smicol SMICOL] [--namcol NAMCOL]
               [--idelim IDELIM] [--odelim ODELIM] [--iheader] [--oheader]
@@ -54,12 +54,12 @@ optional arguments:
 Standardization:
 
 ```
-(rdkit) $ python3 -m rdkwrapper.standard.App
+(rdkit) $ python3 -m rdktools.standard.App
 usage: App.py [-h] [--i IFILE] [--o OFILE] [--norms {default,unm}]
               [--i_norms IFILE_NORMS] [--remove_isomerism] [-v]
               {standardize,list_norms,show_params,demo}
 App.py: error: the following arguments are required: op
-lengua$ python3 -m rdkwrapper.standard.App -h
+lengua$ python3 -m rdktools.standard.App -h
 usage: App.py [-h] [--i IFILE] [--o OFILE] [--norms {default,unm}]
               [--i_norms IFILE_NORMS] [--remove_isomerism] [-v]
               {standardize,list_norms,show_params,demo}
@@ -85,7 +85,7 @@ optional arguments:
 Conformation generation:
 
 ```
-(rdkit) $ python3 -m rdkwrapper.conform.App -h
+(rdkit) $ python3 -m rdktools.conform.App -h
 usage: App.py [-h] [--i IFILE] [--o OFILE] [--ff {UFF,MMFF}] [--optiters OPTITERS]
               [--nconf NCONF] [--etol ETOL] [--title_in_header] [-v]
 

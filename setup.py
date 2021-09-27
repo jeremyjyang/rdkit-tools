@@ -4,14 +4,14 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="rdkwrapper",
+    name="rdktools",
     version="0.0.9",
     author="Jeremy Yang",
     author_email="jeremyjyang@gmail.com",
-    description="Wrappers and helpers for RDKit.",
+    description="Tools and helpers for RDKit.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/unmtransinfo/rdkit-tools",
+    url="https://github.com/jeremyjyang/rdkit-tools",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
