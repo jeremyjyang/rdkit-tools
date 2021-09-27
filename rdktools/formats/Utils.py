@@ -7,16 +7,69 @@ import rdkit.Chem.AllChem
 import rdkit.Chem.inchi
 
 #############################################################################
-def Mol2Inchi():
+def Mdl2Smi(molReader, molWriter):
+  n_mol=0;
+  for mol in molReader:
+    logging.debug(f"{n_mol+1}. {mol.GetProp('_Name')}")
+    mol_out = rdkit.Chem.RemoveHs(mol, implicitOnly=False)
+    rdkit.Chem.SanitizeMol(mol_out)
+    rdkit.Chem.AllChem.Kekulize(mol_out, clearAromaticFlags=True)
+    molWriter.write(mol_out)
+    n_mol+=1
+  logging.info(f"n_out: {n_mol}")
+
+#############################################################################
+def Mdl2Tsv(molReader, molWriter):
+  n_mol=0;
+  for mol in molReader:
+    logging.debug(f"{n_mol+1}. {mol.GetProp('_Name')}")
+    mol_out = rdkit.Chem.RemoveHs(mol, implicitOnly=False)
+    rdkit.Chem.SanitizeMol(mol_out)
+    rdkit.Chem.AllChem.Kekulize(mol_out, clearAromaticFlags=True)
+    if n_mol==0: molWriter.SetProps(mol_out.GetPropNames())
+    molWriter.write(mol_out)
+    n_mol+=1
+  logging.info(f"n_out: {n_mol}")
+
+#############################################################################
+def Smi2Mdl(molReader, molWriter):
+  n_mol=0;
+  for mol in molReader:
+    logging.debug(f"{n_mol+1}. {mol.GetProp('_Name')}")
+    rdkit.Chem.SanitizeMol(mol)
+    rdkit.Chem.AllChem.Compute2DCoords(mol)
+    molWriter.write(mol)
+    n_mol+=1
+  logging.info(f"n_out: {n_mol}")
+
+#############################################################################
+def Mol2Inchi(molReader, fout=None):
   if not rdkit.Chem.inchi.INCHI_AVAILABLE:
     logging.error(f"INCHI_AVAILABLE={rdkit.Chem.inchi.INCHI_AVAILABLE}")
     exit(1)
-  smi = "NCCc1cc(O)c(O)cc1"
-  mol = rdkit.Chem.MolFromSmiles(smi)
-  #inchi,auxinfo = rdkit.Chem.inchi.MolToInchiAndAuxInfo(mol, options='', logLevel= None, treatWarningAsError=False)
-  inchi = rdkit.Chem.inchi.MolToInchi(mol, options='', logLevel=None, treatWarningAsError=False)
-  inchikey = rdkit.Chem.inchi.MolToInchiKey(mol, options='')
-  logging.debug(f"SMILES: \"{smi}\"; INCHI: \"{inchi}\"; INCHIKEY: \"{inchikey}\"")
+  n_mol=0;
+  for mol in molReader:
+    logging.debug(f"{n_mol+1}. {mol.GetProp('_Name')}")
+    #inchi,auxinfo = rdkit.Chem.inchi.MolToInchiAndAuxInfo(mol, options='', logLevel= None, treatWarningAsError=False)
+    inchi = rdkit.Chem.inchi.MolToInchi(mol, options='', logLevel=None, treatWarningAsError=False)
+    inchikey = rdkit.Chem.inchi.MolToInchiKey(mol, options='')
+    fout.write(f"{inchi}\n")
+    n_mol+=1
+  logging.info(f"n_out: {n_mol}")
+
+#############################################################################
+def Mol2Inchikey(molReader, fout=None):
+  if not rdkit.Chem.inchi.INCHI_AVAILABLE:
+    logging.error(f"INCHI_AVAILABLE={rdkit.Chem.inchi.INCHI_AVAILABLE}")
+    exit(1)
+  n_mol=0;
+  for mol in molReader:
+    logging.debug(f"{n_mol+1}. {mol.GetProp('_Name')}")
+    inchi = rdkit.Chem.inchi.MolToInchi(mol, options='', logLevel=None, treatWarningAsError=False)
+    inchikey = rdkit.Chem.inchi.MolToInchiKey(mol, options='')
+    fout.write(f"{inchikey}\n")
+    n_mol+=1
+  logging.info(f"n_out: {n_mol}")
 
 #############################################################################
 if __name__=='__main__':
