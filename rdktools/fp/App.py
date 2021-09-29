@@ -2,9 +2,9 @@
 """
 https://www.rdkit.org/docs/source/
 https://www.rdkit.org/docs/GettingStartedInPython.html#morgan-fingerprints-circular-fingerprints
-
 """
 ###
+#############################################################################
 ## RDKFingerprint # returns ExplicitBitVect
 ## args: minPath=1,maxPath=7,fpSize=2048,nBitsPerHash=4,useHs=True, tgtDensity=0.0,minSize=128
 ##
@@ -24,12 +24,16 @@ https://www.rdkit.org/docs/GettingStartedInPython.html#morgan-fingerprints-circu
 #rdkit.DataStructs.CreateFromBitString
 #rdkit.DataStructs.CreateFromFPSText
 #############################################################################
-import os,sys,re,json,time,inspect,argparse,logging
-import matplotlib as mpl
-#from matplotlib import pyplot as plt
+#https://www.rdkit.org/docs/source/rdkit.DataStructs.cDataStructs.html
+#rdkit.DataStructs.cDataStructs.ExplicitBitVect
+#############################################################################
+import os,sys,re,json,time,inspect,argparse,logging,pickle
 
 import rdkit
-from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolStandardize, MolToSmiles, MolFromSmiles, Draw, rdDepictor
+from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolToSmiles, MolFromSmiles, MACCSkeys
+from rdkit.Chem.Fingerprints import FingerprintMols, MolSimilarity, ClusterMols
+from rdkit import DataStructs
+from rdkit.ML.Cluster import Murtagh
 
 from .. import fp
 from .. import util
@@ -62,13 +66,57 @@ def DemoMACCSKeys():
   fp.Utils.Mols2FPs_MACCSKeys(mols, molWriter)
  
 #############################################################################
+def ParseArgs(args):
+  """Based on Chem/Fingerprints/FingerprintMols.py"""
+  details = FingerprintMols.FingerprinterDetails()
+  if args.ifile: details.inFileName = args.ifile
+  if args.ofile: details.outFileName = args.ofile
+  if args.useHs: details.useHs = 1
+  if args.useValence: details.useValence = 1
+  if args.dbName: details.dbName = args.dbName
+  if args.tableName: details.tableName = args.tableName
+  if args.minSize: details.minSize = args.minSize
+  if args.maxSize: details.fpSize = args.maxSize
+  if args.density: details.tgtDensity = args.density
+  if args.outTable: details.outTableName = args.outTable
+  if args.outDbName: details.outDbName = args.outDbName
+  if args.fpColName: details.fpColName = args.fpColName
+  if args.minPath: details.minPath = args.minPath
+  if args.maxPath: details.maxPath = args.maxPath
+  if args.nBitsPerHash: details.bitsPerHash = args.nBitsPerHash
+  if args.discrim: details.discrimHash = 1
+  if args.smilesName: details.smilesName = args.smilesName
+  if args.molPkl: details.molPklName = args.molPkl
+  if args.useSD: details.useSmiles=False; details.useSD=True
+  if args.idName: details.idName = args.idName
+  if args.maxMols: details.maxMols = args.maxMols
+  if args.useMACCS: details.fingerprinter = MACCSkeys.GenMACCSKeys
+  if args.keepTable: details.replaceTable = False
+  # SCREENER:
+  if args.smilesTable: details.smilesTableName = args.smilesTable
+  if args.topN: details.doThreshold = 0; details.topN = args.topN
+  elif args.thresh: details.doThreshold = 1; details.screenThresh = args.thresh
+  if args.smiles: details.probeSmiles = args.smiles
+  if args.metric=="dice": details.metric = DataStructs.DiceSimilarity
+  elif args.metric=="cosine": details.metric = DataStructs.CosineSimilarity
+  # CLUSTERS:
+  if args.clusterAlgo=="SLINK": details.clusterAlgo = Murtagh.SLINK
+  elif args.clusterAlgo=="CLINK": details.clusterAlgo = Murtagh.CLINK
+  elif args.clusterAlgo=="UPGMA": details.clusterAlgo = Murtagh.UPGMA
+  else: pass #(WARD)
+  if args.actTable: details.actTableName = args.actTable
+  if args.actName: details.actName = args.actName
+  return details
+
+#############################################################################
 if __name__ == "__main__":
   MORGAN_NBITS=1024; MORGAN_RADIUS=2;
   parser = argparse.ArgumentParser(description="RDKit fingerprint generator", epilog="")
-  OPS = ["demo", "demo_maccs", "demo_morgan", "fpgen", "fpgen_morgan", "fpgen_maccs"]
+  OPS = [ "fpgen", "fpgen_morgan", "fpgen_maccs",
+	"demo", "demo_maccs", "demo_morgan",
+	"FingerprintMols", "MolSimilarity", "ClusterMols" ]
+  
   parser.add_argument("op", choices=OPS, help="OPERATION")
-  parser.add_argument("--i", dest="ifile", help="input file, TSV or SDF")
-  parser.add_argument("--o", dest="ofile", help="output file, TSV|SDF")
   parser.add_argument("--scratchdir", default="/tmp")
   parser.add_argument("--smicol", type=int, default=1, help="SMILES column from TSV (counting from 1)")
   parser.add_argument("--namcol", type=int, default=2, help="name column from TSV (counting from 1)")
@@ -78,8 +126,43 @@ if __name__ == "__main__":
   parser.add_argument("--oheader", action="store_true", help="output TSV has header")
   parser.add_argument("--morgan_nbits", type=int, default=MORGAN_NBITS)
   parser.add_argument("--morgan_radius", type=int, default=MORGAN_RADIUS)
+  parser.add_argument("--reportFreq", type=int, default=100)
+  #FingerprintMols, MolSimilarity
+  parser.add_argument("--i", dest="ifile", help="Input file; if provided and no tableName is specified, data will be read from the input file.  Text files delimited with either commas (extension .csv) or tabs (extension .txt) are supported.")
+  parser.add_argument("--o", dest="ofile", help="Name of the output file (output will be a pickle file with one label,fingerprint entry for each molecule).")
+  parser.add_argument("--useHs", action="store_true", help="Include Hs in the fingerprint Default is *false*.")
+  parser.add_argument("--useValence", action="store_true", help="Include valence information in the fingerprints Default is *false*.")
+  parser.add_argument("--dbName", help="Name of the database from which to pull input molecule information.  If output is going to a database, this will also be used for that unless the --outDbName option is used.")
+  parser.add_argument("--tableName", help="Name of the database table from which to pull input molecule information")
+  parser.add_argument("--minSize", type=int, default=64, help="Minimum size of the fingerprints to be generated (limits the amount of folding that happens).")
+  parser.add_argument("--maxSize", type=int, default=2048, help="Base size of the fingerprints to be generated.")
+  parser.add_argument("--density", type=float, default=0.3, help="Target bit density in the fingerprint.  The fingerprint will be folded until this density is reached.")
+  parser.add_argument("--outTable", help="name of the output db table used to store fingerprints.  If this table already exists, it will be replaced.")
+  parser.add_argument("--outDbName", help="name of output database, if it's being used.  Defaults to be the same as the input db.")
+  parser.add_argument("--fpColName", default="AutoFragmentFP", help="name to use for the column which stores fingerprints (in pickled format) in the output db table.")
+  parser.add_argument("--minPath", type=int, default=1, help="Minimum path length to be included in fragment-based fingerprints.")
+  parser.add_argument("--maxPath", type=int, default=7, help="Maximum path length to be included in fragment-based fingerprints.")
+  parser.add_argument("--nBitsPerHash", type=int, default=2, help="Number of bits to be set in the output fingerprint for each fragment.")
+  parser.add_argument("--discrim", action="store_true", help="Use of path-based discriminators to hash bits.")
+  parser.add_argument("--smilesName", default="#SMILES", help="Name of the SMILES column in the input database.")
+  parser.add_argument("--molPkl", help="")
+  parser.add_argument("--useSD", action="store_true", help="Assume that the input file is an SD file, not a SMILES table.")
+  parser.add_argument("--idName", default="Name", help="Name of the id column in the input database.  Defaults to the first column for dbs.")
+  parser.add_argument("--maxMols", type=int, help="Maximum number of molecules to be fingerprinted.")
+  parser.add_argument("--useMACCS", action="store_true", help="Use the public MACCS keys to do the fingerprinting (instead of a daylight-type fingerprint)")
+  parser.add_argument("--keepTable", action="store_true", help="")
+  # SCREENER:
+  parser.add_argument("--smilesTable", help="")
+  parser.add_argument("--topN", type=int, help="Top N similar; precedence over threshold.")
+  parser.add_argument("--thresh", type=float, help="Similarity threshold.")
+  parser.add_argument("--smiles", help="Query smiles for similarity screening.")
+  parser.add_argument("--metric", choices=["dice", "cosine"], default="dice", help="Similarity algorithm")
+  #CLUSTERS:
+  parser.add_argument("--clusterAlgo", choices=["WARD", "SLINK", "CLINK", "UPGMA"],
+default="WARD", help="Clustering algorithm: WARD = Ward's minimum variance; SLINK = single-linkage clustering algorithm; CLINK = complete-linkage clustering algorithm; UPGMA = group-average clustering algorithm")
+  parser.add_argument("--actTable", help="name of table containing activity values (used to color points in the cluster tree).")
+  parser.add_argument("--actName", help="name of column with activities in the activity table. The values in this column should either be integers or convertible into integers.")
   parser.add_argument("-v", "--verbose", action="count", default=0)
-
   args = parser.parse_args()
 
   logging.basicConfig(format='%(levelname)s:%(message)s', level=(logging.DEBUG if args.verbose>1 else logging.INFO))
@@ -89,7 +172,31 @@ if __name__ == "__main__":
 
   t0=time.time()
 
-  if args.op=="demo":
+  if args.op=="FingerprintMols": 
+    details = ParseArgs(args)
+    FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
+    n_fp=0;
+    with open(args.ofile, "rb") as fin:
+      while True:
+        try:
+          ID,bv = pickle.load(fin)
+        except Exception as e:
+          break
+        n_fp+=1
+        logging.debug(f"{n_fp}. {ID} ({len(bv)}): {bv.ToBitString()}")
+    sys.exit()
+
+  elif args.op=="MolSimilarity": 
+    details = ParseArgs(args)
+    MolSimilarity.ScreenFromDetails(details, mol=None)
+    sys.exit()
+
+  elif args.op=="ClusterMols": 
+    details = ParseArgs(args)
+    ClusterMols.ClusterFromDetails(details)
+    sys.exit()
+
+  elif args.op=="demo":
     Demo()
     sys.exit()
 
@@ -101,7 +208,7 @@ if __name__ == "__main__":
     DemoMACCSKeys()
     sys.exit()
 
-  if not (args.ifile): parser.error('--i required.')
+  #if not (args.ifile): parser.error('--i required.')
 
   molReader = util.Utils.File2Molreader(args.ifile, args.idelim, args.smicol-1, args.namcol-1, args.iheader)
   molWriter = util.Utils.File2Molwriter(args.ofile, args.odelim, args.oheader)

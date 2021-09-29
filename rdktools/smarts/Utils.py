@@ -32,11 +32,22 @@ class Options(object):
     self.verbose=0;
 
 #############################################################################
+def MatchFilter(pat, molReader, molWriter):
+  n_mol=0; n_mol_matched=0;
+  for mol in molReader:
+    matches = mol.GetSubstructMatches(pat, uniquify=True, useChirality=False)
+    if len(matches)>0:
+      n_mol_matched+=1
+      molWriter.write(mol)
+    n_mol+=1
+  logging.info(f"n_mol: {n_mol}; n_mol_matched: {n_mol_matched}")
+
+#############################################################################
 def MatchCounts(pat, molReader, molWriter):
   n_mol=0; n_mol_matched=0;
   for mol in molReader:
-    name = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-    smi = MolToSmiles(mol, isomericSmiles=True)
+    #name = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
+    #smi = MolToSmiles(mol, isomericSmiles=True)
     matches = mol.GetSubstructMatches(pat, uniquify=True, useChirality=False)
     n_matches = len(matches)
     n_mol_matched += (1 if n_matches>0 else 0)

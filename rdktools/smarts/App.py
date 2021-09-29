@@ -37,12 +37,13 @@ CN1c2ccc(cc2C(=NCC1=O)c3ccccc3)Cl	Valium
 #############################################################################
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="RDKit SMARTS utility", epilog="")
-  OPS = ["matchCounts", "filter", "demo"]
+  OPS = ["matchCounts", "matchFilter", "demo"]
   parser.add_argument("op", choices=OPS, help="operation")
   parser.add_argument("--i", dest="ifile", help="input file, SMI or SDF")
   parser.add_argument("--o", dest="ofile", help="output file, TSV")
   parser.add_argument("--smarts", help="query SMARTS")
   parser.add_argument("--usa", action="store_true", help="unique set-of-atoms match counts")
+  parser.add_argument("--delim", default="\t", help="delimiter for SMILES/TSV")
   parser.add_argument("-v", "--verbose", action="count", default=0)
   args = parser.parse_args()
 
@@ -57,24 +58,29 @@ if __name__ == "__main__":
     sys.exit()
 
   if re.sub(r'.*\.', '', args.ifile).lower()in ('smi', 'smiles'):
-    molReader = SmilesMolSupplier(args.ifile, delimiter=' ', smilesColumn=0, nameColumn=1, titleLine=True, sanitize=True)
+    molReader = SmilesMolSupplier(args.ifile, delimiter=args.delim, smilesColumn=0, nameColumn=1, titleLine=True, sanitize=True)
   elif re.sub(r'.*\.', '', args.ifile).lower() in ('sdf','sd','mdl','mol'):
     molReader = SDMolSupplier(args.ifile, sanitize=True, removeHs=True)
   else:
     logging.error(f'Invalid file extension: {args.ifile}')
 
   if args.ofile is None:
-    molWriter = SmilesWriter("-", delimiter='\t', nameHeader='Name', includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
-  if re.sub(r'.*\.', '', args.ofile).lower() in ('sdf','sd','mdl','mol'):
+    molWriter = SmilesWriter("-", delimiter=args.delim, nameHeader='Name', includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
+  elif re.sub(r'.*\.', '', args.ofile).lower() in ('sdf','sd','mdl','mol'):
     molWriter = SDWriter(args.ofile)
   elif re.sub(r'.*\.', '', args.ofile).lower()in ('smi', 'smiles'):
-    molWriter = SmilesWriter(args.ofile, delimiter='\t', nameHeader='Name', includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
+    molWriter = SmilesWriter(args.ofile, delimiter=args.delim, nameHeader='Name', includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
   else:
       logging.error(f'Invalid file extension: {args.ofile}')
 
 
   if args.op=="matchCounts":
-    smarts.Utils.MatchCounts(args.smarts, molReader, fout)
+    pat = rdkit.Chem.MolFromSmarts(args.smarts)
+    smarts.Utils.MatchCounts(pat, molReader, molWriter)
+
+  elif args.op=="matchFilter":
+    pat = rdkit.Chem.MolFromSmarts(args.smarts)
+    smarts.Utils.MatchFilter(pat, molReader, molWriter)
 
   else:
     parser.error(f"Unsupported operation: {args.op}")
