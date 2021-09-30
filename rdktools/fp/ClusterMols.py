@@ -45,9 +45,9 @@ def GetDistanceMatrix(data, metric, isSimilarity=1):
       fp1 = data[col][1]
       fp2 = data[row][1]
       if fp1.GetNumBits() > fp2.GetNumBits():
-        fp1 = DataStructs.FoldFingerprint(fp1, fp1.GetNumBits() / fp2.GetNumBits())
+        fp1 = DataStructs.FoldFingerprint(fp1, int(fp1.GetNumBits() / fp2.GetNumBits()))
       elif fp2.GetNumBits() > fp1.GetNumBits():
-        fp2 = DataStructs.FoldFingerprint(fp2, fp2.GetNumBits() / fp1.GetNumBits())
+        fp2 = DataStructs.FoldFingerprint(fp2, int(fp2.GetNumBits() / fp1.GetNumBits()))
       sim = metric(fp1, fp2)
       if isSimilarity:
         sim = 1. - sim
@@ -56,11 +56,10 @@ def GetDistanceMatrix(data, metric, isSimilarity=1):
   return res
 
 
-def ClusterPoints(data, metric, algorithmId, haveLabels=False, haveActs=True,
-                  returnDistances=False):
-  logging.info('Generating distance matrix.')
+def ClusterPoints(data, metric, algorithmId, haveLabels=False, haveActs=True, returnDistances=False):
+  logging.info(f"Generating distance matrix ({metric})")
   dMat = GetDistanceMatrix(data, metric)
-  logging.info('Clustering')
+  logging.info(f"Clustering ({algorithmId})")
   clustTree = Murtagh.ClusterData(dMat, len(data), algorithmId, isDistData=1)[0]
   acts = []
   if haveActs and len(data[0]) > 2:

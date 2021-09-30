@@ -30,7 +30,7 @@ https://www.rdkit.org/docs/GettingStartedInPython.html#morgan-fingerprints-circu
 import os,sys,re,json,time,inspect,argparse,logging,pickle,tempfile
 
 import rdkit
-from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolToSmiles, MolFromSmiles, MACCSkeys
+from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolToSmiles, MolFromSmiles
 from rdkit import DataStructs
 from rdkit.ML.Cluster import Murtagh
 
@@ -101,17 +101,16 @@ def ParseArgs(args):
   if args.useSD: details.useSmiles=False; details.useSD=True
   if args.idName: details.idName = args.idName
   if args.maxMols: details.maxMols = args.maxMols
-  if args.fingerprinter=="MACCS": details.fingerprinter = MACCSkeys.GenMACCSKeys
-  else:  details.fingerprinter = Chem.RDKFingerprint
+  if args.fingerprinter=="MACCS":
+    details.fingerprinter = rdkit.Chem.MACCSkeys.GenMACCSKeys
+  else:  details.fingerprinter = rdkit.Chem.RDKFingerprint
   if args.keepTable: details.replaceTable = False
-  # SCREENER:
   if args.smilesTable: details.smilesTableName = args.smilesTable
   if args.topN: details.doThreshold = 0; details.topN = args.topN
   elif args.thresh: details.doThreshold = 1; details.screenThresh = args.thresh
   if args.smiles: details.probeSmiles = args.smiles
   if args.metric=="dice": details.metric = DataStructs.DiceSimilarity
   elif args.metric=="cosine": details.metric = DataStructs.CosineSimilarity
-  # CLUSTERS:
   if args.clusterAlgo=="SLINK": details.clusterAlgo = Murtagh.SLINK
   elif args.clusterAlgo=="CLINK": details.clusterAlgo = Murtagh.CLINK
   elif args.clusterAlgo=="UPGMA": details.clusterAlgo = Murtagh.UPGMA
@@ -235,6 +234,7 @@ default="WARD", help="Clustering algorithm: WARD = Ward's minimum variance; SLIN
           bvs.append((ID, bv))
         except Exception as e:
           break
+        #logging.debug(f"{n_fp}. {ID}; type(bv): {type(bv)}")
         n_fp+=1
     os.remove(ftmp.name)
     details.outFileName = args.ofile
