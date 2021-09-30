@@ -27,48 +27,59 @@ https://www.rdkit.org/docs/GettingStartedInPython.html#morgan-fingerprints-circu
 #https://www.rdkit.org/docs/source/rdkit.DataStructs.cDataStructs.html
 #rdkit.DataStructs.cDataStructs.ExplicitBitVect
 #############################################################################
-import os,sys,re,json,time,inspect,argparse,logging,pickle
+import os,sys,re,json,time,inspect,argparse,logging,pickle,tempfile
 
 import rdkit
 from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolToSmiles, MolFromSmiles, MACCSkeys
-from rdkit.Chem.Fingerprints import FingerprintMols, MolSimilarity, ClusterMols
 from rdkit import DataStructs
 from rdkit.ML.Cluster import Murtagh
 
-from .. import fp
-from .. import util
+#from rdkit.Chem.Fingerprints import FingerprintMols #USING CUSTOM VERSION.
+#from rdkit.Chem.Fingerprints import MolSimilarity #USING CUSTOM VERSION.
+#from rdkit.Chem.Fingerprints import ClusterMols #USING CUSTOM VERSION.
+
+from .. import fp as rdktools_fp
+from .. import util as rdktools_util
+
+#############################################################################
+def ShowDetails(details):
+  import inspect
+  for key,val in inspect.getmembers(details):
+    if not key.startswith('_'): # ignore private and protected functions
+      if not inspect.ismethod(val): # ignore other methods 
+        logging.debug(f"{key:>16}: {val}")
 
 #############################################################################
 def Demo():
   mols=[];
-  for smi in util.Utils.DEMOSMIS:
+  for smi in rdktools_util.Utils.DEMOSMIS:
     mol = MolFromSmiles(re.sub(r'\s.*$', '', smi))
     mols.append(mol)
   molWriter = SmilesWriter("-", delimiter="\t", nameHeader='Name', includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
-  fp.Utils.Mols2FPs_RDK(mols, molWriter)
+  rdktools_fp.Utils.Mols2FPs_RDK(mols, molWriter)
  
 #############################################################################
 def DemoMorgan():
   mols=[];
-  for smi in util.Utils.DEMOSMIS:
+  for smi in rdktools_util.Utils.DEMOSMIS:
     mol = MolFromSmiles(re.sub(r'\s.*$', '', smi))
     mols.append(mol)
   molWriter = SmilesWriter("-", delimiter="\t", nameHeader='Name', includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
-  fp.Utils.Mols2FPs_Morgan(mols, 2, 1024, molWriter)
+  rdktools_fp.Utils.Mols2FPs_Morgan(mols, 2, 1024, molWriter)
  
 #############################################################################
 def DemoMACCSKeys():
   mols=[];
-  for smi in util.Utils.DEMOSMIS:
+  for smi in rdktools_util.Utils.DEMOSMIS:
     mol = MolFromSmiles(re.sub(r'\s.*$', '', smi))
     mols.append(mol)
   molWriter = SmilesWriter("-", delimiter="\t", nameHeader='Name', includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
-  fp.Utils.Mols2FPs_MACCSKeys(mols, molWriter)
+  rdktools_fp.Utils.Mols2FPs_MACCSKeys(mols, molWriter)
  
 #############################################################################
 def ParseArgs(args):
   """Based on Chem/Fingerprints/FingerprintMols.py"""
-  details = FingerprintMols.FingerprinterDetails()
+  details = rdktools_fp.FingerprintMols.FingerprinterDetails()
   if args.ifile: details.inFileName = args.ifile
   if args.ofile: details.outFileName = args.ofile
   if args.useHs: details.useHs = 1
@@ -90,7 +101,8 @@ def ParseArgs(args):
   if args.useSD: details.useSmiles=False; details.useSD=True
   if args.idName: details.idName = args.idName
   if args.maxMols: details.maxMols = args.maxMols
-  if args.useMACCS: details.fingerprinter = MACCSkeys.GenMACCSKeys
+  if args.fingerprinter=="MACCS": details.fingerprinter = MACCSkeys.GenMACCSKeys
+  else:  details.fingerprinter = Chem.RDKFingerprint
   if args.keepTable: details.replaceTable = False
   # SCREENER:
   if args.smilesTable: details.smilesTableName = args.smilesTable
@@ -149,11 +161,11 @@ if __name__ == "__main__":
   parser.add_argument("--useSD", action="store_true", help="Assume that the input file is an SD file, not a SMILES table.")
   parser.add_argument("--idName", default="Name", help="Name of the id column in the input database.  Defaults to the first column for dbs.")
   parser.add_argument("--maxMols", type=int, help="Maximum number of molecules to be fingerprinted.")
-  parser.add_argument("--useMACCS", action="store_true", help="Use the public MACCS keys to do the fingerprinting (instead of a daylight-type fingerprint)")
+  parser.add_argument("--fingerprinter", default="RDKIT", choices=["RDKIT", "MACCS"], help="RDKIT: daylight-type; MACCS: MACCS 166 keys")
   parser.add_argument("--keepTable", action="store_true", help="")
   # SCREENER:
   parser.add_argument("--smilesTable", help="")
-  parser.add_argument("--topN", type=int, help="Top N similar; precedence over threshold.")
+  parser.add_argument("--topN", type=int, default=12, help="Top N similar; precedence over threshold.")
   parser.add_argument("--thresh", type=float, help="Similarity threshold.")
   parser.add_argument("--smiles", help="Query smiles for similarity screening.")
   parser.add_argument("--metric", choices=["dice", "cosine"], default="dice", help="Similarity algorithm")
@@ -174,26 +186,63 @@ default="WARD", help="Clustering algorithm: WARD = Ward's minimum variance; SLIN
 
   if args.op=="FingerprintMols": 
     details = ParseArgs(args)
-    FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
-    n_fp=0;
-    with open(args.ofile, "rb") as fin:
+    rdktools_fp.FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
+    sys.exit()
+
+  elif args.op=="MolSimilarity":
+    details = ParseArgs(args)
+    ftmp = tempfile.NamedTemporaryFile(suffix='.pkl', delete=True)
+    details.outFileName = ftmp.name
+    logging.debug(f"Temporary file: {ftmp.name}")
+    ftmp.close()
+    ShowDetails(details)
+    queryMol = MolFromSmiles(re.sub(r'\s.*$', '', args.smiles))
+    queryName = re.sub(r'^[\S]*\s', '', args.smiles)
+    logging.info("MolSimilarity ({0}): Query: {1}".format((f"TopN:{args.topN}" if args.topN else f"threshold: {args.thresh}"), (f"{queryName}" if queryName else f"{querySmiles}")))
+    rdktools_fp.FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
+    n_fp=0; bvs=[];
+    with open(ftmp.name, "rb") as fin:
       while True:
         try:
           ID,bv = pickle.load(fin)
+          bvs.append((ID, bv))
         except Exception as e:
           break
         n_fp+=1
-        logging.debug(f"{n_fp}. {ID} ({len(bv)}): {bv.ToBitString()}")
-    sys.exit()
-
-  elif args.op=="MolSimilarity": 
-    details = ParseArgs(args)
-    MolSimilarity.ScreenFromDetails(details, mol=None)
+        #logging.debug(f"{n_fp}. {ID} ({len(bv)}): {bv.ToBitString()}")
+    os.remove(ftmp.name)
+    details.outFileName = args.ofile
+    results = rdktools_fp.MolSimilarity.ScreenFingerprints(details, bvs, mol=queryMol, probeFp=None)
+    n_hit=0; 
+    results.reverse()
+    for ID,score in results:
+      n_hit+=1
+      logging.debug(f"{n_hit:2d}. {ID:>16}: {score:.3f}")
     sys.exit()
 
   elif args.op=="ClusterMols": 
     details = ParseArgs(args)
-    ClusterMols.ClusterFromDetails(details)
+    ftmp = tempfile.NamedTemporaryFile(suffix='.pkl', delete=True)
+    details.outFileName = ftmp.name
+    logging.debug(f"Temporary file: {ftmp.name}")
+    ftmp.close()
+    rdktools_fp.FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
+    n_fp=0; bvs=[];
+    with open(ftmp.name, "rb") as fin:
+      while True:
+        try:
+          ID,bv = pickle.load(fin)
+          bvs.append((ID, bv))
+        except Exception as e:
+          break
+        n_fp+=1
+    os.remove(ftmp.name)
+    details.outFileName = args.ofile
+
+    logging.info(f"ClusterMols ({args.fingerprinter}, {args.metric}, {args.clusterAlgo})")
+    clustTree = rdktools_fp.ClusterMols.ClusterPoints(bvs, details.metric, details.clusterAlgo, haveLabels=0, haveActs=1)
+    if args.ofile:
+      pickle.dump(clustTree, args.ofile)
     sys.exit()
 
   elif args.op=="demo":
@@ -210,18 +259,18 @@ default="WARD", help="Clustering algorithm: WARD = Ward's minimum variance; SLIN
 
   #if not (args.ifile): parser.error('--i required.')
 
-  molReader = util.Utils.File2Molreader(args.ifile, args.idelim, args.smicol-1, args.namcol-1, args.iheader)
-  molWriter = util.Utils.File2Molwriter(args.ofile, args.odelim, args.oheader)
-  mols = util.Utils.ReadMols(molReader)
+  molReader = rdktools_util.Utils.File2Molreader(args.ifile, args.idelim, args.smicol-1, args.namcol-1, args.iheader)
+  molWriter = rdktools_util.Utils.File2Molwriter(args.ofile, args.odelim, args.oheader)
+  mols = rdktools_util.Utils.ReadMols(molReader)
 
   if args.op=="fpgen":
-    fp.Utils.Mols2FPs_RDK(mols, molWriter)
+    rdktools_fp.Utils.Mols2FPs_RDK(mols, molWriter)
 
   elif args.op=="fpgen_morgan":
-    fp.Utils.Mols2FPs_Morgan(mols, args.morgan_radius, args.morgan_nbits, molWriter)
+    rdktools_fp.Utils.Mols2FPs_Morgan(mols, args.morgan_radius, args.morgan_nbits, molWriter)
 
   elif args.op=="fpgen_maccs":
-    fp.Utils.Mols2FPs_MACCS(mols, molWriter)
+    rdktools_fp.Utils.Mols2FPs_MACCS(mols, molWriter)
 
   else:
     parser.error(f"Unsupported operation: {args.op}")
