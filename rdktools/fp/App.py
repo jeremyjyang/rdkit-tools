@@ -33,6 +33,9 @@ import rdkit
 from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolToSmiles, MolFromSmiles
 from rdkit import DataStructs
 from rdkit.ML.Cluster import Murtagh
+from rdkit.ML.Cluster import Butina
+from rdkit.ML.Cluster import ClusterVis
+from rdkit.ML.Cluster import ClusterUtils
 
 #from rdkit.Chem.Fingerprints import FingerprintMols #USING CUSTOM VERSION.
 #from rdkit.Chem.Fingerprints import MolSimilarity #USING CUSTOM VERSION.
@@ -101,19 +104,29 @@ def ParseArgs(args):
   if args.useSD: details.useSmiles=False; details.useSD=True
   if args.idName: details.idName = args.idName
   if args.maxMols: details.maxMols = args.maxMols
-  if args.fingerprinter=="MACCS":
-    details.fingerprinter = rdkit.Chem.MACCSkeys.GenMACCSKeys
+  if args.fingerprinter=="MACCS": details.fingerprinter = rdkit.Chem.MACCSkeys.GenMACCSKeys
+  elif args.fingerprinter=="MORGAN": details.fingerprinter = rdkit.AllChem.GetMorganFingerprint
   else:  details.fingerprinter = rdkit.Chem.RDKFingerprint
   if args.keepTable: details.replaceTable = False
   if args.smilesTable: details.smilesTableName = args.smilesTable
   if args.topN: details.doThreshold = 0; details.topN = args.topN
   elif args.thresh: details.doThreshold = 1; details.screenThresh = args.thresh
   if args.smiles: details.probeSmiles = args.smiles
-  if args.metric=="dice": details.metric = DataStructs.DiceSimilarity
+  if args.metric=="allbit": details.metric = DataStructs.AllBitSimilarity
+  elif args.metric=="asymmetric": details.metric = DataStructs.AsymmetricSimilarity
+  elif args.metric=="dice": details.metric = DataStructs.DiceSimilarity
   elif args.metric=="cosine": details.metric = DataStructs.CosineSimilarity
+  elif args.metric=="kulczynski": details.metric = DataStructs.KulczynskiSimilarity
+  elif args.metric=="mcconnaughey": details.metric = DataStructs.McConnaugheySimilarity
+  elif args.metric=="onbit": details.metric = DataStructs.OnBitSimilarity
+  elif args.metric=="russel": details.metric = DataStructs.RusselSimilarity
+  elif args.metric=="sokal": details.metric = DataStructs.SokalSimilarity
+  elif args.metric=="tanimoto": details.metric = DataStructs.TanimotoSimilarity
+  elif args.metric=="tversky": details.metric = DataStructs.TverskySimilarity
   if args.clusterAlgo=="SLINK": details.clusterAlgo = Murtagh.SLINK
   elif args.clusterAlgo=="CLINK": details.clusterAlgo = Murtagh.CLINK
   elif args.clusterAlgo=="UPGMA": details.clusterAlgo = Murtagh.UPGMA
+  elif args.clusterAlgo=="BUTINA": details.clusterAlgo = Butina.ClusterData
   else: pass #(WARD)
   if args.actTable: details.actTableName = args.actTable
   if args.actName: details.actName = args.actName
@@ -122,6 +135,7 @@ def ParseArgs(args):
 #############################################################################
 if __name__ == "__main__":
   MORGAN_NBITS=1024; MORGAN_RADIUS=2;
+  METRICS = ["allbit", "asymmetric", "dice", "cosine", "kulczynski", "mcconnaughey", "onbit", "russel", "sokal", "tanimoto", "tversky"]
   parser = argparse.ArgumentParser(description="RDKit fingerprint generator", epilog="")
   OPS = [ "fpgen", "fpgen_morgan", "fpgen_maccs",
 	"demo", "demo_maccs", "demo_morgan",
@@ -160,17 +174,17 @@ if __name__ == "__main__":
   parser.add_argument("--useSD", action="store_true", help="Assume that the input file is an SD file, not a SMILES table.")
   parser.add_argument("--idName", default="Name", help="Name of the id column in the input database.  Defaults to the first column for dbs.")
   parser.add_argument("--maxMols", type=int, help="Maximum number of molecules to be fingerprinted.")
-  parser.add_argument("--fingerprinter", default="RDKIT", choices=["RDKIT", "MACCS"], help="RDKIT: daylight-type; MACCS: MACCS 166 keys")
+  parser.add_argument("--fingerprinter", default="RDKIT", choices=["RDKIT", "MACCS"], help="RDKIT = Daylight path-based; MACCS = MDL MACCS 166 keys")
   parser.add_argument("--keepTable", action="store_true", help="")
   # SCREENER:
   parser.add_argument("--smilesTable", help="")
   parser.add_argument("--topN", type=int, default=12, help="Top N similar; precedence over threshold.")
   parser.add_argument("--thresh", type=float, help="Similarity threshold.")
   parser.add_argument("--smiles", help="Query smiles for similarity screening.")
-  parser.add_argument("--metric", choices=["dice", "cosine"], default="dice", help="Similarity algorithm")
+  parser.add_argument("--metric", choices=METRICS, default="tanimoto", help="Similarity algorithm")
   #CLUSTERS:
-  parser.add_argument("--clusterAlgo", choices=["WARD", "SLINK", "CLINK", "UPGMA"],
-default="WARD", help="Clustering algorithm: WARD = Ward's minimum variance; SLINK = single-linkage clustering algorithm; CLINK = complete-linkage clustering algorithm; UPGMA = group-average clustering algorithm")
+  parser.add_argument("--clusterAlgo", choices=["WARD", "SLINK", "CLINK", "UPGMA", "BUTINA"],
+default="WARD", help="Clustering algorithm: WARD = Ward's minimum variance; SLINK = single-linkage clustering algorithm; CLINK = complete-linkage clustering algorithm; UPGMA = group-average clustering algorithm; BUTINA = Butina JCICS 39 747-750 (1999)")
   parser.add_argument("--actTable", help="name of table containing activity values (used to color points in the cluster tree).")
   parser.add_argument("--actName", help="name of column with activities in the activity table. The values in this column should either be integers or convertible into integers.")
   parser.add_argument("-v", "--verbose", action="count", default=0)
@@ -184,11 +198,13 @@ default="WARD", help="Clustering algorithm: WARD = Ward's minimum variance; SLIN
   t0=time.time()
 
   if args.op=="FingerprintMols": 
+    logging.info(f"FingerprintMols ({args.fingerprinter})")
     details = ParseArgs(args)
     rdktools_fp.FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
     sys.exit()
 
   elif args.op=="MolSimilarity":
+    logging.info(f"MolSimilarity ({args.fingerprinter}, {args.metric})")
     details = ParseArgs(args)
     ftmp = tempfile.NamedTemporaryFile(suffix='.pkl', delete=True)
     details.outFileName = ftmp.name
@@ -197,7 +213,7 @@ default="WARD", help="Clustering algorithm: WARD = Ward's minimum variance; SLIN
     ShowDetails(details)
     queryMol = MolFromSmiles(re.sub(r'\s.*$', '', args.smiles))
     queryName = re.sub(r'^[\S]*\s', '', args.smiles)
-    logging.info("MolSimilarity ({0}): Query: {1}".format((f"TopN:{args.topN}" if args.topN else f"threshold: {args.thresh}"), (f"{queryName}" if queryName else f"{querySmiles}")))
+    logging.info("{0}; Query: {1}".format((f"TopN:{args.topN}" if args.topN else f"threshold: {args.thresh}"), (f"{queryName}" if queryName else f"{querySmiles}")))
     rdktools_fp.FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
     n_fp=0; bvs=[];
     with open(ftmp.name, "rb") as fin:
@@ -240,7 +256,29 @@ default="WARD", help="Clustering algorithm: WARD = Ward's minimum variance; SLIN
     details.outFileName = args.ofile
 
     logging.info(f"ClusterMols ({args.fingerprinter}, {args.metric}, {args.clusterAlgo})")
-    clustTree = rdktools_fp.ClusterMols.ClusterPoints(bvs, details.metric, details.clusterAlgo, haveLabels=0, haveActs=1)
+    clustTree, dMat = rdktools_fp.ClusterMols.ClusterPoints(bvs, details.metric, details.clusterAlgo, haveLabels=0, haveActs=1, returnDistances=True)
+
+    logging.info(f"dMat.ndim:{dMat.ndim}; dMat.shape:{dMat.shape}; dMat.size:{dMat.size}")
+
+    for pt in clustTree.GetPoints():
+      logging.debug(f"{pt.GetIndex():4d}. {pt.GetName()}")
+
+    nodes = ClusterUtils.GetNodeList(clustTree)
+    for node in nodes:
+      node.Print(level=0, showData=1, offset="  ")
+    for node in nodes:
+      logging.debug(f"{node.GetIndex()}; IsTerminal:{node.IsTerminal()}")
+
+
+    from PIL import Image
+    ftmp = tempfile.NamedTemporaryFile(suffix='.png', delete=True)
+    ftmp.close()
+    ClusterVis.ClusterToImg(clustTree, ftmp.name, (400,600), ptColors=[], lineWidth=None, showIndices=0, stopAtCentroids=0, logScale=0)
+    img = Image.open(ftmp.name)
+    logging.debug(f"img.size: {img.size}")
+    img.show()
+
+
     if args.ofile:
       pickle.dump(clustTree, args.ofile)
     sys.exit()

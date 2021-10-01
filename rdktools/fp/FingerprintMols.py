@@ -22,7 +22,7 @@ Sample Usage:
 """
 
 import getopt
-import sys,logging
+import sys,logging,tqdm
 
 from rdkit import Chem
 from rdkit import DataStructs
@@ -72,21 +72,21 @@ def FingerprintsFromSmiles(dataSource, idCol, smiCol, fingerprinter=Chem.RDKFing
   Returns a list of 2-tuples: (ID,fp)
 
   """
-  res = []
-  nDone = 0
+  res=[]; nDone=0; tq=None;
   for entry in dataSource:
     ID, smi = str(entry[idCol]), str(entry[smiCol])
     mol = Chem.MolFromSmiles(smi)
     if mol is not None:
       fp = FingerprintMol(mol, fingerprinter, **fpArgs)
       res.append((ID, fp))
-      nDone += 1
-      if reportFreq>0 and nDone%reportFreq==0:
-        logging.info(f"Done {nDone} molecules.")
+      if not tq: tq = tqdm.tqdm(total=len(dataSource), unit="molecules")
+      tq.update()
+      nDone+=1
       if maxMols>0 and nDone>=maxMols:
         break
     else:
       logging.error(f"Problems parsing SMILES: {smi}")
+  if tq is not None: tq.close()
   return res
 
 
