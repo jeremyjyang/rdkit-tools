@@ -1,8 +1,7 @@
 #
-#  Copyright (c) 2003-2006 Rational Discovery LLC
+#  Copyright (c) 2003-2021 Rational Discovery LLC
 #
-#   @@ All Rights Reserved @@
-#  This file is part of the RDKit.
+#  @@ All Rights Reserved @@
 #  The contents are covered by the terms of the BSD license
 #  which is included in the file license.txt, found at the root
 #  of the RDKit source tree.
@@ -17,7 +16,6 @@ Sample Usage:
   python FingerprintMols.py  -d data.gdb \
         -t 'raw_dop_data' --smilesName="Structure" --idName="Mol_ID"  \
         --outTable="daylight_sig"
-
 
 """
 
@@ -55,13 +53,16 @@ def FingerprintMol(mol, fingerprinter=Chem.RDKFingerprint, **fpArgs):
     details = FingerprinterDetails()
     fpArgs = details.__dict__
 
-  if fingerprinter != Chem.RDKFingerprint:
+  if fingerprinter == Chem.RDKFingerprint:
+    fp = fingerprinter(mol, fpArgs['minPath'], fpArgs['maxPath'], fpArgs['fpSize'], fpArgs['bitsPerHash'], fpArgs['useHs'], fpArgs['tgtDensity'], fpArgs['minSize'])
+  elif fingerprinter == Chem.MACCSkeys.GenMACCSKeys:
+    fp = Chem.MACCSkeys.GenMACCSKeys(mol)
+  elif fingerprinter == Chem.AllChem.GetMorganFingerprint:
+    fp = Chem.AllChem.GetMorganFingerprintAsBitVect(mol, fpArgs["morgan_radius"], fpArgs["morgan_nbits"])
+  else:
     fp = fingerprinter(mol, **fpArgs)
     fp = FoldFingerprintToTargetDensity(fp, **fpArgs)
-  else:
-    fp = fingerprinter(mol, fpArgs['minPath'], fpArgs['maxPath'], fpArgs['fpSize'],
-                       fpArgs['bitsPerHash'], fpArgs['useHs'], fpArgs['tgtDensity'],
-                       fpArgs['minSize'])
+  logging.debug(f"{fp.ToBitString()}")
   return fp
 
 
@@ -94,21 +95,20 @@ def FingerprintsFromMols(mols, fingerprinter=Chem.RDKFingerprint, reportFreq=10,
   """ fpArgs are passed as keyword arguments to the fingerprinter
 
   Returns a list of 2-tuples: (ID,fp)
-
   """
-  res = []
-  nDone = 0
+  res=[]; nDone=0; tq=None;
   for ID, mol in mols:
     if mol:
       fp = FingerprintMol(mol, fingerprinter, **fpArgs)
       res.append((ID, fp))
-      nDone += 1
-      if reportFreq>0 and nDone%reportFreq==0:
-        logging.info(f"Done {nDone} molecules")
+      if not tq: tq = tqdm.tqdm(total=len(mols), unit="molecules")
+      tq.update()
+      nDone+=1
       if maxMols>0 and nDone>=maxMols:
         break
     else:
       logging.error(f"Problems parsing SMILES: {smi}")
+  if tq is not None: tq.close()
   return res
 
 
@@ -118,21 +118,21 @@ def FingerprintsFromPickles(dataSource, idCol, pklCol, fingerprinter=Chem.RDKFin
   Returns a list of 2-tuples: (ID,fp)
 
   """
-  res = []
-  nDone = 0
+  res=[]; nDone=0; tq=None;
   for entry in dataSource:
     ID, pkl = str(entry[idCol]), str(entry[pklCol])
     mol = Chem.Mol(pkl)
     if mol is not None:
       fp = FingerprintMol(mol, fingerprinter, **fpArgs)
       res.append((ID, fp))
+      if not tq: tq = tqdm.tqdm(total=len(dataSource), unit="molecules")
+      tq.update()
       nDone += 1
-      if reportFreq>0 and nDone%reportFreq==0:
-        logging.info(f"Done {nDone} molecules")
       if maxMols>0 and nDone>=maxMols:
         break
     else:
       logging.error(f"Problems parsing pickle for ID: {ID}")
+  if tq is not None: tq.close()
   return res
 
 
@@ -174,24 +174,28 @@ def FingerprintsFromDetails(details, reportFreq=10):
     if not details.idName:
       details.idName = 'ID'
     dataSet = []
-    try:
-      s = Chem.SDMolSupplier(details.inFileName)
-    except Exception:
-      import traceback
-      logging.error(f"Problems reading from file {details.inFileName}")
-      traceback.print_exc()
-    else:
-      while 1:
-        try:
-          m = s.next()
-        except StopIteration:
-          break
-        if m:
-          dataSet.append(m)
-          if reportFreq>0 and len(dataSet)%reportFreq==0:
-            logging.info(f"Read {len(dataSet)} molecules")
-            if details.maxMols>0 and len(dataSet)>=details.maxMols:
-              break
+#    try:
+#      s = Chem.SDMolSupplier(details.inFileName)
+#    except Exception:
+#      import traceback
+#      logging.error(f"Problems reading from file {details.inFileName}")
+#      traceback.print_exc()
+#    else:
+#      while 1:
+#        try:
+#          m = s.next()
+#        except StopIteration:
+#          break
+#        if m:
+#          dataSet.append(m)
+#          if reportFreq>0 and len(dataSet)%reportFreq==0:
+#            logging.info(f"Read {len(dataSet)} molecules")
+#            if details.maxMols>0 and len(dataSet)>=details.maxMols:
+#              break
+
+    molReader = Chem.SDMolSupplier(details.inFileName)
+    for mol in molReader:
+      dataSet.append(mol)
 
     for i, mol in enumerate(dataSet):
       if mol.HasProp(details.idName):
@@ -294,6 +298,8 @@ class FingerprinterDetails(object):
     self.molPklName = ''
     self.useSmiles = True
     self.useSD = False
+    self.morgan_radius = 2
+    self.morgan_nbits = 1024
 
   def _screenerInit(self):
     self.metric = DataStructs.TanimotoSimilarity

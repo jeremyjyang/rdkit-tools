@@ -1,35 +1,20 @@
 #!/usr/bin/env python3
 """
 https://www.rdkit.org/docs/source/
-https://www.rdkit.org/docs/GettingStartedInPython.html#morgan-fingerprints-circular-fingerprints
+
+When comparing the ECFP/FCFP fingerprints and Morgan fingerprints by
+RDKit, remember that 4 in ECFP4 corresponds to diameter of atom environments,
+while Morgan fingerprints take a radius parameter. So radius=2 roughly
+equivalent to ECFP4 and FCFP4.
+
+https://www.rdkit.org/docs/source/rdkit.DataStructs.cDataStructs.html
+rdkit.DataStructs.cDataStructs.ExplicitBitVect
 """
-###
-#############################################################################
-## RDKFingerprint # returns ExplicitBitVect
-## args: minPath=1,maxPath=7,fpSize=2048,nBitsPerHash=4,useHs=True, tgtDensity=0.0,minSize=128
-##
-## GenMACCSKeys (no args) # returns SparseBitVect
-##
-## AllChem.GetMorganFingerprint(mol,2) # returns SparseBitVect
-## AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=1024)
-##
-## When comparing the ECFP/FCFP fingerprints and Morgan fingerprints by
-## RDKit, remember that 4 in ECFP4 corresponds to diameter of atom environments,
-## while Morgan fingerprints take a radius parameter. So radius=2 roughly
-## equivalent to ECFP4 and FCFP4.
-#rdkit.DataStructs.BitVectToText
-#rdkit.DataStructs.BitVectToBinaryText
-#rdkit.DataStructs.BitVectToFPSText
-#rdkit.DataStructs.CreateFromBinaryText
-#rdkit.DataStructs.CreateFromBitString
-#rdkit.DataStructs.CreateFromFPSText
-#############################################################################
-#https://www.rdkit.org/docs/source/rdkit.DataStructs.cDataStructs.html
-#rdkit.DataStructs.cDataStructs.ExplicitBitVect
 #############################################################################
 import os,sys,re,json,time,inspect,argparse,logging,pickle,tempfile
 
 import rdkit
+import rdkit.Chem.AllChem
 from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolToSmiles, MolFromSmiles
 from rdkit import DataStructs
 from rdkit.ML.Cluster import Murtagh
@@ -53,7 +38,7 @@ def ShowDetails(details):
         logging.debug(f"{key:>16}: {val}")
 
 #############################################################################
-def Demo():
+def DemoPath():
   mols=[];
   for smi in rdktools_util.Utils.DEMOSMIS:
     mol = MolFromSmiles(re.sub(r'\s.*$', '', smi))
@@ -105,8 +90,10 @@ def ParseArgs(args):
   if args.idName: details.idName = args.idName
   if args.maxMols: details.maxMols = args.maxMols
   if args.fingerprinter=="MACCS": details.fingerprinter = rdkit.Chem.MACCSkeys.GenMACCSKeys
-  elif args.fingerprinter=="MORGAN": details.fingerprinter = rdkit.AllChem.GetMorganFingerprint
+  elif args.fingerprinter=="MORGAN": details.fingerprinter = rdkit.Chem.AllChem.GetMorganFingerprint
   else:  details.fingerprinter = rdkit.Chem.RDKFingerprint
+  details.morgan_radius = args.morgan_radius
+  details.morgan_nbits = args.morgan_nbits
   if args.keepTable: details.replaceTable = False
   if args.smilesTable: details.smilesTableName = args.smilesTable
   if args.topN: details.doThreshold = 0; details.topN = args.topN
@@ -134,13 +121,13 @@ def ParseArgs(args):
 
 #############################################################################
 if __name__ == "__main__":
+  FINGERPRINTERS=["RDKIT", "MACCS", "MORGAN"]
   MORGAN_NBITS=1024; MORGAN_RADIUS=2;
   METRICS = ["allbit", "asymmetric", "dice", "cosine", "kulczynski", "mcconnaughey", "onbit", "russel", "sokal", "tanimoto", "tversky"]
   parser = argparse.ArgumentParser(description="RDKit fingerprint generator", epilog="")
-  OPS = [ "fpgen", "fpgen_morgan", "fpgen_maccs",
-	"demo", "demo_maccs", "demo_morgan",
-	"FingerprintMols", "MolSimilarity", "ClusterMols" ]
-  
+  OPS = [ "FingerprintMols", "MolSimilarity", "ClusterMols",
+	"demo_path", "demo_maccs", "demo_morgan", ]
+	#"fpgen", "fpgen_morgan", "fpgen_maccs"
   parser.add_argument("op", choices=OPS, help="OPERATION")
   parser.add_argument("--scratchdir", default="/tmp")
   parser.add_argument("--smicol", type=int, default=1, help="SMILES column from TSV (counting from 1)")
@@ -174,7 +161,7 @@ if __name__ == "__main__":
   parser.add_argument("--useSD", action="store_true", help="Assume that the input file is an SD file, not a SMILES table.")
   parser.add_argument("--idName", default="Name", help="Name of the id column in the input database.  Defaults to the first column for dbs.")
   parser.add_argument("--maxMols", type=int, help="Maximum number of molecules to be fingerprinted.")
-  parser.add_argument("--fingerprinter", default="RDKIT", choices=["RDKIT", "MACCS"], help="RDKIT = Daylight path-based; MACCS = MDL MACCS 166 keys")
+  parser.add_argument("--fingerprinter", default="RDKIT", choices=FINGERPRINTERS, help="RDKIT = Daylight path-based; MACCS = MDL MACCS 166 keys")
   parser.add_argument("--keepTable", action="store_true", help="")
   # SCREENER:
   parser.add_argument("--smilesTable", help="")
@@ -200,8 +187,9 @@ default="WARD", help="Clustering algorithm: WARD = Ward's minimum variance; SLIN
   if args.op=="FingerprintMols": 
     logging.info(f"FingerprintMols ({args.fingerprinter})")
     details = ParseArgs(args)
+    ShowDetails(details)
     rdktools_fp.FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
-    sys.exit()
+    if args.ofile is not None: logging.info(f"FPs written to: {args.ofile}")
 
   elif args.op=="MolSimilarity":
     logging.info(f"MolSimilarity ({args.fingerprinter}, {args.metric})")
@@ -233,7 +221,6 @@ default="WARD", help="Clustering algorithm: WARD = Ward's minimum variance; SLIN
     for ID,score in results:
       n_hit+=1
       logging.debug(f"{n_hit:2d}. {ID:>16}: {score:.3f}")
-    sys.exit()
 
   elif args.op=="ClusterMols": 
     details = ParseArgs(args)
@@ -250,7 +237,6 @@ default="WARD", help="Clustering algorithm: WARD = Ward's minimum variance; SLIN
           bvs.append((ID, bv))
         except Exception as e:
           break
-        #logging.debug(f"{n_fp}. {ID}; type(bv): {type(bv)}")
         n_fp+=1
     os.remove(ftmp.name)
     details.outFileName = args.ofile
@@ -269,7 +255,6 @@ default="WARD", help="Clustering algorithm: WARD = Ward's minimum variance; SLIN
     for node in nodes:
       logging.debug(f"{node.GetIndex()}; IsTerminal:{node.IsTerminal()}")
 
-
     from PIL import Image
     ftmp = tempfile.NamedTemporaryFile(suffix='.png', delete=True)
     ftmp.close()
@@ -278,40 +263,32 @@ default="WARD", help="Clustering algorithm: WARD = Ward's minimum variance; SLIN
     logging.debug(f"img.size: {img.size}")
     img.show()
 
-
     if args.ofile:
       pickle.dump(clustTree, args.ofile)
-    sys.exit()
 
-  elif args.op=="demo":
-    Demo()
-    sys.exit()
+  elif args.op=="demo_path":
+    DemoPath()
 
   elif args.op=="demo_morgan":
     DemoMorgan()
-    sys.exit()
 
   elif args.op=="demo_maccs":
     DemoMACCSKeys()
-    sys.exit()
-
-  #if not (args.ifile): parser.error('--i required.')
-
-  molReader = rdktools_util.Utils.File2Molreader(args.ifile, args.idelim, args.smicol-1, args.namcol-1, args.iheader)
-  molWriter = rdktools_util.Utils.File2Molwriter(args.ofile, args.odelim, args.oheader)
-  mols = rdktools_util.Utils.ReadMols(molReader)
-
-  if args.op=="fpgen":
-    rdktools_fp.Utils.Mols2FPs_RDK(mols, molWriter)
-
-  elif args.op=="fpgen_morgan":
-    rdktools_fp.Utils.Mols2FPs_Morgan(mols, args.morgan_radius, args.morgan_nbits, molWriter)
-
-  elif args.op=="fpgen_maccs":
-    rdktools_fp.Utils.Mols2FPs_MACCS(mols, molWriter)
 
   else:
     parser.error(f"Unsupported operation: {args.op}")
 
   logging.info('Elapsed: %s'%(time.strftime('%Hh:%Mm:%Ss', time.gmtime(time.time()-t0))))
 
+### OBSOLETED:
+#  if not (args.ifile): parser.error('--i required.')
+#  molReader = rdktools_util.Utils.File2Molreader(args.ifile, args.idelim, args.smicol-1, args.namcol-1, args.iheader)
+#  molWriter = rdktools_util.Utils.File2Molwriter(args.ofile, args.odelim, args.oheader)
+#  mols = rdktools_util.Utils.ReadMols(molReader)
+#  if args.op=="fpgen":
+#    rdktools_fp.Utils.Mols2FPs_RDK(mols, molWriter)
+#  elif args.op=="fpgen_morgan":
+#    rdktools_fp.Utils.Mols2FPs_Morgan(mols, args.morgan_radius, args.morgan_nbits, molWriter)
+#  elif args.op=="fpgen_maccs":
+#    rdktools_fp.Utils.Mols2FPs_MACCS(mols, molWriter)
+###
