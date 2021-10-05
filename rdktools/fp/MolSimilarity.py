@@ -36,22 +36,22 @@ except ImportError:
 
 
 def _ConstructSQL(details, extraFields=''):
-  fields = '%s.%s' % (details.tableName, details.idName)
-  join = ''
+  fields = f"{details.tableName}.{details.idName}"
+  join = ""
   if details.smilesTableName:
     if details.smilesName:
-      fields = fields + ',%s' % (details.smilesName)
-    join = 'join %s smi on smi.%s=%s.%s' % (details.smilesTableName, details.idName,
-                                            details.tableName, details.idName)
+      fields = fields + f",{details.smilesName}"
+    join = f"JOIN {details.smilesTableName} smi ON smi.{details.idName}={details.tableName}.{details.idName}"
+                                            
   if details.actTableName:
     if details.actName:
-      fields = fields + ',%s' % (details.actName)
-    join = join + 'join %s act on act.%s=%s.%s' % (details.actTableName, details.idName,
-                                                   details.tableName, details.idName)
+      fields = fields + f",{details.actName}"
+    join = join + f"JOIN {details.actTableName} act ON act.{details.idName}={details.tableName}.{details.idName}"
+
   # data = conn.GetData(fields=fields,join=join)
   if extraFields:
-    fields += ',' + extraFields
-  cmd = 'select %s from %s %s' % (fields, details.tableName, join)
+    fields += "," + extraFields
+  cmd = f"SELECT {fields} FROM {details.tableName} {join}"
   return cmd
 
 
@@ -60,50 +60,47 @@ def ScreenInDb(details, mol):
     probeFp = rdktools_fp.FingerprintMols.FingerprintMol(mol, **details.__dict__)
   except Exception:
     import traceback
-    logging.error('problems fingerprinting molecule.')
+    logging.error("Problems fingerprinting molecule.")
     traceback.print_exc()
     return []
   if details.dbName and details.tableName:
     try:
       conn = DbConnect(details.dbName, details.tableName)
-      if hasattr(details, 'dbUser'):
+      if hasattr(details, "dbUser"):
         conn.user = details.dbUser
-      if hasattr(details, 'dbPassword'):
+      if hasattr(details, "dbPassword"):
         conn.password = details.dbPassword
     except Exception:
       import traceback
-      logging.error('Error: Problems establishing connection to database: %s|%s\n' %
-                            (details.dbName, details.tableName))
+      logging.error(f"Problems establishing connection to database: {details.dbName}|{details.tableName}\n")
       traceback.print_exc()
 
-  if details.metric not in (DataStructs.TanimotoSimilarity, DataStructs.DiceSimilarity,
-                            DataStructs.CosineSimilarity):
+  if details.metric not in (DataStructs.TanimotoSimilarity, DataStructs.DiceSimilarity, DataStructs.CosineSimilarity):
     data = GetFingerprints(details)
     res = ScreenFingerprints(details, data, mol)
   else:
     res = []
     if details.metric == DataStructs.TanimotoSimilarity:
-      func = 'rd_tanimoto'
+      func = "rd_tanimoto"
       pkl = probeFp.ToBitString()
     elif details.metric == DataStructs.DiceSimilarity:
-      func = 'rd_dice'
+      func = "rd_dice"
       pkl = probeFp.ToBitString()
     elif details.metric == DataStructs.CosineSimilarity:
-      func = 'rd_cosine'
+      func = "rd_cosine"
       pkl = probeFp.ToBitString()
-    extraFields = "%s(%s,%s) as tani" % (func, DbModule.placeHolder, details.fpColName)
+    extraFields = f"{func}({DbModule.placeHolder},{details.fpColName}) as tani"
     cmd = _ConstructSQL(details, extraFields=extraFields)
 
     if details.doThreshold:
       # we need to do a subquery here:
-      cmd = "select * from (%s) tmp where tani>%f" % (cmd, details.screenThresh)
-    cmd += " order by tani desc"
+      cmd = f"SELECT * FROM ({cmd}) tmp WHERE tani>{details.screenThresh}"
+    cmd += " ORDER BY tani DESC"
     if not details.doThreshold and details.topN > 0:
-      cmd += " limit %d" % details.topN
+      cmd += f" LIMIT {details.topN}"
     curs = conn.GetCursor()
     curs.execute(cmd, (pkl, ))
     res = curs.fetchall()
-
   return res
 
 
@@ -111,7 +108,6 @@ def GetFingerprints(details):
   """ returns an iterable sequence of fingerprints
   each fingerprint will have a _fieldsFromDb member whose first entry is
   the id.
-
   """
   if details.dbName and details.tableName:
     try:
@@ -122,12 +118,12 @@ def GetFingerprints(details):
         conn.password = details.dbPassword
     except Exception:
       import traceback
-      logging.error('Error: Problems establishing connection to database: %s|%s' % (details.dbName, details.tableName))
+      logging.error(f"Problems establishing connection to database: {details.dbName}|{details.tableName}")
       traceback.print_exc()
     cmd = _ConstructSQL(details, extraFields=details.fpColName)
     curs = conn.GetCursor()
     # curs.execute(cmd)
-    # print 'CURSOR:',curs,curs.closed
+    # print "CURSOR:",curs,curs.closed
     if _dataSeq:
       suppl = _dataSeq(curs, cmd, depickle=not details.noPickle, klass=DataStructs.ExplicitBitVect)
       _dataSeq._conn = conn
@@ -136,10 +132,10 @@ def GetFingerprints(details):
   elif details.inFileName:
     conn = None
     try:
-      inF = open(details.inFileName, 'r')
+      inF = open(details.inFileName, "r")
     except IOError:
       import traceback
-      logging.error('Error: Problems reading from file %s' % (details.inFileName))
+      logging.error(f"Problems reading from file {details.inFileName}")
       traceback.print_exc()
 
     suppl = []
@@ -171,14 +167,12 @@ def ScreenFingerprints(details, data, mol=None, probeFp=None):
       return []
   if not probeFp:
     return []
-
-  res = []
+  res = [];
   if not details.doThreshold and details.topN > 0:
     topN = TopNContainer(details.topN)
   else:
-    topN = []
-  res = []
-  count = 0
+    topN = [];
+  res=[]; count=0;
   for pt in data:
     fp1 = probeFp
     if not details.noPickle:
@@ -193,15 +187,13 @@ def ScreenFingerprints(details, data, mol=None, probeFp=None):
       score = details.metric(fp1, str(pkl))
     if topN:
       topN.Insert(score, ID)
-    elif not details.doThreshold or \
-             (details.doThreshold and score >= details.screenThresh):
+    elif not details.doThreshold or (details.doThreshold and score >= details.screenThresh):
       res.append((ID, score))
     count += 1
-    if hasattr(details, 'stopAfter') and count >= details.stopAfter:
+    if hasattr(details, 'stopAfter') and count>=details.stopAfter:
       break
   for score, ID in topN:
     res.append((ID, score))
-
   return res
 
 
@@ -215,7 +207,7 @@ def ScreenFromDetails(details, mol=None):
         mol = Chem.MolFromSmiles(smi)
       except Exception:
         import traceback
-        logging.error('Problems generating molecule for smiles: %s' % (smi))
+        logging.error(f"Problems generating molecule for smiles: {smi}")
         traceback.print_exc()
         return
     else:
@@ -227,7 +219,7 @@ def ScreenFromDetails(details, mol=None):
     try:
       outF = open(details.outFileName, 'w+')
     except IOError:
-      logging.error("Could not open output file %s for writing" % (details.outFileName))
+      logging.error(f"Could not open output file {details.outFileName} for writing")
       return None
   else:
     outF = None

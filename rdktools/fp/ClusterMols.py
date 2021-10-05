@@ -56,18 +56,18 @@ def GetDistanceMatrix(data, metric, isSimilarity=1):
   return res
 
 
-def ClusterPoints(data, metric, algorithmId, haveLabels=False, haveActs=True, returnDistances=False):
+def ClusterPoints(data, metric, clusterAlgo, haveLabels=False, haveActs=True, returnDistances=False):
   logging.info(f"Generating distance matrix ({metric})")
   dMat = GetDistanceMatrix(data, metric)
-  logging.info(f"Clustering ({algorithmId})")
-  clustTree = Murtagh.ClusterData(dMat, len(data), algorithmId, isDistData=1)[0]
+  logging.info(f"Clustering ({clusterAlgo})")
+  clustTree = Murtagh.ClusterData(dMat, len(data), clusterAlgo, isDistData=1)[0]
   acts = []
   if haveActs and len(data[0]) > 2:
     # we've got activities... use them:
     acts = [int(x[2]) for x in data]
 
   if not haveLabels:
-    labels = ['Mol: %s' % str(x[0]) for x in data]
+    labels = [f"Mol: {x[0]}" for x in data]
   else:
     labels = [x[0] for x in data]
   clustTree._ptLabels = labels
@@ -97,7 +97,7 @@ def ClusterFromDetails(details):
     try:
       outF = open(details.outFileName, 'wb+')
     except IOError:
-      logging.error("Error: could not open output file %s for writing." % (details.outFileName))
+      logging.error(f"Could not open output file {details.outFileName} for writing.")
       return None
   else:
     outF = None

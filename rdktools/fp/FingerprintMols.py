@@ -48,26 +48,23 @@ def FoldFingerprintToTargetDensity(fp, **fpArgs):
   return fp
 
 
-def FingerprintMol(mol, fingerprinter=Chem.RDKFingerprint, **fpArgs):
+def FingerprintMol(mol, fingerprinter, **fpArgs):
   if not fpArgs:
     details = FingerprinterDetails()
     fpArgs = details.__dict__
 
-  if fingerprinter == Chem.RDKFingerprint:
-    fp = fingerprinter(mol, fpArgs['minPath'], fpArgs['maxPath'], fpArgs['fpSize'], fpArgs['bitsPerHash'], fpArgs['useHs'], fpArgs['tgtDensity'], fpArgs['minSize'])
-  elif fingerprinter == Chem.MACCSkeys.GenMACCSKeys:
+  if fingerprinter == "RDKIT":
+    fp = Chem.RDKFingerprint(mol, fpArgs['minPath'], fpArgs['maxPath'], fpArgs['fpSize'], fpArgs['bitsPerHash'], fpArgs['useHs'], fpArgs['tgtDensity'], fpArgs['minSize'])
+  elif fingerprinter == "MACCS":
     fp = Chem.MACCSkeys.GenMACCSKeys(mol)
-  elif fingerprinter == Chem.AllChem.GetMorganFingerprint:
+  elif fingerprinter == "MORGAN":
     fp = Chem.AllChem.GetMorganFingerprintAsBitVect(mol, fpArgs["morgan_radius"], fpArgs["morgan_nbits"])
-  else:
-    fp = fingerprinter(mol, **fpArgs)
-    fp = FoldFingerprintToTargetDensity(fp, **fpArgs)
+  else: #RDKIT
+    fp = Chem.RDKFingerprint(mol, fpArgs['minPath'], fpArgs['maxPath'], fpArgs['fpSize'], fpArgs['bitsPerHash'], fpArgs['useHs'], fpArgs['tgtDensity'], fpArgs['minSize'])
   logging.debug(f"{fp.ToBitString()}")
   return fp
 
-
-def FingerprintsFromSmiles(dataSource, idCol, smiCol, fingerprinter=Chem.RDKFingerprint,
-                           reportFreq=10, maxMols=-1, **fpArgs):
+def FingerprintsFromSmiles(dataSource, idCol, smiCol, fingerprinter, reportFreq=10, maxMols=-1, **fpArgs):
   """ fpArgs are passed as keyword arguments to the fingerprinter
 
   Returns a list of 2-tuples: (ID,fp)
@@ -91,7 +88,7 @@ def FingerprintsFromSmiles(dataSource, idCol, smiCol, fingerprinter=Chem.RDKFing
   return res
 
 
-def FingerprintsFromMols(mols, fingerprinter=Chem.RDKFingerprint, reportFreq=10, maxMols=-1, **fpArgs):
+def FingerprintsFromMols(mols, fingerprinter, reportFreq=10, maxMols=-1, **fpArgs):
   """ fpArgs are passed as keyword arguments to the fingerprinter
 
   Returns a list of 2-tuples: (ID,fp)
@@ -112,7 +109,7 @@ def FingerprintsFromMols(mols, fingerprinter=Chem.RDKFingerprint, reportFreq=10,
   return res
 
 
-def FingerprintsFromPickles(dataSource, idCol, pklCol, fingerprinter=Chem.RDKFingerprint, reportFreq=10, maxMols=-1, **fpArgs):
+def FingerprintsFromPickles(dataSource, idCol, pklCol, fingerprinter, reportFreq=10, maxMols=-1, **fpArgs):
   """ fpArgs are passed as keyword arguments to the fingerprinter
 
   Returns a list of 2-tuples: (ID,fp)
@@ -274,7 +271,7 @@ class FingerprinterDetails(object):
     self._clusterInit()
 
   def _fingerprinterInit(self):
-    self.fingerprinter = Chem.RDKFingerprint
+    self.fingerprinter = "RDKIT"
     self.fpColName = "AutoFragmentFP"
     self.idName = ''
     self.dbName = ''
@@ -529,7 +526,7 @@ def ParseArgs(details=None):
     elif arg == '--maxMols':
       details.maxMols = int(val)
     elif arg == '--useMACCS':
-      details.fingerprinter = MACCSkeys.GenMACCSKeys
+      details.fingerprinter = "MACCS"
     elif arg == '--keepTable':
       details.replaceTable = False
 

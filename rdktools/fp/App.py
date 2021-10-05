@@ -89,9 +89,7 @@ def ParseArgs(args):
   if args.useSD: details.useSmiles=False; details.useSD=True
   if args.idName: details.idName = args.idName
   if args.maxMols: details.maxMols = args.maxMols
-  if args.fingerprinter=="MACCS": details.fingerprinter = rdkit.Chem.MACCSkeys.GenMACCSKeys
-  elif args.fingerprinter=="MORGAN": details.fingerprinter = rdkit.Chem.AllChem.GetMorganFingerprint
-  else:  details.fingerprinter = rdkit.Chem.RDKFingerprint
+  details.fingerprinter = args.fingerprinter
   details.morgan_radius = args.morgan_radius
   details.morgan_nbits = args.morgan_nbits
   if args.keepTable: details.replaceTable = False
@@ -170,8 +168,7 @@ if __name__ == "__main__":
   parser.add_argument("--smiles", help="Query smiles for similarity screening.")
   parser.add_argument("--metric", choices=METRICS, default="tanimoto", help="Similarity algorithm")
   #CLUSTERS:
-  parser.add_argument("--clusterAlgo", choices=["WARD", "SLINK", "CLINK", "UPGMA", "BUTINA"],
-default="WARD", help="Clustering algorithm: WARD = Ward's minimum variance; SLINK = single-linkage clustering algorithm; CLINK = complete-linkage clustering algorithm; UPGMA = group-average clustering algorithm; BUTINA = Butina JCICS 39 747-750 (1999)")
+  parser.add_argument("--clusterAlgo", choices=["WARD", "SLINK", "CLINK", "UPGMA", "BUTINA"], default="WARD", help="Clustering algorithm: WARD = Ward's minimum variance; SLINK = single-linkage clustering algorithm; CLINK = complete-linkage clustering algorithm; UPGMA = group-average clustering algorithm; BUTINA = Butina JCICS 39 747-750 (1999)")
   parser.add_argument("--actTable", help="name of table containing activity values (used to color points in the cluster tree).")
   parser.add_argument("--actName", help="name of column with activities in the activity table. The values in this column should either be integers or convertible into integers.")
   parser.add_argument("-v", "--verbose", action="count", default=0)
@@ -207,20 +204,20 @@ default="WARD", help="Clustering algorithm: WARD = Ward's minimum variance; SLIN
     with open(ftmp.name, "rb") as fin:
       while True:
         try:
-          ID,bv = pickle.load(fin)
-          bvs.append((ID, bv))
+          id_this,bv = pickle.load(fin)
+          bvs.append((id_this, bv))
         except Exception as e:
           break
         n_fp+=1
-        #logging.debug(f"{n_fp}. {ID} ({len(bv)}): {bv.ToBitString()}")
     os.remove(ftmp.name)
     details.outFileName = args.ofile
     results = rdktools_fp.MolSimilarity.ScreenFingerprints(details, bvs, mol=queryMol, probeFp=None)
     n_hit=0; 
     results.reverse()
-    for ID,score in results:
+    fout = open(args.ofile, "w+") if args.ofile else sys.stdout
+    for id_this,score in results:
       n_hit+=1
-      logging.debug(f"{n_hit:2d}. {ID:>16}: {score:.3f}")
+      fout.write(f"{n_hit}\t{queryName}\t{id_this}\t{score:.3f}\n")
 
   elif args.op=="ClusterMols": 
     details = ParseArgs(args)
@@ -233,8 +230,8 @@ default="WARD", help="Clustering algorithm: WARD = Ward's minimum variance; SLIN
     with open(ftmp.name, "rb") as fin:
       while True:
         try:
-          ID,bv = pickle.load(fin)
-          bvs.append((ID, bv))
+          id_this,bv = pickle.load(fin)
+          bvs.append((id_this, bv))
         except Exception as e:
           break
         n_fp+=1
@@ -246,14 +243,16 @@ default="WARD", help="Clustering algorithm: WARD = Ward's minimum variance; SLIN
 
     logging.info(f"dMat.ndim:{dMat.ndim}; dMat.shape:{dMat.shape}; dMat.size:{dMat.size}")
 
-    for pt in clustTree.GetPoints():
-      logging.debug(f"{pt.GetIndex():4d}. {pt.GetName()}")
+    fout = open(args.ofile, "w+") if args.ofile else sys.stdout
 
     nodes = ClusterUtils.GetNodeList(clustTree)
     for node in nodes:
       node.Print(level=0, showData=1, offset="  ")
     for node in nodes:
-      logging.debug(f"{node.GetIndex()}; IsTerminal:{node.IsTerminal()}")
+      logging.debug(f"{node.GetIndex()}; IsTerminal:{node.IsTerminal()}; len(GetChildren()):{len(node.GetChildren())}")
+      #for child in node.GetChildren():
+      #  fout.write(f"{node.GetIndex()}\t{node.getName()}\t{child.GetIndex()}\t{child.getName()}\n")
+
 
     from PIL import Image
     ftmp = tempfile.NamedTemporaryFile(suffix='.png', delete=True)
