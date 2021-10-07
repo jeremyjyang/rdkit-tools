@@ -57,15 +57,12 @@ def GetDistanceMatrix(data, metric, isSimilarity=1):
 
 
 def ClusterPoints(data, metric, clusterAlgo, haveLabels=False, haveActs=True, returnDistances=False):
-  logging.info(f"Generating distance matrix ({metric})")
+  logging.info(f"Clustering ({clusterAlgo}, {metric.__name__})")
   dMat = GetDistanceMatrix(data, metric)
-  logging.info(f"Clustering ({clusterAlgo})")
   clustTree = Murtagh.ClusterData(dMat, len(data), clusterAlgo, isDistData=1)[0]
-  acts = []
-  if haveActs and len(data[0]) > 2:
-    # we've got activities... use them:
+  acts=[];
+  if haveActs and len(data[0])>2:
     acts = [int(x[2]) for x in data]
-
   if not haveLabels:
     labels = [f"Mol: {x[0]}" for x in data]
   else:

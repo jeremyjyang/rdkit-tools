@@ -11,7 +11,7 @@ https://www.rdkit.org/docs/source/rdkit.DataStructs.cDataStructs.html
 rdkit.DataStructs.cDataStructs.ExplicitBitVect
 """
 #############################################################################
-import os,sys,re,json,time,inspect,argparse,logging,pickle,tempfile
+import os,sys,re,json,time,argparse,logging,pickle,tempfile
 
 import rdkit
 import rdkit.Chem.AllChem
@@ -29,41 +29,6 @@ from rdkit.ML.Cluster import ClusterUtils
 from .. import fp as rdktools_fp
 from .. import util as rdktools_util
 
-#############################################################################
-def ShowDetails(details):
-  import inspect
-  for key,val in inspect.getmembers(details):
-    if not key.startswith('_'): # ignore private and protected functions
-      if not inspect.ismethod(val): # ignore other methods 
-        logging.debug(f"{key:>16}: {val}")
-
-#############################################################################
-def DemoPath():
-  mols=[];
-  for smi in rdktools_util.Utils.DEMOSMIS:
-    mol = MolFromSmiles(re.sub(r'\s.*$', '', smi))
-    mols.append(mol)
-  molWriter = SmilesWriter("-", delimiter="\t", nameHeader='Name', includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
-  rdktools_fp.Utils.Mols2FPs_RDK(mols, molWriter)
- 
-#############################################################################
-def DemoMorgan():
-  mols=[];
-  for smi in rdktools_util.Utils.DEMOSMIS:
-    mol = MolFromSmiles(re.sub(r'\s.*$', '', smi))
-    mols.append(mol)
-  molWriter = SmilesWriter("-", delimiter="\t", nameHeader='Name', includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
-  rdktools_fp.Utils.Mols2FPs_Morgan(mols, 2, 1024, molWriter)
- 
-#############################################################################
-def DemoMACCSKeys():
-  mols=[];
-  for smi in rdktools_util.Utils.DEMOSMIS:
-    mol = MolFromSmiles(re.sub(r'\s.*$', '', smi))
-    mols.append(mol)
-  molWriter = SmilesWriter("-", delimiter="\t", nameHeader='Name', includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
-  rdktools_fp.Utils.Mols2FPs_MACCSKeys(mols, molWriter)
- 
 #############################################################################
 def ParseArgs(args):
   """Based on Chem/Fingerprints/FingerprintMols.py"""
@@ -84,30 +49,33 @@ def ParseArgs(args):
   if args.maxPath: details.maxPath = args.maxPath
   if args.nBitsPerHash: details.bitsPerHash = args.nBitsPerHash
   if args.discrim: details.discrimHash = 1
-  if args.smilesName: details.smilesName = args.smilesName
+  if args.smilesColumn: details.smilesName = args.smilesColumn
   if args.molPkl: details.molPklName = args.molPkl
-  if args.useSD: details.useSmiles=False; details.useSD=True
-  if args.idName: details.idName = args.idName
+  details.useSmiles = bool(args.input_format=="SMILES")
+  details.useSD = bool(args.input_format=="SD")
+  if args.idColumn: details.idName = args.idColumn
   if args.maxMols: details.maxMols = args.maxMols
-  details.fingerprinter = args.fingerprinter
+  details.fingerprinter = args.fpAlgo
   details.morgan_radius = args.morgan_radius
   details.morgan_nbits = args.morgan_nbits
   if args.keepTable: details.replaceTable = False
   if args.smilesTable: details.smilesTableName = args.smilesTable
   if args.topN: details.doThreshold = 0; details.topN = args.topN
   elif args.thresh: details.doThreshold = 1; details.screenThresh = args.thresh
-  if args.smiles: details.probeSmiles = args.smiles
-  if args.metric=="allbit": details.metric = DataStructs.AllBitSimilarity
-  elif args.metric=="asymmetric": details.metric = DataStructs.AsymmetricSimilarity
-  elif args.metric=="dice": details.metric = DataStructs.DiceSimilarity
-  elif args.metric=="cosine": details.metric = DataStructs.CosineSimilarity
-  elif args.metric=="kulczynski": details.metric = DataStructs.KulczynskiSimilarity
-  elif args.metric=="mcconnaughey": details.metric = DataStructs.McConnaugheySimilarity
-  elif args.metric=="onbit": details.metric = DataStructs.OnBitSimilarity
-  elif args.metric=="russel": details.metric = DataStructs.RusselSimilarity
-  elif args.metric=="sokal": details.metric = DataStructs.SokalSimilarity
-  elif args.metric=="tanimoto": details.metric = DataStructs.TanimotoSimilarity
-  elif args.metric=="tversky": details.metric = DataStructs.TverskySimilarity
+  if args.querySmiles: details.probeSmiles = args.querySmiles
+  if args.metric=="ALLBIT": details.metric = DataStructs.AllBitSimilarity
+  elif args.metric=="ASYMMETRIC": details.metric = DataStructs.AsymmetricSimilarity
+  elif args.metric=="DICE": details.metric = DataStructs.DiceSimilarity
+  elif args.metric=="COSINE": details.metric = DataStructs.CosineSimilarity
+  elif args.metric=="KULCZYNSKI": details.metric = DataStructs.KulczynskiSimilarity
+  elif args.metric=="MCCONNAUGHEY": details.metric = DataStructs.McConnaugheySimilarity
+  elif args.metric=="ONBIT": details.metric = DataStructs.OnBitSimilarity
+  elif args.metric=="RUSSEL": details.metric = DataStructs.RusselSimilarity
+  elif args.metric=="SOKAL": details.metric = DataStructs.SokalSimilarity
+  elif args.metric=="TANIMOTO": details.metric = DataStructs.TanimotoSimilarity
+  elif args.metric=="TVERSKY": details.metric = DataStructs.TverskySimilarity
+  details.tversky_alpha = args.tversky_alpha
+  details.tversky_beta = args.tversky_beta
   if args.clusterAlgo=="SLINK": details.clusterAlgo = Murtagh.SLINK
   elif args.clusterAlgo=="CLINK": details.clusterAlgo = Murtagh.CLINK
   elif args.clusterAlgo=="UPGMA": details.clusterAlgo = Murtagh.UPGMA
@@ -119,24 +87,16 @@ def ParseArgs(args):
 
 #############################################################################
 if __name__ == "__main__":
-  FINGERPRINTERS=["RDKIT", "MACCS", "MORGAN"]
+  EPILOG="""This app employs custom, updated versions of RDKit
+FingerprintMols.py, MolSimilarity.py, ClusterMols.py,
+with enhanced command-line functionality for molecular
+fingerprint-based analytics."""
+  FPALGOS=["RDKIT", "MACCS", "MORGAN"]
   MORGAN_NBITS=1024; MORGAN_RADIUS=2;
-  METRICS = ["allbit", "asymmetric", "dice", "cosine", "kulczynski", "mcconnaughey", "onbit", "russel", "sokal", "tanimoto", "tversky"]
-  parser = argparse.ArgumentParser(description="RDKit fingerprint generator", epilog="")
-  OPS = [ "FingerprintMols", "MolSimilarity", "ClusterMols",
-	"demo_path", "demo_maccs", "demo_morgan", ]
-	#"fpgen", "fpgen_morgan", "fpgen_maccs"
+  METRICS = ["ALLBIT", "ASYMMETRIC", "DICE", "COSINE", "KULCZYNSKI", "MCCONNAUGHEY", "ONBIT", "RUSSEL", "SOKAL", "TANIMOTO", "TVERSKY"]
+  parser = argparse.ArgumentParser(description="RDKit fingerprint-based analytics", epilog=EPILOG)
+  OPS=[ "FingerprintMols", "MolSimilarity", "ClusterMols" ]
   parser.add_argument("op", choices=OPS, help="OPERATION")
-  parser.add_argument("--scratchdir", default="/tmp")
-  parser.add_argument("--smicol", type=int, default=1, help="SMILES column from TSV (counting from 1)")
-  parser.add_argument("--namcol", type=int, default=2, help="name column from TSV (counting from 1)")
-  parser.add_argument("--idelim", default="\t", help="delim for input TSV")
-  parser.add_argument("--odelim", default="\t", help="delim for output TSV")
-  parser.add_argument("--iheader", action="store_true", help="input TSV has header")
-  parser.add_argument("--oheader", action="store_true", help="output TSV has header")
-  parser.add_argument("--morgan_nbits", type=int, default=MORGAN_NBITS)
-  parser.add_argument("--morgan_radius", type=int, default=MORGAN_RADIUS)
-  parser.add_argument("--reportFreq", type=int, default=100)
   #FingerprintMols, MolSimilarity
   parser.add_argument("--i", dest="ifile", help="Input file; if provided and no tableName is specified, data will be read from the input file.  Text files delimited with either commas (extension .csv) or tabs (extension .txt) are supported.")
   parser.add_argument("--o", dest="ofile", help="Name of the output file (output will be a pickle file with one label,fingerprint entry for each molecule).")
@@ -154,64 +114,69 @@ if __name__ == "__main__":
   parser.add_argument("--maxPath", type=int, default=7, help="Maximum path length to be included in fragment-based fingerprints.")
   parser.add_argument("--nBitsPerHash", type=int, default=2, help="Number of bits to be set in the output fingerprint for each fragment.")
   parser.add_argument("--discrim", action="store_true", help="Use of path-based discriminators to hash bits.")
-  parser.add_argument("--smilesName", default="#SMILES", help="Name of the SMILES column in the input database.")
+  parser.add_argument("--smilesColumn", default="#SMILES", help="Name of the SMILES column in the input database.")
   parser.add_argument("--molPkl", help="")
-  parser.add_argument("--useSD", action="store_true", help="Assume that the input file is an SD file, not a SMILES table.")
-  parser.add_argument("--idName", default="Name", help="Name of the id column in the input database.  Defaults to the first column for dbs.")
+  parser.add_argument("--input_format", choices=["SMILES", "SD"], default="SMILES", help="SMILES table or SDF file.")
+  parser.add_argument("--idColumn", default="Name", help="Name of the id column in the input database.  Defaults to the first column for dbs.")
   parser.add_argument("--maxMols", type=int, help="Maximum number of molecules to be fingerprinted.")
-  parser.add_argument("--fingerprinter", default="RDKIT", choices=FINGERPRINTERS, help="RDKIT = Daylight path-based; MACCS = MDL MACCS 166 keys")
+  parser.add_argument("--fpAlgo", default="RDKIT", choices=FPALGOS, help="RDKIT = Daylight path-based; MACCS = MDL MACCS 166 keys")
+  parser.add_argument("--morgan_nbits", type=int, default=MORGAN_NBITS)
+  parser.add_argument("--morgan_radius", type=int, default=MORGAN_RADIUS)
   parser.add_argument("--keepTable", action="store_true", help="")
-  # SCREENER:
   parser.add_argument("--smilesTable", help="")
   parser.add_argument("--topN", type=int, default=12, help="Top N similar; precedence over threshold.")
   parser.add_argument("--thresh", type=float, help="Similarity threshold.")
-  parser.add_argument("--smiles", help="Query smiles for similarity screening.")
-  parser.add_argument("--metric", choices=METRICS, default="tanimoto", help="Similarity algorithm")
-  #CLUSTERS:
+  parser.add_argument("--querySmiles", help="Query smiles for similarity screening.")
+  parser.add_argument("--metric", choices=METRICS, default="TANIMOTO", help="Similarity algorithm")
+  parser.add_argument("--tversky_alpha", type=float, default=.8, help="Tversky alpha parameter, weights query molecule features")
+  parser.add_argument("--tversky_beta", type=float, default=.2, help="Tversky beta parameter, weights target molecule features")
   parser.add_argument("--clusterAlgo", choices=["WARD", "SLINK", "CLINK", "UPGMA", "BUTINA"], default="WARD", help="Clustering algorithm: WARD = Ward's minimum variance; SLINK = single-linkage clustering algorithm; CLINK = complete-linkage clustering algorithm; UPGMA = group-average clustering algorithm; BUTINA = Butina JCICS 39 747-750 (1999)")
   parser.add_argument("--actTable", help="name of table containing activity values (used to color points in the cluster tree).")
   parser.add_argument("--actName", help="name of column with activities in the activity table. The values in this column should either be integers or convertible into integers.")
+  parser.add_argument("--reportFreq", type=int, default=100)
   parser.add_argument("-v", "--verbose", action="count", default=0)
   args = parser.parse_args()
 
   logging.basicConfig(format='%(levelname)s:%(message)s', level=(logging.DEBUG if args.verbose>1 else logging.INFO))
 
   logging.info(f"RDKit version: {rdkit.rdBase.rdkitVersion}")
-  #logging.info(f"MatplotLib version: {mpl.__version__}")
 
   t0=time.time()
 
   if args.op=="FingerprintMols": 
-    logging.info(f"FingerprintMols ({args.fingerprinter})")
+    logging.info("FingerprintMols ({0})".format(f"{args.fpAlgo}({args.morgan_radius},{args.morgan_nbits})" if args.fpAlgo=="MORGAN" else args.fpAlgo))
     details = ParseArgs(args)
-    ShowDetails(details)
+    rdktools_fp.Utils.ShowDetails(details)
     rdktools_fp.FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
     if args.ofile is not None: logging.info(f"FPs written to: {args.ofile}")
 
   elif args.op=="MolSimilarity":
-    logging.info(f"MolSimilarity ({args.fingerprinter}, {args.metric})")
+    logging.info("MolSimilarity ({0}, {1})".format(args.fpAlgo, f"{args.metric}({args.tversky_alpha},{args.tversky_beta})" if args.metric=="TVERSKY" else args.metric))
     details = ParseArgs(args)
     ftmp = tempfile.NamedTemporaryFile(suffix='.pkl', delete=True)
     details.outFileName = ftmp.name
     logging.debug(f"Temporary file: {ftmp.name}")
     ftmp.close()
-    ShowDetails(details)
-    queryMol = MolFromSmiles(re.sub(r'\s.*$', '', args.smiles))
-    queryName = re.sub(r'^[\S]*\s', '', args.smiles)
+    rdktools_fp.Utils.ShowDetails(details)
+    queryMol = MolFromSmiles(re.sub(r'\s.*$', '', args.querySmiles))
+    if queryMol is None:
+      logging.error(f"Failed to parse SMILES: {args.querySmiles}")
+    queryName = re.sub(r'^[\S]*\s', '', args.querySmiles)
     logging.info("{0}; Query: {1}".format((f"TopN:{args.topN}" if args.topN else f"threshold: {args.thresh}"), (f"{queryName}" if queryName else f"{querySmiles}")))
     rdktools_fp.FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
-    n_fp=0; bvs=[];
+    n_fp=0; fps=[];
     with open(ftmp.name, "rb") as fin:
       while True:
         try:
-          id_this,bv = pickle.load(fin)
-          bvs.append((id_this, bv))
+          id_this,fp = pickle.load(fin)
+          fps.append((id_this, fp))
         except Exception as e:
           break
         n_fp+=1
     os.remove(ftmp.name)
     details.outFileName = args.ofile
-    results = rdktools_fp.MolSimilarity.ScreenFingerprints(details, bvs, mol=queryMol, probeFp=None)
+    queryFp = rdktools_fp.FingerprintMols.FingerprintMol(queryMol, **details.__dict__)
+    results = rdktools_fp.MolSimilarity.ScreenFingerprints(details, fps, probeFp=queryFp)
     n_hit=0; 
     results.reverse()
     fout = open(args.ofile, "w+") if args.ofile else sys.stdout
@@ -226,20 +191,20 @@ if __name__ == "__main__":
     logging.debug(f"Temporary file: {ftmp.name}")
     ftmp.close()
     rdktools_fp.FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
-    n_fp=0; bvs=[];
+    n_fp=0; fps=[];
     with open(ftmp.name, "rb") as fin:
       while True:
         try:
-          id_this,bv = pickle.load(fin)
-          bvs.append((id_this, bv))
+          id_this,fp = pickle.load(fin)
+          fps.append((id_this, fp))
         except Exception as e:
           break
         n_fp+=1
     os.remove(ftmp.name)
     details.outFileName = args.ofile
 
-    logging.info(f"ClusterMols ({args.fingerprinter}, {args.metric}, {args.clusterAlgo})")
-    clustTree, dMat = rdktools_fp.ClusterMols.ClusterPoints(bvs, details.metric, details.clusterAlgo, haveLabels=0, haveActs=1, returnDistances=True)
+    logging.info(f"ClusterMols ({args.fpAlgo}, {args.metric}, {args.clusterAlgo})")
+    clustTree, dMat = rdktools_fp.ClusterMols.ClusterPoints(fps, details.metric, details.clusterAlgo, haveLabels=0, haveActs=1, returnDistances=True)
 
     logging.info(f"dMat.ndim:{dMat.ndim}; dMat.shape:{dMat.shape}; dMat.size:{dMat.size}")
 
@@ -265,29 +230,8 @@ if __name__ == "__main__":
     if args.ofile:
       pickle.dump(clustTree, args.ofile)
 
-  elif args.op=="demo_path":
-    DemoPath()
-
-  elif args.op=="demo_morgan":
-    DemoMorgan()
-
-  elif args.op=="demo_maccs":
-    DemoMACCSKeys()
-
   else:
     parser.error(f"Unsupported operation: {args.op}")
 
   logging.info('Elapsed: %s'%(time.strftime('%Hh:%Mm:%Ss', time.gmtime(time.time()-t0))))
 
-### OBSOLETED:
-#  if not (args.ifile): parser.error('--i required.')
-#  molReader = rdktools_util.Utils.File2Molreader(args.ifile, args.idelim, args.smicol-1, args.namcol-1, args.iheader)
-#  molWriter = rdktools_util.Utils.File2Molwriter(args.ofile, args.odelim, args.oheader)
-#  mols = rdktools_util.Utils.ReadMols(molReader)
-#  if args.op=="fpgen":
-#    rdktools_fp.Utils.Mols2FPs_RDK(mols, molWriter)
-#  elif args.op=="fpgen_morgan":
-#    rdktools_fp.Utils.Mols2FPs_Morgan(mols, args.morgan_radius, args.morgan_nbits, molWriter)
-#  elif args.op=="fpgen_maccs":
-#    rdktools_fp.Utils.Mols2FPs_MACCS(mols, molWriter)
-###

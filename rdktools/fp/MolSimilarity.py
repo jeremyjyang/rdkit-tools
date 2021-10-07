@@ -181,10 +181,16 @@ def ScreenFingerprints(details, data, mol=None, probeFp=None):
       else:
         fp = pt
         ID = pt._fieldsFromDb[0]
-      score = DataStructs.FingerprintSimilarity(fp1, fp, details.metric)
+      if details.metric is DataStructs.TverskySimilarity:
+        score = DataStructs.TverskySimilarity(fp1, fp, details.tversky_alpha, details.tversky_beta)
+      else:
+        score = DataStructs.FingerprintSimilarity(fp1, fp, details.metric)
     else:
       ID, pkl = pt
-      score = details.metric(fp1, str(pkl))
+      if details.metric is DataStructs.TverskySimilarity:
+        score = DataStructs.TverskySimilarity(fp1, str(pkl), details.tversky_alpha, details.tversky_beta)
+      else:
+        score = details.metric(fp1, str(pkl))
     if topN:
       topN.Insert(score, ID)
     elif not details.doThreshold or (details.doThreshold and score >= details.screenThresh):

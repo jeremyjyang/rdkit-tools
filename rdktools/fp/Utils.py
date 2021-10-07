@@ -21,6 +21,40 @@ from rdkit.Chem.MACCSkeys import GenMACCSKeys
 from rdkit.Chem.AllChem import GetMorganFingerprint,GetMorganFingerprintAsBitVect
 
 #############################################################################
+def ShowDetails(details):
+  for key,val in inspect.getmembers(details):
+    if not key.startswith('_'): # ignore private and protected functions
+      if not inspect.ismethod(val): # ignore other methods 
+        logging.debug(f"{key:>16}: {val}")
+
+#############################################################################
+def DemoPath():
+  mols=[];
+  for smi in rdktools_util.Utils.DEMOSMIS:
+    mol = MolFromSmiles(re.sub(r'\s.*$', '', smi))
+    mols.append(mol)
+  molWriter = SmilesWriter("-", delimiter="\t", nameHeader='Name', includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
+  Mols2FPs_RDK(mols, molWriter)
+
+#############################################################################
+def DemoMorgan():
+  mols=[];
+  for smi in rdktools_util.Utils.DEMOSMIS:
+    mol = MolFromSmiles(re.sub(r'\s.*$', '', smi))
+    mols.append(mol)
+  molWriter = SmilesWriter("-", delimiter="\t", nameHeader='Name', includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
+  Mols2FPs_Morgan(mols, 2, 1024, molWriter)
+
+#############################################################################
+def DemoMACCSKeys():
+  mols=[];
+  for smi in rdktools_util.Utils.DEMOSMIS:
+    mol = MolFromSmiles(re.sub(r'\s.*$', '', smi))
+    mols.append(mol)
+  molWriter = SmilesWriter("-", delimiter="\t", nameHeader='Name', includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
+  Mols2FPs_MACCSKeys(mols, molWriter)
+
+#############################################################################
 def ShowMACCSkeys():
   for i,val in rdkit.Chem.MACCSkeys.smartsPatts.items():
     smarts,n = val
