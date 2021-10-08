@@ -57,7 +57,6 @@ def GetDistanceMatrix(data, metric, isSimilarity=1):
 
 
 def ClusterPoints(data, metric, clusterAlgo, haveLabels=False, haveActs=True, returnDistances=False):
-  logging.info(f"Clustering ({clusterAlgo}, {metric.__name__})")
   dMat = GetDistanceMatrix(data, metric)
   clustTree = Murtagh.ClusterData(dMat, len(data), clusterAlgo, isDistData=1)[0]
   acts=[];
@@ -174,7 +173,6 @@ Usage: ClusterMols.py [args] <fName>
 
     - --useMACCS: use the public MACCS keys to do the fingerprinting
       (instead of a daylight-type fingerprint)
-
 
 """
 if __name__ == '__main__':
