@@ -117,8 +117,8 @@ if __name__ == "__main__":
   parser.add_argument("--o", dest="ofile", help="output file, TSV|SDF")
   parser.add_argument("--o_vis", dest="ofile_vis", default="/tmp/rdk_scafnet.html", help="output file, PNG or HTML")
   parser.add_argument("--scratchdir", default="/tmp")
-  parser.add_argument("--smicol", type=int, default=0, help="SMILES column from TSV (counting from 0)")
-  parser.add_argument("--namcol", type=int, default=1, help="name column from TSV (counting from 0)")
+  parser.add_argument("--smilesColumn", type=int, default=0, help="SMILES column from TSV (counting from 0)")
+  parser.add_argument("--nameColumn", type=int, default=1, help="name column from TSV (counting from 0)")
   parser.add_argument("--idelim", default="\t", help="delim for input TSV")
   parser.add_argument("--odelim", default="\t", help="delim for output TSV")
   parser.add_argument("--iheader", action="store_true", help="input TSV has header")
@@ -150,13 +150,13 @@ if __name__ == "__main__":
   if not (args.ifile): parser.error('--i required.')
 
   if args.op=="bmscaf":
-    molReader = util.Utils.File2Molreader(args.ifile, args.idelim, args.smicol, args.namcol, args.iheader)
+    molReader = util.Utils.File2Molreader(args.ifile, args.idelim, args.smilesColumn, args.nameColumn, args.iheader)
     molWriter = util.Utils.File2Molwriter(args.ofile, args.odelim, args.oheader)
     mols = util.Utils.ReadMols(molReader)
     scaffold.Utils.Mols2BMScaffolds(mols, molWriter)
 
   elif args.op=="scafnet":
-    molReader = util.Utils.File2Molreader(args.ifile, args.idelim, args.smicol, args.namcol, args.iheader)
+    molReader = util.Utils.File2Molreader(args.ifile, args.idelim, args.smilesColumn, args.nameColumn, args.iheader)
     mols = util.Utils.ReadMols(molReader)
     scaffold.Utils.Mols2ScafNet(mols, args.brics, args.ofile)
 

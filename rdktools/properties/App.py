@@ -32,8 +32,8 @@ if __name__=='__main__':
   parser.add_argument("--kekulize", action="store_true", help="Kekulize")
   parser.add_argument("--sanitize", action="store_true", help="Sanitize")
   parser.add_argument("--delim", default="\t", help="input molecule file")
-  parser.add_argument("--smicol", type=int, default=0, help="input SMILES column")
-  parser.add_argument("--namcol", type=int, default=1, help="input name column")
+  parser.add_argument("--smilesColumn", type=int, default=0, help="input SMILES column")
+  parser.add_argument("--nameColumn", type=int, default=1, help="input name column")
 
   parser.add_argument("-v", "--verbose", action="count", default=0)
   args = parser.parse_args()
@@ -41,8 +41,8 @@ if __name__=='__main__':
   logging.basicConfig(format='%(levelname)s:%(message)s', level=(logging.DEBUG if args.verbose>1 else logging.INFO))
 
   if args.ifile[-4:]=='.smi':
-    molreader = Chem.SmilesMolSupplier(args.ifile, delimiter=args.delim, smilesColumn=args.smicol, nameColumn=args.namcol, titleLine=args.inheader, sanitize=args.sanitize)
-  elif args.ifile[-4:] in ('.sdf','.sd','.mdl','.mol'):
+    molreader = Chem.SmilesMolSupplier(args.ifile, delimiter=args.delim, smilesColumn=args.smilesColumn, nameColumn=args.nameColumn, titleLine=args.inheader, sanitize=args.sanitize)
+  elif args.ifile[-4:] in ('.sdf', '.sd', '.mdl', '.mol'):
     molreader = Chem.SDMolSupplier(args.ifile, sanitize=args.sanitize, removeHs=True)
   else:
     logging.error(f"Invalid file extension: {args.ifile}")
@@ -51,7 +51,7 @@ if __name__=='__main__':
     molwriter = Chem.SDWriter("-")
   elif args.ofile[-4:]=='.smi':
     molwriter = Chem.SmilesWriter(args.ofile, delimiter='\t', nameHeader='Name', includeHeader=args.outheader, isomericSmiles=True, kekuleSmiles=args.kekulize)
-  elif args.ofile[-4:] in ('.sdf','.sd','.mdl','.mol'):
+  elif args.ofile[-4:] in ('.sdf', '.sd', '.mdl', '.mol'):
     molwriter = Chem.SDWriter(args.ofile)
   else:
     logging.error(f"Invalid file extension: {args.ofile}")

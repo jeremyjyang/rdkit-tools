@@ -2,8 +2,7 @@
 """
 Conformer generation vi RDKit distance geometry method.
 
-Problem: RDKit hard coded to write to both stderr and stdout.  Logging a
-known issue.
+Problem: RDKit hard coded to write to both stderr and stdout.  Logging a known issue.
 """
 #############################################################################
 import os,sys,io,re,time,argparse,logging,tempfile
@@ -55,7 +54,10 @@ if __name__=="__main__":
   parser.add_argument("--optiters", type=int, default=200, help="optimizer iterations per conf")
   parser.add_argument("--nconf", type=int, default=1, help="# confs per mol")
   parser.add_argument("--etol", type=float, default=ETOL, help="energy tolerance")
-  parser.add_argument("--title_in_header", action="store_true", help="title line in header")
+  parser.add_argument("--delim", default=" \t", help="SMILES/TSV delimiter")
+  parser.add_argument("--smilesColumn", type=int, default=0, help="")
+  parser.add_argument("--nameColumn", type=int, default=1, help="")
+  parser.add_argument("--header", action="store_true", help="SMILES/TSV has header line")
   parser.add_argument("-v", "--verbose", action="count", default=0)
   args = parser.parse_args()
 
@@ -69,7 +71,7 @@ if __name__=="__main__":
     fin = tempfile.NamedTemporaryFile(mode="w+b", suffix=".smi", delete=False)
     fin.write(b"NCCc1ccc(O)c(O)c1\tdopamine\n")
     fin.close()
-    molreader = rdkit.Chem.SmilesMolSupplier(fin.name, delimiter='\t', smilesColumn=0, nameColumn=1, titleLine=False, sanitize=True)
+    molreader = rdkit.Chem.SmilesMolSupplier(fin.name, delimiter=args.delim, smilesColumn=args.smilesColumn, nameColumn=args.nameColumn, titleLine=args.header, sanitize=True)
     fout = tempfile.NamedTemporaryFile(delete=False)
     molwriter = rdkit.Chem.SDWriter(fout.name)
     GenerateConformers(molreader, molwriter, args.ff, args.nconf, args.optiters, args.etol)
@@ -82,7 +84,7 @@ if __name__=="__main__":
     if args.ff.upper() not in FFS: parser.error(f"Invalid force field: {args.ff}; allowed values: {','.join(FFS)}")
 
     if re.sub(r'.*\.', '', args.ifile).lower()=='smi':
-      molreader = rdkit.Chem.SmilesMolSupplier(args.ifile, delimiter=' ', smilesColumn=0, nameColumn=1, titleLine=args.title_in_header, sanitize=True)
+      molreader = rdkit.Chem.SmilesMolSupplier(args.ifile, delimiter=args.delim, smilesColumn=args.smilesColumn, nameColumn=args.nameColumn, titleLine=args.header, sanitize=True)
   
     elif re.sub(r'.*\.', '', args.ifile).lower() in MDLEXTS:
       molreader = rdkit.Chem.SDMolSupplier(args.ifile, sanitize=True, removeHs=True)

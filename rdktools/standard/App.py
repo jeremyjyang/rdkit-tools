@@ -33,14 +33,17 @@ def Demo(norms):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="RDKit chemical standardizer", epilog="")
   OPS = ["standardize", "list_norms", "show_params", "demo"]
-  parser.add_argument("op", choices=OPS, default="standardize", help="operation")
+  parser.add_argument("op", choices=OPS, help="OPERATION")
   parser.add_argument("--i", dest="ifile", help="input file, SMI or SDF")
   parser.add_argument("--o", dest="ofile", help="output file, SMI or SDF")
+  parser.add_argument("--delim", default=" \t", help="SMILES/TSV delimiter")
+  parser.add_argument("--smilesColumn", type=int, default=0, help="")
+  parser.add_argument("--nameColumn", type=int, default=1, help="")
+  parser.add_argument("--header", action="store_true", help="SMILES/TSV has header line")
   parser.add_argument("--norms", choices=["default", "unm"], default="default", help="normalizations")
   parser.add_argument("--i_norms", dest="ifile_norms", help="input normalizations file, format: SMIRKS<space>NAME")
   parser.add_argument("--remove_isomerism", action="store_true", help="if true, output SMILES isomerism removed")
   parser.add_argument("-v", "--verbose", action="count", default=0)
-
   args = parser.parse_args()
 
   logging.basicConfig(format='%(levelname)s:%(message)s', level=(logging.DEBUG if args.verbose>1 else logging.INFO))
@@ -65,7 +68,7 @@ if __name__ == "__main__":
   elif args.op=="standardize":
     if not (args.ifile and args.ofile): parser.error('--i and --o required.')
     if re.sub(r'.*\.', '', args.ifile).lower()in ('smi', 'smiles'):
-      molReader = SmilesMolSupplier(args.ifile, delimiter=' ', smilesColumn=0, nameColumn=1, titleLine=True, sanitize=True)
+      molReader = SmilesMolSupplier(args.ifile, delimiter=args.delim, smilesColumn=args.smilesColumn, nameColumn=args.nameColumn, titleLine=args.header, sanitize=True)
     elif re.sub(r'.*\.', '', args.ifile).lower() in ('sdf','sd','mdl','mol'):
       molReader = SDMolSupplier(args.ifile, sanitize=True, removeHs=True)
     else:
@@ -74,7 +77,7 @@ if __name__ == "__main__":
     if re.sub(r'.*\.', '', args.ofile).lower() in ('sdf','sd','mdl','mol'):
       molWriter = SDWriter(args.ofile)
     elif re.sub(r'.*\.', '', args.ofile).lower()in ('smi', 'smiles'):
-      molWriter = SmilesWriter(args.ofile, delimiter='\t', nameHeader='Name',
+      molWriter = SmilesWriter(args.ofile, delimiter=args.delim, nameHeader='Name',
         includeHeader=True, isomericSmiles=(not args.remove_isomerism), kekuleSmiles=False)
     else:
       logging.error(f'Invalid file extension: {args.ofile}')

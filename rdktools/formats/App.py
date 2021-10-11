@@ -19,8 +19,8 @@ if __name__=='__main__':
   parser.add_argument("--sanitize", action="store_true", help="Sanitize")
   parser.add_argument("--header", action="store_true", help="input SMILES/TSV file has header line")
   parser.add_argument("--delim", default="\t", help="delimiter for SMILES/TSV")
-  parser.add_argument("--smicol", type=int, default=0, help="input SMILES column")
-  parser.add_argument("--namcol", type=int, default=1, help="input name column")
+  parser.add_argument("--smilesColumn", type=int, default=0, help="input SMILES column")
+  parser.add_argument("--nameColumn", type=int, default=1, help="input name column")
   parser.add_argument("-v", "--verbose", action="count", default=0)
   args = parser.parse_args()
 
@@ -29,10 +29,10 @@ if __name__=='__main__':
   if args.op in ("mdl2smi", "mdlclean"):
     molReader = SDMolSupplier(args.ifile, sanitize=True, removeHs=False)
   elif args.op in ("smi2mdl", "smiclean"):
-    molReader = SmilesMolSupplier(args.ifile, delimiter=args.delim, smilesColumn=args.smicol, nameColumn=args.namcol, titleLine=True, sanitize=True)
+    molReader = SmilesMolSupplier(args.ifile, delimiter=args.delim, smilesColumn=args.smilesColumn, nameColumn=args.nameColumn, titleLine=args.header, sanitize=True)
   else:
     if re.sub(r'.*\.', '', args.ifile).lower()in ('smi', 'smiles'):
-      molReader = SmilesMolSupplier(args.ifile, delimiter=args.delim, smilesColumn=args.smicol, nameColumn=args.namcol, titleLine=True, sanitize=True)
+      molReader = SmilesMolSupplier(args.ifile, delimiter=args.delim, smilesColumn=args.smilesColumn, nameColumn=args.nameColumn, titleLine=args.header, sanitize=True)
     elif re.sub(r'.*\.', '', args.ifile).lower() in ('sdf','sd','mdl','mol'):
       molReader = SDMolSupplier(args.ifile, sanitize=True, removeHs=True)
     else:
