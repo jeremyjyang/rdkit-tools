@@ -64,8 +64,9 @@ def ShowMACCSkeys():
 def Mols2FPs_RDK(mols, molWriter=None):
   for molA in mols:
     fpA = RDKFingerprint(molA)
-    fpstxt = rdkit.DataStructs.BitVectToFPSText(fpA)
-    logging.debug(fpstxt)
+    #fpstxt = rdkit.DataStructs.BitVectToFPSText(fpA)
+    #logging.debug(f"({len(fpstxt)} bits) {fpstxt}")
+    logging.debug(f"{fpA.ToBitString()} ({fpA.GetNumBits()} bits)")
     molA.SetProp("_Name", (molA.GetProp("_Name") if molA.HasProp("_Name") else "")+"\t"+fpstxt)
     count=0;
     for i in range(fpA.GetNumBits()):
@@ -78,8 +79,9 @@ def Mols2FPs_RDK(mols, molWriter=None):
 def Mols2FPs_Morgan(mols, radius=2, nbits=1024, molWriter=None):
   for molA in mols:
     fpA = GetMorganFingerprintAsBitVect(molA, radius, nbits)
-    fpstxt = rdkit.DataStructs.BitVectToFPSText(fpA)
-    logging.debug(fpstxt)
+    #fpstxt = rdkit.DataStructs.BitVectToFPSText(fpA)
+    #logging.debug(f"({len(fpstxt)} bits) {fpstxt}")
+    logging.debug(f"{fpA.ToBitString()} ({fpA.GetNumBits()} bits)")
     molA.SetProp("_Name", (molA.GetProp("_Name") if molA.HasProp("_Name") else "")+"\t"+fpstxt)
     count=0;
     for i in range(fpA.GetNumBits()):
@@ -92,8 +94,9 @@ def Mols2FPs_Morgan(mols, radius=2, nbits=1024, molWriter=None):
 def Mols2FPs_MACCSKeys(mols, molWriter=None):
   for molA in mols:
     fpA = GenMACCSKeys(molA)
-    fpstxt = rdkit.DataStructs.BitVectToFPSText(fpA)
-    logging.debug(fpstxt)
+    #fpstxt = rdkit.DataStructs.BitVectToFPSText(fpA)
+    #logging.debug(f"({len(fpstxt)} bits) {fpstxt}")
+    logging.debug(f"{fpA.ToBitString()} ({fpA.GetNumBits()} bits)")
     molA.SetProp("_Name", (molA.GetProp("_Name") if molA.HasProp("_Name") else "")+"\t"+fpstxt)
     count=0;
     for i in range(fpA.GetNumBits()):

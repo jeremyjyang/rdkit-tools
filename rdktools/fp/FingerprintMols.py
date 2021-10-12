@@ -61,7 +61,7 @@ def FingerprintMol(mol, fingerprinter, **fpArgs):
     fp = Chem.AllChem.GetMorganFingerprintAsBitVect(mol, fpArgs["morgan_radius"], fpArgs["morgan_nbits"])
   else: #RDKIT
     fp = Chem.RDKFingerprint(mol, fpArgs['minPath'], fpArgs['maxPath'], fpArgs['fpSize'], fpArgs['bitsPerHash'], fpArgs['useHs'], fpArgs['tgtDensity'], fpArgs['minSize'])
-  logging.debug(f"{fp.ToBitString()}")
+  logging.debug(f"{fp.ToBitString()} ({fp.GetNumBits()} bits)")
   return fp
 
 def FingerprintsFromSmiles(dataSource, idCol, smiCol, fingerprinter, reportFreq=10, maxMols=-1, **fpArgs):

@@ -117,7 +117,7 @@ fingerprint-based analytics."""
   parser.add_argument("--smilesColumn", default="#SMILES", help="name of the SMILES column in the input database.")
   parser.add_argument("--molPkl", help="")
   parser.add_argument("--input_format", choices=["SMILES", "SD"], default="SMILES", help="SMILES table or SDF file.")
-  parser.add_argument("--idColumn", default="Name", help="name of the id column in the input database.  Defaults to the first column for dbs.")
+  parser.add_argument("--idColumn", "--nameColumn", default="Name", help="name of the id column in the input database.  Defaults to the first column for dbs.")
   parser.add_argument("--maxMols", type=int, help="maximum number of molecules to be fingerprinted.")
   parser.add_argument("--fpAlgo", default="RDKIT", choices=FPALGOS, help="RDKIT = Daylight path-based; MACCS = MDL MACCS 166 keys")
   parser.add_argument("--morgan_nbits", type=int, default=MORGAN_NBITS)
