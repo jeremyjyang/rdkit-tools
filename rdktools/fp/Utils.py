@@ -5,7 +5,8 @@ https://www.rdkit.org/docs/source/rdkit.Chem.Scaffolds.rdScaffoldNetwork.html
 rdScaffoldNetwork available RDKit 2020.03.1+.
 """
 #############################################################################
-import os,sys,re,logging,json,time,inspect
+import os,sys,re,logging,argparse,json,time,inspect
+import pandas as pd
 
 import matplotlib as mpl
 #from matplotlib import pyplot as plt
@@ -55,10 +56,14 @@ def DemoMACCSKeys():
   Mols2FPs_MACCSKeys(mols, molWriter)
 
 #############################################################################
-def ShowMACCSkeys():
+def ListMACCSkeys():
+  data=[];
   for i,val in rdkit.Chem.MACCSkeys.smartsPatts.items():
     smarts,n = val
-    logging.info(f"{ i}, {smarts}, {n}")
+    logging.debug(f"{i}\t{n}\t{smarts}")
+    data.append([i, n, smarts])
+  df = pd.DataFrame(data, columns=['I', 'N', 'SMARTS'])
+  df.to_csv(sys.stdout, "\t", index=False)
 
 #############################################################################
 def Mols2FPs_RDK(mols, molWriter=None):
@@ -109,7 +114,7 @@ def Mols2FPs_MACCSKeys(mols, molWriter=None):
       molWriter.write(molA)
 
 #############################################################################
-if __name__ == "__main__":
+def Demo2():
   fpers = [ RDKFingerprint, GenMACCSKeys ]
   #fpers = [ GenMACCSKeys ]
 
@@ -162,3 +167,30 @@ if __name__ == "__main__":
     print(sim)
     bcom = rdkit.DataStructs.NumBitsInCommon(fpA, fpB)
     print(bcom)
+
+#############################################################################
+if __name__ == "__main__":
+  parser = argparse.ArgumentParser(description="RDKit fp utils")
+  OPS=[ "demopath", "demomorgan", "demomaccs", "list_maccskeys" ]
+  parser.add_argument("op", choices=OPS, help="OPERATION")
+  parser.add_argument("-v", "--verbose", action="count", default=0)
+  args = parser.parse_args()
+
+  logging.basicConfig(format='%(levelname)s:%(message)s', level=(logging.DEBUG if args.verbose>1 else logging.INFO))
+
+  logging.info(f"RDKit version: {rdkit.rdBase.rdkitVersion}")
+
+  if args.op == "list_maccskeys":
+    ListMACCSkeys()
+
+  elif args.op == "demomaccs":
+    DemoMACCSKeys()
+
+  elif args.op == "demopath":
+    DemoPath()
+
+  elif args.op == "demomorgan":
+    DemoMorgan()
+
+  else:
+    parser.error(f"Unsupported operation: {args.op}")
