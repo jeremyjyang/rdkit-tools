@@ -18,20 +18,21 @@ import sys,os,argparse,logging
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
+from .. import util
 from .. import properties
 
 #############################################################################
 if __name__=='__main__':
   parser = argparse.ArgumentParser(description='RDKit molecular properties utility')
-  OPS = ["logp", "estate", "demo"]
+  OPS = [ "descriptors", "descriptors3d", "lipinski", "logp", "estate", "freesasa", "demo"]
   parser.add_argument("op", choices=OPS, help="OPERATION")
   parser.add_argument("--i", required=True, dest="ifile", help="input molecule file")
   parser.add_argument("--o", dest="ofile", help="output file with data (TSV)")
-  parser.add_argument("--inheader", action="store_true", help="input file has header line")
-  parser.add_argument("--outheader", action="store_true", help="include TSV header line with smiles output")
+  parser.add_argument("--iheader", action="store_true", help="input file has header line")
+  parser.add_argument("--oheader", action="store_true", help="include TSV header line with smiles output")
   parser.add_argument("--kekulize", action="store_true", help="Kekulize")
   parser.add_argument("--sanitize", action="store_true", help="Sanitize")
-  parser.add_argument("--delim", default="\t", help="input molecule file")
+  parser.add_argument("--delim", default=" \t", help="SMILES/TSV delimiter")
   parser.add_argument("--smilesColumn", type=int, default=0, help="input SMILES column")
   parser.add_argument("--nameColumn", type=int, default=1, help="input name column")
 
@@ -40,45 +41,30 @@ if __name__=='__main__':
 
   logging.basicConfig(format='%(levelname)s:%(message)s', level=(logging.DEBUG if args.verbose>1 else logging.INFO))
 
-  if args.ifile[-4:]=='.smi':
-    molreader = Chem.SmilesMolSupplier(args.ifile, delimiter=args.delim, smilesColumn=args.smilesColumn, nameColumn=args.nameColumn, titleLine=args.inheader, sanitize=args.sanitize)
-  elif args.ifile[-4:] in ('.sdf', '.sd', '.mdl', '.mol'):
-    molreader = Chem.SDMolSupplier(args.ifile, sanitize=args.sanitize, removeHs=True)
-  else:
-    logging.error(f"Invalid file extension: {args.ifile}")
+  molReader = util.Utils.File2Molreader(args.ifile, args.delim, args.smilesColumn, args.nameColumn, args.iheader)
 
-  if args.ofile is None:
-    molwriter = Chem.SDWriter("-")
-  elif args.ofile[-4:]=='.smi':
-    molwriter = Chem.SmilesWriter(args.ofile, delimiter='\t', nameHeader='Name', includeHeader=args.outheader, isomericSmiles=True, kekuleSmiles=args.kekulize)
-  elif args.ofile[-4:] in ('.sdf', '.sd', '.mdl', '.mol'):
-    molwriter = Chem.SDWriter(args.ofile)
+  if args.ofile is not None:
+    molWriter = util.Utils.File2Molwriter(args.ofile, args.delim, args.oheader)
   else:
-    logging.error(f"Invalid file extension: {args.ofile}")
+    molWriter = Chem.SDWriter("-")
 
-  if args.op == "estate":
-    i_mol=0
-    for mol in molreader:
-      i_mol+=1
-      properties.Utils.CalcEStateIndices(mol)
-      if i_mol==1:
-        molwriter.SetProps(mol.GetPropNames())
-      molwriter.write(mol)
-    logging.info(f"n_out: {i_mol}")
+  if args.op == "descriptors":
+    properties.Utils.CalcDescriptors(molReader, molWriter)
+
+  elif args.op == "descriptors3d":
+    properties.Utils.CalcDescriptors3D(molReader, molWriter)
+
+  elif args.op == "estate":
+    properties.Utils.CalcEStateIndices(molReader, molWriter)
 
   elif args.op == "logp":
-    i_mol=0
-    for mol in molreader:
-      i_mol+=1
-      name = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-      logging.info(f"{i_mol}. {name}")
-      #AllChem.Compute2DCoords(mol)
-      #Chem.SanitizeMol(mol)
-      properties.Utils.CalcCrippenLogP(mol)
-      if i_mol==1:
-        molwriter.SetProps(mol.GetPropNames())
-      molwriter.write(mol)
-    logging.info(f"n_out: {i_mol}")
+    properties.Utils.CalcCrippenLogP(molReader, molWriter)
+
+  elif args.op == "lipinski":
+    properties.Utils.CalcLipinski(molReader, molWriter)
+
+  elif args.op == "freesasa":
+    properties.Utils.CalcFreeSASA(molReader, molWriter)
 
   else:
     logging.error(f"Invalid operation: {args.op}")
