@@ -32,7 +32,7 @@ CN1c2ccc(cc2C(=NCC1=O)c3ccccc3)Cl	Valium
   sma = "[$([N;!H0]-[#6]);!$(N-C=[O,N,S])]" #amine
   pat = rdkit.Chem.MolFromSmarts(sma)
   molWriter = SmilesWriter("-", delimiter='\t', nameHeader='Name', includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
-  smarts.Utils.MatchCounts(pat, molReader, molWriter)
+  smarts.MatchCounts(pat, molReader, molWriter)
 
 #############################################################################
 if __name__ == "__main__":
@@ -78,11 +78,11 @@ if __name__ == "__main__":
 
   if args.op=="matchCounts":
     pat = rdkit.Chem.MolFromSmarts(args.smarts)
-    smarts.Utils.MatchCounts(pat, molReader, molWriter)
+    smarts.MatchCounts(pat, molReader, molWriter)
 
   elif args.op=="matchFilter":
     pat = rdkit.Chem.MolFromSmarts(args.smarts)
-    smarts.Utils.MatchFilter(pat, molReader, molWriter)
+    smarts.MatchFilter(pat, molReader, molWriter)
 
   else:
     parser.error(f"Unsupported operation: {args.op}")

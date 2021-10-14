@@ -26,7 +26,7 @@ def GenerateConformers(molreader, molwriter, ff, nconf, optiters, etol):
     #old_target, sys.stderr = sys.stderr, fmsg
     ###
 
-    mol, confIds = conform.Utils.GenerateConformations(mol, nconf, ff, optiters, etol)
+    mol, confIds = conform.GenerateConformations(mol, nconf, ff, optiters, etol)
 
     ###
     #logging.debug('''fmsg = "{0}"'''.format(open("/tmp/z.err").read()))

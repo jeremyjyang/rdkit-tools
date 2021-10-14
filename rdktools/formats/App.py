@@ -50,19 +50,19 @@ if __name__=='__main__':
     molWriter = SmilesWriter("-", delimiter='\t', nameHeader='Name', includeHeader=True, isomericSmiles=True, kekuleSmiles=True)
 
   if args.op == "mdl2smi":
-    formats.Utils.Mdl2Smi(molReader, molWriter)
+    formats.Mdl2Smi(molReader, molWriter)
 
   elif args.op == "mdl2tsv":
-    formats.Utils.Mdl2Tsv(molReader, molWriter)
+    formats.Mdl2Tsv(molReader, molWriter)
 
   elif args.op == "smi2mdl":
-    formats.Utils.Smi2Mdl(molReader, molWriter)
+    formats.Smi2Mdl(molReader, molWriter)
 
   elif args.op == "mol2inchi":
-    formats.Utils.Mol2Inchi(molReader, fout)
+    formats.Mol2Inchi(molReader, fout)
 
   elif args.op == "mol2inchikey":
-    formats.Utils.Mol2Inchikey(molReader, fout)
+    formats.Mol2Inchikey(molReader, fout)
 
   else:
     parser.error(f"Unsupported operation: {args.op}")

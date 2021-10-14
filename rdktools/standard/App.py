@@ -53,17 +53,17 @@ if __name__ == "__main__":
   t0=time.time()
 
   if args.norms=="unm":
-    norms = standard.Utils.MyNorms()
+    norms = standard.MyNorms()
   elif args.ifile_norms:
     fin = open(args.ifile_norms)
-    norms = standard.Utils.ReadNormsFile(fin)
+    norms = standard.ReadNormsFile(fin)
 
   else:
     norms = MolStandardize.normalize.NORMALIZATIONS
 
   if args.op=="list_norms":
     fout = open(args.ofile, "w") if args.ofile else sys.stdout
-    standard.Utils.ListNormalizations(norms, fout)
+    standard.ListNormalizations(norms, fout)
 
   elif args.op=="standardize":
     if not (args.ifile and args.ofile): parser.error('--i and --o required.')
@@ -82,11 +82,11 @@ if __name__ == "__main__":
     else:
       logging.error(f'Invalid file extension: {args.ofile}')
 
-    stdzr = standard.Utils.MyStandardizer(norms)
-    standard.Utils.Standardize(stdzr, args.remove_isomerism, molReader, molWriter)
+    stdzr = standard.MyStandardizer(norms)
+    standard.Standardize(stdzr, args.remove_isomerism, molReader, molWriter)
 
   elif args.op=="show_params":
-    standard.Utils.ShowParameters()
+    standard.ShowParameters()
 
   elif args.op=="demo":
     Demo(norms)

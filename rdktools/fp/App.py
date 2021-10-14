@@ -147,7 +147,7 @@ fingerprint-based analytics."""
   if args.op=="FingerprintMols": 
     logging.info("FingerprintMols ({0})".format(f"{args.fpAlgo}({args.morgan_radius},{args.morgan_nbits})" if args.fpAlgo=="MORGAN" else args.fpAlgo))
     details = ParseArgs(args)
-    rdktools_fp.Utils.ShowDetails(details)
+    rdktools_fp.ShowDetails(details)
     rdktools_fp.FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
     if args.ofile is not None: logging.info(f"FPs written to: {args.ofile}")
 
@@ -158,7 +158,7 @@ fingerprint-based analytics."""
     details.outFileName = ftmp.name
     logging.debug(f"Temporary file: {ftmp.name}")
     ftmp.close()
-    rdktools_fp.Utils.ShowDetails(details)
+    rdktools_fp.ShowDetails(details)
     queryMol = MolFromSmiles(re.sub(r'\s.*$', '', args.querySmiles))
     if queryMol is None:
       logging.error(f"Failed to parse SMILES: {args.querySmiles}")

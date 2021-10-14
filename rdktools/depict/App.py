@@ -12,7 +12,7 @@ def Demo():
   with tempfile.NamedTemporaryFile("w+b", suffix=".smi", delete=False) as ftmp:
     ftmp.write(b"NCCc1ccc(O)c(O)c1 dopamine\n")
     fname = ftmp.name
-  imgs = depict.Utils.ReadMols2Images(fname, "SMI", 400, 300, True, False) 
+  imgs = depict.ReadMols2Images(fname, "SMI", 400, 300, True, False) 
   os.remove(fname)
   imgs[0].show()
 
@@ -131,25 +131,25 @@ if __name__=='__main__':
 
   if args.op == 'batch':
     if not args.ifile: parser.error('Input file required.')
-    imgs = depict.Utils.ReadMols2Images(args.ifile, args.ifmt, args.smilesColumn, args.nameColumn, args.delim, args.header, args.width, args.height, args.kekulize, args.wedgebonds) 
+    imgs = depict.ReadMols2Images(args.ifile, args.ifmt, args.smilesColumn, args.nameColumn, args.delim, args.header, args.width, args.height, args.kekulize, args.wedgebonds) 
     if not args.batch_dir:
       parser.error('--batch_dir required for --batch_mode.')
       parser.print_help()
     if not os.access(args.batch_dir, os.W_OK):
       parser.error(f"batch_dir {args.batch_dir} non-existent or non-writeable.")
       parser.print_help()
-    depict.Utils.WriteImages2ImageFiles(imgs, args.ofmt, args.batch_dir, args.batch_prefix)
+    depict.WriteImages2ImageFiles(imgs, args.ofmt, args.batch_dir, args.batch_prefix)
 
   elif args.op == 'pdf':
     if not args.ifile: parser.error('Input file required.')
-    imgs = depict.Utils.ReadMols2Images(args.ifile, args.ifmt, args.smilesColumn, args.nameColumn, args.delim, args.header, args.width, args.height, args.kekulize, args.wedgebonds) 
+    imgs = depict.ReadMols2Images(args.ifile, args.ifmt, args.smilesColumn, args.nameColumn, args.delim, args.header, args.width, args.height, args.kekulize, args.wedgebonds) 
     title = args.pdf_title if args.pdf_title else os.path.basename(args.ifile)
-    depict.Utils.WriteImages2PDFFile(imgs, args.width, args.height, title, args.ofile)
+    depict.WriteImages2PDFFile(imgs, args.width, args.height, title, args.ofile)
 
   elif args.op == 'single':
     if not args.ifile: parser.error('Input file required.')
-    imgs = depict.Utils.ReadMols2Images(args.ifile, args.ifmt, args.smilesColumn, args.nameColumn, args.delim, args.header, args.width, args.height, args.kekulize, args.wedgebonds) 
-    depict.Utils.WriteImage2ImageFile(imgs[0], args.ofmt, args.ofile)
+    imgs = depict.ReadMols2Images(args.ifile, args.ifmt, args.smilesColumn, args.nameColumn, args.delim, args.header, args.width, args.height, args.kekulize, args.wedgebonds) 
+    depict.WriteImage2ImageFile(imgs[0], args.ofmt, args.ofile)
 
   elif args.op == 'demo':
     Demo()

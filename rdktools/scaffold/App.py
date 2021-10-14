@@ -21,7 +21,7 @@ from .. import util
 #############################################################################
 def DemoBM():
   scafmols=[];
-  for smi in util.Utils.DEMOSMIS:
+  for smi in util.DEMOSMIS:
     mol = MolFromSmiles(re.sub(r'\s.*$', '', smi))
     scafmol = MurckoScaffold.GetScaffoldForMol(mol) if mol else None
     scafmols.append(scafmol)
@@ -35,7 +35,7 @@ def DemoNetImg(brics, ofile):
   logging.debug(f"DemoNetImg({brics}, {ofile})")
   smi = ('Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 flucloxacillin')
   mols = [MolFromSmiles(re.sub(r'\s.*$', '', smi))]
-  scafnet = scaffold.Utils.Mols2ScafNet(mols, brics)
+  scafnet = scaffold.Mols2ScafNet(mols, brics)
   logging.info(f"Scafnet nodes: {len(scafnet.nodes)}; edges: {len(scafnet.edges)}")
   #scafmols = [MolFromSmiles(m) for m in scafnet.nodes]
   scafmols = []
@@ -56,7 +56,7 @@ def DemoNetHtml(brics, scratchdir, ofile):
   logging.debug(f"DemoNetHtml({brics}, {scratchdir}, {ofile})")
   DEMOSMI = ('Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 flucloxacillin')
   mols = [MolFromSmiles(re.sub(r'\s.*$', '', DEMOSMI))]
-  scafnet = scaffold.Utils.Mols2ScafNet(mols, brics)
+  scafnet = scaffold.Mols2ScafNet(mols, brics)
   logging.info(f"Scafnet nodes: {len(scafnet.nodes)}; edges: {len(scafnet.edges)}")
   if not os.path.isdir(scratchdir): os.mkdir(scratchdir)
 
@@ -65,14 +65,14 @@ def DemoNetHtml(brics, scratchdir, ofile):
   logging.debug(f"pyvis.network.Network()... Done.")
 
   for i,n in enumerate(scafnet.nodes):
-    logging.debug(f"{i+1}. util.Utils.moltosvg(rdkit.Chem.MolFromSmiles({n})...")
-    svg = util.Utils.moltosvg(rdkit.Chem.MolFromSmiles(n))
+    logging.debug(f"{i+1}. util.moltosvg(rdkit.Chem.MolFromSmiles({n})...")
+    svg = util.moltosvg(rdkit.Chem.MolFromSmiles(n))
     with open(f'{scratchdir}/{i}.svg', 'w') as outf:
       outf.write(svg)
     logging.debug(f"g.add_node()...")
     g.add_node(i, shape="image", label=' ', image=f'{scratchdir}/{i}.svg', title=svg, size=60)
     # Segmentation fault after last node.
-  logging.debug(f"util.Utils.moltosvg()... Done.")
+  logging.debug(f"util.moltosvg()... Done.")
   for i,e in enumerate(scafnet.edges):
     logging.debug(f"{i+1}. g.add_edge()...")
     g.add_edge(e.beginIdx, e.endIdx, label=str(e.type))
@@ -150,15 +150,15 @@ if __name__ == "__main__":
   if not (args.ifile): parser.error('--i required.')
 
   if args.op=="bmscaf":
-    molReader = util.Utils.File2Molreader(args.ifile, args.idelim, args.smilesColumn, args.nameColumn, args.iheader)
-    molWriter = util.Utils.File2Molwriter(args.ofile, args.odelim, args.oheader)
-    mols = util.Utils.ReadMols(molReader)
-    scaffold.Utils.Mols2BMScaffolds(mols, molWriter)
+    molReader = util.File2Molreader(args.ifile, args.idelim, args.smilesColumn, args.nameColumn, args.iheader)
+    molWriter = util.File2Molwriter(args.ofile, args.odelim, args.oheader)
+    mols = util.ReadMols(molReader)
+    scaffold.Mols2BMScaffolds(mols, molWriter)
 
   elif args.op=="scafnet":
-    molReader = util.Utils.File2Molreader(args.ifile, args.idelim, args.smilesColumn, args.nameColumn, args.iheader)
-    mols = util.Utils.ReadMols(molReader)
-    scaffold.Utils.Mols2ScafNet(mols, args.brics, args.ofile)
+    molReader = util.File2Molreader(args.ifile, args.idelim, args.smilesColumn, args.nameColumn, args.iheader)
+    mols = util.ReadMols(molReader)
+    scaffold.Mols2ScafNet(mols, args.brics, args.ofile)
 
   else:
     parser.error(f"Unsupported operation: {args.op}")

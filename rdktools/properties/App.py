@@ -41,32 +41,31 @@ if __name__=='__main__':
 
   logging.basicConfig(format='%(levelname)s:%(message)s', level=(logging.DEBUG if args.verbose>1 else logging.INFO))
 
-  molReader = util.Utils.File2Molreader(args.ifile, args.delim, args.smilesColumn, args.nameColumn, args.iheader)
+  molReader = util.File2Molreader(args.ifile, args.delim, args.smilesColumn, args.nameColumn, args.iheader)
 
   if args.ofile is not None:
-    molWriter = util.Utils.File2Molwriter(args.ofile, args.delim, args.oheader)
+    molWriter = util.File2Molwriter(args.ofile, args.delim, args.oheader)
   else:
     molWriter = Chem.SDWriter("-")
 
   if args.op == "descriptors":
-    properties.Utils.CalcDescriptors(molReader, molWriter)
+    properties.CalcDescriptors(molReader, molWriter)
 
   elif args.op == "descriptors3d":
-    properties.Utils.CalcDescriptors3D(molReader, molWriter)
+    properties.CalcDescriptors3D(molReader, molWriter)
 
   elif args.op == "estate":
-    properties.Utils.CalcEStateIndices(molReader, molWriter)
+    properties.CalcEStateIndices(molReader, molWriter)
 
   elif args.op == "logp":
-    properties.Utils.CalcCrippenLogP(molReader, molWriter)
+    properties.CalcCrippenLogP(molReader, molWriter)
 
   elif args.op == "lipinski":
-    properties.Utils.CalcLipinski(molReader, molWriter)
+    properties.CalcLipinski(molReader, molWriter)
 
   elif args.op == "freesasa":
-    properties.Utils.CalcFreeSASA(molReader, molWriter)
+    properties.CalcFreeSASA(molReader, molWriter)
 
   else:
     logging.error(f"Invalid operation: {args.op}")
-
 
