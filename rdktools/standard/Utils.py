@@ -12,10 +12,10 @@ def Standardize(stdzr, remove_isomerism, molReader, molWriter):
   for mol in molReader:
     n_mol+=1
     molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-    logging.debug('%d. %s:'%(n_mol, molname))
+    logging.debug(f"{n_mol}. {molname}:")
     mol2 = StdMol(stdzr, mol, remove_isomerism)
     molWriter.write(mol2)
-  logging.info('%d mols written to %s' %(n_mol, args.ofile))
+  logging.info(f"{n_mol} mols written to {args.ofile}")
 
 #############################################################################
 def MyNorms():
@@ -24,9 +24,8 @@ def MyNorms():
    norm = norms[i]
    if norm.name == "Sulfoxide to -S+(O-)-":
      del(norms[i])
-  norms.append(MolStandardize.normalize.Normalization("[S+]-[O-] to S=O",
-	"[S+:1]([O-:2])>>[S+0:1](=[O-0:2])"))
-  logging.info("Normalizations: {}".format(len(norms)))
+  norms.append(MolStandardize.normalize.Normalization("[S+]-[O-] to S=O", "[S+:1]([O-:2])>>[S+0:1](=[O-0:2])"))
+  logging.info(f"Normalizations: {len(norms)}")
   return(norms)
 
 #############################################################################
@@ -37,22 +36,18 @@ def ReadNormsFile(fin):
     if not line: break
     smirks, name = re.split(r'[\s]+', line.rstrip(), 1)
     norms.append(MolStandardize.normalize.Normalization(name, smirks))
-  logging.info("Normalizations: {}".format(len(norms)))
+  logging.info(f"Normalizations: {len(norms)}")
   return(norms)
 
 #############################################################################
 def ShowParameters():
-  logging.info("PREFER_ORGANIC: {}".format(MolStandardize.fragment.PREFER_ORGANIC))
-  logging.info("MAX_RESTARTS: {}".format(MolStandardize.normalize.MAX_RESTARTS))
-  logging.info("MAX_TAUTOMERS: {}".format(MolStandardize.tautomer.MAX_TAUTOMERS))
-  logging.info("ACID_BASE_PAIRS:\n\t{}".format(
-	"\n".join(map(lambda ab: ("\t{}\t{}\t{}".format(ab.name, MolToSmiles(ab.acid), MolToSmiles(ab.base))), MolStandardize.charge.ACID_BASE_PAIRS))))
-  logging.info("CHARGE_CORRECTIONS:\n\t{}".format(
-	"\n".join(map(lambda cc: ("\t{}\t{}\t{}".format(cc.name, MolToSmiles(cc.smarts), cc.charge)), MolStandardize.charge.CHARGE_CORRECTIONS))))
-  logging.info("TAUTOMER_TRANSFORMS:\n\t{}".format(
-	"\n".join(map(lambda tt: ("\t{}\t{}\t{}\t{}".format(tt.name, tt.tautomer_str, tt.bonds, tt.charges)), MolStandardize.tautomer.TAUTOMER_TRANSFORMS))))
-  logging.info("TAUTOMER_SCORES:\n\t{}".format(
-	"\n".join(map(lambda ts: ("\t{}\t{}\t{}".format(ts.name, ts.smarts_str, ts.score)), MolStandardize.tautomer.TAUTOMER_SCORES))))
+  logging.info(f"PREFER_ORGANIC: {MolStandardize.fragment.PREFER_ORGANIC}")
+  logging.info(f"MAX_RESTARTS: {MolStandardize.normalize.MAX_RESTARTS}")
+  logging.info(f"MAX_TAUTOMERS: {MolStandardize.tautomer.MAX_TAUTOMERS}")
+  logging.info("ACID_BASE_PAIRS:\n"+("\n".join(map(lambda ab: (f"{ab.name}\t{MolToSmiles(ab.acid)}\t{MolToSmiles(ab.base)}"), MolStandardize.charge.ACID_BASE_PAIRS))))
+  logging.info("CHARGE_CORRECTIONS:\n"+("\n".join(map(lambda cc: (f"{cc.name}\t{MolToSmiles(cc.smarts)}\t{cc.charge}"), MolStandardize.charge.CHARGE_CORRECTIONS))))
+  logging.info("TAUTOMER_TRANSFORMS:\n"+("\n".join(map(lambda tt: (f"{tt.name}\t{tt.tautomer_str}\t{tt.bonds}\t{tt.charges}"), MolStandardize.tautomer.TAUTOMER_TRANSFORMS))))
+  logging.info("TAUTOMER_SCORES:\n"+("\n".join(map(lambda ts: (f"{ts.name}\t{ts.smarts_str}\t{ts.score}"), MolStandardize.tautomer.TAUTOMER_SCORES))))
 
 #############################################################################
 def MyStandardizer(norms):
