@@ -57,9 +57,10 @@ def ReadMols(molReader):
   return mols
 
 #############################################################################
-def File2Molreader(ifile, idelim, smicol, namcol, iheader):
-  if re.sub(r'.*\.', '', ifile).lower()in ('smi', 'smiles', 'csv', 'tsv'):
-    molReader = SmilesMolSupplier(ifile, delimiter=idelim, smilesColumn=smicol, nameColumn=namcol, titleLine=iheader, sanitize=True)
+def File2Molreader(ifile, idelim, smicol, namcol, header):
+  if ifile is None: return None
+  if re.sub(r'.*\.', '', ifile).lower() in ('smi', 'smiles', 'csv', 'tsv'):
+    molReader = SmilesMolSupplier(ifile, delimiter=idelim, smilesColumn=smicol, nameColumn=namcol, titleLine=header, sanitize=True)
   elif re.sub(r'.*\.', '', ifile).lower() in ('sdf','sd','mdl','mol'):
     molReader = SDMolSupplier(ifile, sanitize=True, removeHs=True)
   else:
@@ -68,13 +69,13 @@ def File2Molreader(ifile, idelim, smicol, namcol, iheader):
   return molReader
 
 #############################################################################
-def File2Molwriter(ofile, odelim, oheader):
-  if not ofile:
-    molWriter = SmilesWriter("-", delimiter=odelim, nameHeader='Name', includeHeader=oheader, isomericSmiles=True, kekuleSmiles=False)
+def File2Molwriter(ofile, odelim, header):
+  if not ofile or ofile=="-":
+    molWriter = SmilesWriter("-", delimiter=odelim, nameHeader='Name', includeHeader=header, isomericSmiles=True, kekuleSmiles=True)
   elif re.sub(r'.*\.', '', ofile).lower() in ('sdf','sd','mdl','mol'):
     molWriter = SDWriter(ofile)
   elif re.sub(r'.*\.', '', ofile).lower() in ('smi', 'smiles', 'csv', 'tsv'):
-    molWriter = SmilesWriter(ofile, delimiter=odelim, nameHeader='Name', includeHeader=oheader, isomericSmiles=True, kekuleSmiles=False)
+    molWriter = SmilesWriter(ofile, delimiter=odelim, nameHeader='Name', includeHeader=header, isomericSmiles=True, kekuleSmiles=True)
   else:
     logging.error(f'Invalid file extension: {ofile}')
     molWriter = None
