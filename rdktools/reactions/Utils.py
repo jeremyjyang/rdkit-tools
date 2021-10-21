@@ -16,29 +16,6 @@ from .. import util
 def React(smirks, molReader, molWriter):
   rxn = rdChemReactions.ReactionFromSmarts(smirks)
 
-#############################################################################
-def EnumerateLibrary(smirks, molReaders, molWriter):
-  """
-s1=[Chem.MolFromSmiles(x) for x in ('NC','NCC')]
-s2=[Chem.MolFromSmiles(x) for x in ('OC=O','OC(=O)C')]
-rxn = AllChem.ReactionFromSmarts('[O:2]=[C:1][OH].[N:3]>>[O:2]=[C:1][N:3]')
-r = AllChem.EnumerateLibraryFromReaction(rxn,[s2,s1])
-"""
-  logging.debug(f"{smirks}")
-  rxn = rdChemReactions.ReactionFromSmarts(smirks)
-  molsets=[];
-  for molReader in molReaders:
-    mols = util.ReadMols(molReader)
-    molsets.append(mols)
-  logging.debug(f"len(molsets): {len(molsets)}")
-
-  lib = AllChem.EnumerateLibraryFromReaction(rxn, molsets)
-  prods = [x[0] for x in list(lib)]
-  logging.debug(f"len(prods): {len(prods)}")
-  for prod in prods:
-    logging.debug(f"{Chem.MolToSmiles(prod)})")
-    molWriter.write(prod)
-
 #  for m1 in molReader:
 #    frags = Chem.rdmolops.GetMolFrags(m1, asMols=True)
 #    logging.debug(f"len(frags): {len(frags)}")
@@ -89,12 +66,36 @@ def Demo2():
 
 #############################################################################
 def Demo3():
-  s1=[Chem.MolFromSmiles(x) for x in ('NC','NCC')]
-  s2=[Chem.MolFromSmiles(x) for x in ('OC=O','OC(=O)C')]
   rxn = rdChemReactions.ReactionFromSmarts('[O:2]=[C:1][OH].[N:3]>>[O:2]=[C:1][N:3]')
-  #lib = rdChemReactions.EnumerateLibrary(rxn,[s2,s1])
-  lib = AllChem.EnumerateLibraryFromReaction(rxn, [s2,s1])
+  s1 = [Chem.MolFromSmiles(x) for x in ('NC','NCC')]
+  s2 = [Chem.MolFromSmiles(x) for x in ('OC=O','OC(=O)C')]
+  #lib = rdChemReactions.EnumerateLibrary(rxn, [s2,s1])
+  #for mol in s1+s2: logging.debug(f"type(mol):{type(mol)}")
+  for i,molset in enumerate((s1,s2)):
+    logging.debug(f"MOLSET {i+1}: "+(",".join([Chem.MolToSmiles(mol) for mol in molset])))
+  lib = AllChem.EnumerateLibraryFromReaction(rxn, [s2,s1]) #order matters!
+  prods = [x[0] for x in list(lib)]
+  logging.info(f"len(prods): {len(prods)}")
+  for prod in prods:
+    logging.info(f"PRODUCT: {Chem.MolToSmiles(prod)}")
+
+#############################################################################
+def EnumerateLibrary(smirks, molReaders, molWriter):
+  """Order of molsets matters."""
+  logging.debug(f"{smirks}")
+  logging.debug(f"len(molReaders): {len(molReaders)}")
+  rxn = rdChemReactions.ReactionFromSmarts(smirks)
+  #rxn = rdChemReactions.ReactionFromSmarts('[O:2]=[C:1][OH].[N:3]>>[O:2]=[C:1][N:3]')
+  molsets=[];
+  for molReader in molReaders:
+    molsets.append([mol for mol in molReader])
+  logging.debug(f"len(molsets): {len(molsets)}")
+  for i,molset in enumerate(molsets):
+    logging.debug(f"MOLSET {i+1}: "+(",".join([Chem.MolToSmiles(mol) for mol in molset])))
+
+  lib = AllChem.EnumerateLibraryFromReaction(rxn, molsets)
   prods = [x[0] for x in list(lib)]
   logging.debug(f"len(prods): {len(prods)}")
   for prod in prods:
-    logging.debug(f"{Chem.MolToSmiles(prod)}")
+    logging.debug(f"PRODUCT: {Chem.MolToSmiles(prod)})")
+    molWriter.write(prod)

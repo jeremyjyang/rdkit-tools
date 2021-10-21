@@ -16,7 +16,7 @@ if __name__=='__main__':
   EPILOG = "Reactants specified as disconnected components of single molecule, or from separate input files."
   parser = argparse.ArgumentParser(description="RDKit chemical reactions utility", epilog=EPILOG)
   OPS = [ "enumerateLibrary", "react", "demo", "demo2", "demo3"]
-  parser.add_argument("op", choices=OPS, help="operation")
+  parser.add_argument("op", choices=OPS, help="OPERATION")
   parser.add_argument("--i", dest="ifiles", help="input file[s] (SMILES/TSV or SDF)")
   parser.add_argument("--o", dest="ofile", default="-", help="output file (specify '-' for stdout)")
   parser.add_argument("--smirks", help="SMIRKS reaction transform")
@@ -32,9 +32,10 @@ if __name__=='__main__':
   logging.basicConfig(format='%(levelname)s:%(message)s', level=(logging.DEBUG if args.verbose>1 else logging.INFO))
 
   molReaders=[];
-  for ifile in re.split(r'[\s*,\s*]', args.ifiles):
-    molReader = util.File2Molreader(ifile, args.delim, args.smilesColumn, args.nameColumn, args.header)
-    molReaders.append(molReader)
+  if args.ifiles is not None:
+    for ifile in re.split(r'[\s*,\s*]', args.ifiles):
+      molReader = util.File2Molreader(ifile, args.delim, args.smilesColumn, args.nameColumn, args.header)
+      molReaders.append(molReader)
   molWriter = util.File2Molwriter(args.ofile, args.delim, args.header)
 
 
