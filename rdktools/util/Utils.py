@@ -69,13 +69,13 @@ def File2Molreader(ifile, idelim, smicol, namcol, header):
   return molReader
 
 #############################################################################
-def File2Molwriter(ofile, odelim, header):
+def File2Molwriter(ofile, odelim, header, kekuleSmiles=True, isomericSmiles=True):
   if not ofile or ofile=="-":
-    molWriter = SmilesWriter("-", delimiter=odelim, nameHeader='Name', includeHeader=header, isomericSmiles=True, kekuleSmiles=True)
+    molWriter = SmilesWriter("-", delimiter=odelim, nameHeader='Name', includeHeader=header, isomericSmiles=isomericSmiles, kekuleSmiles=kekuleSmiles)
   elif re.sub(r'.*\.', '', ofile).lower() in ('sdf','sd','mdl','mol'):
     molWriter = SDWriter(ofile)
   elif re.sub(r'.*\.', '', ofile).lower() in ('smi', 'smiles', 'csv', 'tsv'):
-    molWriter = SmilesWriter(ofile, delimiter=odelim, nameHeader='Name', includeHeader=header, isomericSmiles=True, kekuleSmiles=True)
+    molWriter = SmilesWriter(ofile, delimiter=odelim, nameHeader='Name', includeHeader=header, isomericSmiles=isomericSmiles, kekuleSmiles=kekuleSmiles)
   else:
     logging.error(f'Invalid file extension: {ofile}')
     molWriter = None

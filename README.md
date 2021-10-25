@@ -2,6 +2,13 @@
 
 Tools for use with RDKit.
 
+See also:
+
+* [GitHub repository `rdkit-tools`](https://github.com/jeremyjyang/rdkit-tools)
+* [Pypi package `rdktools`](https://pypi.org/project/rdktools/)
+
+RDKit:
+
 * <https://rdkit.org>
 * <https://www.rdkit.org/docs/Install.html>
 

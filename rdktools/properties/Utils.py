@@ -32,10 +32,13 @@ def Run_CalcCrippenLogP(molReader, molWriter):
 
 #############################################################################
 def CalcEStateIndices(mol):
+  properties={};
   esvals = EStateIndices(mol, force=1)
-  mol.SetProp('RDKit_EStates', (','.join(map(lambda x:(f"{x:.3f}"), esvals))))
-  mol.SetProp('RDKit_MaxEState', (f"{max(esvals):.3f}"))
-  return esvals
+  properties['RDKit_EStates'] =  (','.join(map(lambda x:(f"{x:.3f}"), esvals)))
+  properties['RDKit_MaxEState'] =  max(esvals)
+  for key,val in properties.items():
+    mol.SetProp(key, f"{val:.3f}" if type(val) is float else f"{val}")
+  return properties
 
 #############################################################################
 def Run_CalcEStateIndices(molReader, molWriter):
@@ -64,24 +67,28 @@ References:
 
 #############################################################################
 def CalcLipinski(mol):
-  mol.SetProp("FractionCSP3", f"{FractionCSP3(mol):.3f}") # fraction of Cs SP3-hybridized
-  mol.SetProp("HeavyAtomCount", f"{HeavyAtomCount(mol)}") # heavy atoms 
-  mol.SetProp("NHOHCount", f"{NHOHCount(mol)}") # NHs or OHs
-  mol.SetProp("NOCount", f"{NOCount(mol)}") # Ns and Os
-  mol.SetProp("NumAliphaticCarbocycles", f"{NumAliphaticCarbocycles(mol)}") # aliphatic (containing at least one non-aromatic bond) carbocycles
-  mol.SetProp("NumAliphaticHeterocycles", f"{NumAliphaticHeterocycles(mol)}") # aliphatic (containing at least one non-aromatic bond) heterocycles
-  mol.SetProp("NumAliphaticRings", f"{NumAliphaticRings(mol)}") # aliphatic (containing at least one non-aromatic bond) rings
-  mol.SetProp("NumAromaticCarbocycles", f"{NumAromaticCarbocycles(mol)}") # aromatic carbocycles
-  mol.SetProp("NumAromaticHeterocycles", f"{NumAromaticHeterocycles(mol)}") # aromatic heterocycles
-  mol.SetProp("NumAromaticRings", f"{NumAromaticRings(mol)}") # aromatic rings
-  mol.SetProp("NumHAcceptors", f"{NumHAcceptors(mol)}") # H Bond Acceptors
-  mol.SetProp("NumHDonors", f"{NumHDonors(mol)}") # H Bond Donors
-  mol.SetProp("NumHeteroatoms", f"{NumHeteroatoms(mol)}") # Heteroatoms
-  mol.SetProp("NumRotatableBonds", f"{NumRotatableBonds(mol)}") # Rotatable Bonds
-  mol.SetProp("NumSaturatedCarbocycles", f"{NumSaturatedCarbocycles(mol)}") # saturated carbocycles
-  mol.SetProp("NumSaturatedHeterocycles", f"{NumSaturatedHeterocycles(mol)}") # saturated heterocycles
-  mol.SetProp("NumSaturatedRings", f"{NumSaturatedRings(mol)}") # saturated rings
-  mol.SetProp("RingCount", f"{RingCount(mol)}") #
+  properties={};
+  properties["FractionCSP3"] = FractionCSP3(mol) # fraction of Cs SP3-hybridized
+  properties["HeavyAtomCount"] = HeavyAtomCount(mol) # heavy atoms 
+  properties["NHOHCount"] = NHOHCount(mol) # NHs or OHs
+  properties["NOCount"] = NOCount(mol) # Ns and Os
+  properties["NumAliphaticCarbocycles"] = NumAliphaticCarbocycles(mol) # aliphatic (containing at least one non-aromatic bond) carbocycles
+  properties["NumAliphaticHeterocycles"] = NumAliphaticHeterocycles(mol) # aliphatic (containing at least one non-aromatic bond) heterocycles
+  properties["NumAliphaticRings"] = NumAliphaticRings(mol) # aliphatic (containing at least one non-aromatic bond) rings
+  properties["NumAromaticCarbocycles"] = NumAromaticCarbocycles(mol) # aromatic carbocycles
+  properties["NumAromaticHeterocycles"] = NumAromaticHeterocycles(mol) # aromatic heterocycles
+  properties["NumAromaticRings"] = NumAromaticRings(mol) # aromatic rings
+  properties["NumHAcceptors"] = NumHAcceptors(mol) # H Bond Acceptors
+  properties["NumHDonors"] = NumHDonors(mol) # H Bond Donors
+  properties["NumHeteroatoms"] = NumHeteroatoms(mol) # Heteroatoms
+  properties["NumRotatableBonds"] = NumRotatableBonds(mol) # Rotatable Bonds
+  properties["NumSaturatedCarbocycles"] = NumSaturatedCarbocycles(mol) # saturated carbocycles
+  properties["NumSaturatedHeterocycles"] = NumSaturatedHeterocycles(mol) # saturated heterocycles
+  properties["NumSaturatedRings"] = NumSaturatedRings(mol) # saturated rings
+  properties["RingCount"] = RingCount(mol)
+  for key,val in properties.items():
+    mol.SetProp(key, f"{val:.3f}" if type(val) is float else f"{val}")
+  return properties
   
 #############################################################################
 def Run_CalcLipinski(molReader, molWriter):
@@ -98,16 +105,21 @@ def Run_CalcLipinski(molReader, molWriter):
 
 #############################################################################
 def CalcDescriptors(mol):
-  mol.SetProp("MolWt", f"{MolWt(mol):.3f}") # The average molecular weight of the molecule
-  mol.SetProp("ExactMolWt", f"{ExactMolWt(mol):.3f}") # The exact molecular weight of the molecule
-  mol.SetProp("HeavyAtomMolWt", f"{HeavyAtomMolWt(mol):.3f}")
-  mol.SetProp("MaxAbsPartialCharge", f"{MaxAbsPartialCharge(mol):.3f}")
-  mol.SetProp("MaxPartialCharge", f"{MaxPartialCharge(mol):.3f}")
-  mol.SetProp("MinAbsPartialCharge", f"{MinAbsPartialCharge(mol):.3f}")
-  mol.SetProp("MinPartialCharge", f"{MinPartialCharge(mol):.3f}")
-  mol.SetProp("NumRadicalElectrons", f"{NumRadicalElectrons(mol)}") # The number of radical electrons the molecule has (says nothing about spin state)
-  mol.SetProp("NumValenceElectrons", f"{NumValenceElectrons(mol)}") # The number of valence electrons the molecule has
+  properties={};
+  properties["MolWt"] = MolWt(mol) # The average molecular weight of the molecule
+  properties["ExactMolWt"] = ExactMolWt(mol) # The exact molecular weight of the molecule
+  properties["HeavyAtomMolWt"] = HeavyAtomMolWt(mol)
+  properties["MaxAbsPartialCharge"] = MaxAbsPartialCharge(mol)
+  properties["MaxPartialCharge"] = MaxPartialCharge(mol)
+  properties["MinAbsPartialCharge"] = MinAbsPartialCharge(mol)
+  properties["MinPartialCharge"] = MinPartialCharge(mol)
+  properties["NumRadicalElectrons"] = NumRadicalElectrons(mol) # The number of radical electrons the molecule has (says nothing about spin state)
+  properties["NumValenceElectrons"] = NumValenceElectrons(mol) # The number of valence electrons the molecule has
   
+  for key,val in properties.items():
+    mol.SetProp(key, f"{val:.3f}" if type(val) is float else f"{val}")
+  return properties
+
 #############################################################################
 def Run_CalcDescriptors(molReader, molWriter):
   i_mol=0
@@ -124,47 +136,52 @@ def Run_CalcDescriptors(molReader, molWriter):
 #############################################################################
 def CalcDescriptors3D(mol):
   """Requires 3D conformations."""
+  properties={};
   # molecular asphericity
   # from Todeschini and Consoni “Descriptors from Molecular Geometry” Handbook of Chemoinformatics https://doi.org/10.1002/9783527618279.ch37
   # Definition: 0.5 * ((pm3-pm2)**2 + (pm3-pm1)**2 + (pm2-pm1)**2)/(pm1**2+pm2**2+pm3**2)
-  mol.SetProp("Asphericity", f"{Asphericity(mol):.3f}")
+  properties["Asphericity"]  = Asphericity(mol)
 
   # molecular eccentricity
   # from Todeschini and Consoni “Descriptors from Molecular Geometry” Handbook of Chemoinformatics https://doi.org/10.1002/9783527618279.ch37
   # Definition: sqrt(pm3**2 -pm1**2) / pm3**2
-  mol.SetProp("Eccentricity", f"{Eccentricity(mol):.3f}")
+  properties["Eccentricity"] = Eccentricity(mol)
 
   # Inertial shape factor
   # from Todeschini and Consoni “Descriptors from Molecular Geometry” Handbook of Chemoinformatics https://doi.org/10.1002/9783527618279.ch37
   # Definition: pm2 / (pm1*pm3)
-  mol.SetProp("InertialShapeFactor", f"{InertialShapeFactor(mol):.3f}")
+  properties["InertialShapeFactor"] = InertialShapeFactor(mol)
 
   # Normalized principal moments ratio 1 (=I1/I3)
   # from Sauer and Schwarz JCIM 43:987-1003 (2003) https://doi.org/10.1021/ci025599w
-  mol.SetProp("NPR1", f"{NPR1(mol):.3f}")
+  properties["NPR1"] = NPR1(mol)
 
   # Normalized principal moments ratio 2 (=I2/I3)
   # from Sauer and Schwarz JCIM 43:987-1003 (2003) https://doi.org/10.1021/ci025599w
-  mol.SetProp("NPR2", f"{NPR2(mol):.3f}")
+  properties["NPR2"] = NPR2(mol)
 
   # First (smallest) principal moment of inertia
-  mol.SetProp("PMI1", f"{PMI1(mol):.3f}")
+  properties["PMI1"] = PMI1(mol)
 
   # Second principal moment of inertia
-  mol.SetProp("PMI2", f"{PMI2(mol):.3f}")
+  properties["PMI2"] = PMI2(mol)
 
   # Third (largest) principal moment of inertia
-  mol.SetProp("PMI3", f"{PMI3(mol):.3f}")
+  properties["PMI3"] = PMI3(mol)
 
   # Radius of gyration
   # from Todeschini and Consoni “Descriptors from Molecular Geometry” Handbook of Chemoinformatics https://doi.org/10.1002/9783527618279.ch37
   # Definition: for planar molecules: sqrt( sqrt(pm3*pm2)/MW ) for nonplanar molecules: sqrt( 2*pi*pow(pm3*pm2*pm1,1/3)/MW )
-  mol.SetProp("RadiusOfGyration", f"{RadiusOfGyration(mol):.3f}")
+  properties["RadiusOfGyration"] = RadiusOfGyration(mol)
 
   # Molecular spherocityIndex
   # from Todeschini and Consoni “Descriptors from Molecular Geometry” Handbook of Chemoinformatics https://doi.org/10.1002/9783527618279.ch37
   # Definition: 3 * pm1 / (pm1+pm2+pm3) where the moments are calculated without weights
-  mol.SetProp("SpherocityIndex", f"{SpherocityIndex(mol):.3f}")
+  properties["SpherocityIndex"] = SpherocityIndex(mol)
+
+  for key,val in properties.items():
+    mol.SetProp(key, f"{val:.3f}" if type(val) is float else f"{val}")
+  return properties
 
 #############################################################################
 def Run_CalcDescriptors3D(molReader, molWriter):
@@ -283,7 +300,7 @@ $$$$
   molWriter.write(mol)
 
   molWriter = Chem.SmilesWriter("-", delimiter="\t", nameHeader='Name', includeHeader=True, isomericSmiles=True, kekuleSmiles=True)
-  mol = Chem.rdmolops.RemoveAllHs(mol, sanitize=True)
+  mol = Chem.rdmolops.RemoveHs(mol, implicitOnly=False, updateExplicitCount=False, sanitize=True)
   molWriter.SetProps(mol.GetPropNames())
   molWriter.write(mol)
 

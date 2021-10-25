@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 #############################################################################
 import os,sys,re,time,argparse,logging
+import pandas as pd
 
 import rdkit
-#import rdkit.Chem.AllChem
 from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolStandardize, MolToSmiles, MolFromSmiles
 
 #############################################################################
@@ -65,9 +65,10 @@ def MyStandardizer(norms):
 
 #############################################################################
 def ListNormalizations(norms, fout):
-  for norm in norms:
-    fout.write(f"{norm.transform_str}\t{norm.name}\n")
+  df = pd.DataFrame([[norm.name, norm.transform_str] for norm in norms])
+  if fout is not None: df.to_csv(fout, "\t", index=True)
   logging.info(f"Normalizations: {len(norms)}")
+  return df
 
 #############################################################################
 def StdMol(stdzr, mol, remove_isomerism=False):
@@ -76,5 +77,28 @@ def StdMol(stdzr, mol, remove_isomerism=False):
   smi_std = MolToSmiles(mol_std, isomericSmiles=(not remove_isomerism)) if mol_std else None
   logging.debug(f"{smi:>28s} >> {smi_std}")
   return(mol_std)
+
+#############################################################################
+def Demo():
+  norms = MolStandardize.normalize.NORMALIZATIONS
+  ListNormalizations(norms, sys.stdout)
+  stdzr = MyStandardizer(norms)
+  smis = [
+        'CCC(=O)O',
+        'c1ccc(cc1)N(=O)=O',
+        'c1ccc(cc1)[N+](=O)[O-]',
+        'CCC([O-])[OH+]',
+        'CCN(=O)([O-])[OH+]',
+        'C[C@H]1CN(CCCN1[S+]([O-])(=O)C2=CC=CC3=C2C(=CN=C3)C)C(=O)CN',
+        'N[S+]([O-])(=O)C1=C(Cl)C=C2NC(N[S+]([O-])(=O)C2=C1)C(Cl)Cl',
+        'C[S+]([O-])C1=CC=C(C=C1)\C=C2\C(=C(\CC(O)=O)C3=C2C=CC(=C3)F)C',
+        'O=[N+]([O-])c1cc(S(=O)(=O)N2CCCC2)ccc1NN=Cc1ccccn1',
+        'CCC(CC)COC(=O)[C@H](C)N[P@](=O)(OC[C@H]1O[C@](C#N)([C@H](O)[C@@H]1O)C1=CC=C2N1N=CN=C2N)OC1=CC=CC=C1',
+        ]
+  for smi in smis:
+    mol1 = MolFromSmiles(smi)
+    mol2 = stdzr.standardize(mol1) if mol1 else None
+    smi_std = MolToSmiles(mol2, isomericSmiles=True) if mol2 else None
+    logging.info(f"{smi:>28s} >> {smi_std}")
 
 #############################################################################
