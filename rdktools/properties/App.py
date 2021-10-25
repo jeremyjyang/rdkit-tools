@@ -23,10 +23,16 @@ from .. import properties
 
 #############################################################################
 if __name__=='__main__':
+  EPILOG = """estate: Kier-Hall electrotopological descriptors;
+lipinski: rdkit.Chem.Lipinski descriptors;
+logp: Wildman-Crippen LogP;
+descriptors: Chem.Descriptors (various); descriptors3d: Chem.Descriptors3D (various) (requires 3D coordinates);
+freesasa: Accessible Surface Area (SASA) and related descriptors (requires 3D coordinates)
+"""
   parser = argparse.ArgumentParser(description='RDKit molecular properties utility')
   OPS = [ "descriptors", "descriptors3d", "lipinski", "logp", "estate", "freesasa", "demo"]
   parser.add_argument("op", choices=OPS, help="OPERATION")
-  parser.add_argument("--i", required=True, dest="ifile", help="input molecule file")
+  parser.add_argument("--i", dest="ifile", help="input molecule file")
   parser.add_argument("--o", dest="ofile", help="output file with data (TSV)")
   parser.add_argument("--iheader", action="store_true", help="input file has header line")
   parser.add_argument("--oheader", action="store_true", help="include TSV header line with smiles output")
@@ -41,12 +47,9 @@ if __name__=='__main__':
 
   logging.basicConfig(format='%(levelname)s:%(message)s', level=(logging.DEBUG if args.verbose>1 else logging.INFO))
 
-  molReader = util.File2Molreader(args.ifile, args.delim, args.smilesColumn, args.nameColumn, args.iheader)
+  molReader = util.File2Molreader(args.ifile, args.delim, args.smilesColumn, args.nameColumn, args.iheader) if args.ifile is not None else None
 
-  if args.ofile is not None:
-    molWriter = util.File2Molwriter(args.ofile, args.delim, args.oheader)
-  else:
-    molWriter = Chem.SDWriter("-")
+  molWriter = util.File2Molwriter(args.ofile, args.delim, args.oheader) if args.ofile is not None else Chem.SDWriter("-")
 
   if args.op == "descriptors":
     properties.CalcDescriptors(molReader, molWriter)
@@ -65,6 +68,9 @@ if __name__=='__main__':
 
   elif args.op == "freesasa":
     properties.CalcFreeSASA(molReader, molWriter)
+
+  elif args.op == "demo":
+    properties.Demo()
 
   else:
     logging.error(f"Invalid operation: {args.op}")

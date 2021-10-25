@@ -80,7 +80,7 @@ optional arguments:
   -v, --verbose
 ```
 
-Conformation generation:
+## Conformation generation:
 
 ```
 (rdkit) $ python3 -m rdktools.conform.App -h
@@ -231,4 +231,36 @@ Examples:
 ```
 (rdkit) $ python3 -m rdktools.fp.App ClusterMols --i drugcentral.smi --smilesColumn "smiles" --idColumn "name" --fpAlgo MORGAN --morgan_nbits 512 --clusterAlgo BUTINA --metric TANIMOTO
 ```
+
+## Molecular properties
+
+```
+$ python3 -m rdktools.properties.App -h
+usage: App.py [-h] --i IFILE [--o OFILE] [--iheader] [--oheader] [--kekulize]
+              [--sanitize] [--delim DELIM] [--smilesColumn SMILESCOLUMN]
+              [--nameColumn NAMECOLUMN] [-v]
+              {descriptors,descriptors3d,lipinski,logp,estate,freesasa,demo}
+
+RDKit molecular properties utility
+
+positional arguments:
+  {descriptors,descriptors3d,lipinski,logp,estate,freesasa,demo}
+                        OPERATION
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --i IFILE             input molecule file
+  --o OFILE             output file with data (TSV)
+  --iheader             input file has header line
+  --oheader             include TSV header line with smiles output
+  --kekulize            Kekulize
+  --sanitize            Sanitize
+  --delim DELIM         SMILES/TSV delimiter
+  --smilesColumn SMILESCOLUMN
+                        input SMILES column
+  --nameColumn NAMECOLUMN
+                        input name column
+  -v, --verbose
+```
+
 

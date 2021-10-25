@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-import sys,os,logging
+import sys,os,logging,tempfile
 
 from rdkit import Chem
 from rdkit.Chem import AllChem
@@ -189,5 +189,83 @@ def CalcFreeSASA(molReader, molWriter):
       molWriter.SetProps(mol.GetPropNames())
     molWriter.write(mol)
   logging.info(f"n_out: {i_mol}")
+
+#############################################################################
+def Demo():
+  molWriter = Chem.SDWriter("-")
+  f = tempfile.NamedTemporaryFile(delete=False)
+  f.write(b"""\
+dopamine
+  -OEChem-03200608123D
+
+ 22 22  0     0  0  0  0  0  0999 V2000
+    0.1459   -1.4217    0.2165 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.2188   -1.5581   -0.0373 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.1068    0.9801    0.2844 C   0  0  0  0  0  0  0  0  0  0  0  0
+    0.7020   -0.1525    0.3774 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -2.0276   -0.4254   -0.1304 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.4715    0.8437    0.0305 C   0  0  0  0  0  0  0  0  0  0  0  0
+    2.1611   -0.0069    0.6483 C   0  0  0  0  0  0  0  0  0  0  0  0
+    3.0113    0.1181   -0.6221 C   0  0  0  0  0  0  0  0  0  0  0  0
+    4.4148    0.2369   -0.3309 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -3.3588   -0.5713   -0.3787 O   0  0  0  0  0  0  0  0  0  0  0  0
+   -2.2515    1.9570   -0.0577 O   0  0  0  0  0  0  0  0  0  0  0  0
+    0.7685   -2.3096    0.2875 H   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.6457   -2.5496   -0.1618 H   0  0  0  0  0  0  0  0  0  0  0  0
+    0.3244    1.9703    0.4094 H   0  0  0  0  0  0  0  0  0  0  0  0
+    2.5156   -0.8799    1.2219 H   0  0  0  0  0  0  0  0  0  0  0  0
+    2.3505    0.8630    1.3007 H   0  0  0  0  0  0  0  0  0  0  0  0
+    2.8935   -0.7696   -1.2516 H   0  0  0  0  0  0  0  0  0  0  0  0
+    2.7206    0.9947   -1.2103 H   0  0  0  0  0  0  0  0  0  0  0  0
+    4.7033    0.7051    0.5132 H   0  0  0  0  0  0  0  0  0  0  0  0
+    5.0852    0.0389   -1.0565 H   0  0  0  0  0  0  0  0  0  0  0  0
+   -3.5069   -1.3096   -0.9904 H   0  0  0  0  0  0  0  0  0  0  0  0
+   -3.1215    1.7289   -0.4214 H   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  2  0  0  0  0
+  1  4  1  0  0  0  0
+  2  5  1  0  0  0  0
+  3  4  2  0  0  0  0
+  3  6  1  0  0  0  0
+  4  7  1  0  0  0  0
+  5  6  2  0  0  0  0
+  5 10  1  0  0  0  0
+  6 11  1  0  0  0  0
+  7  8  1  0  0  0  0
+  8  9  1  0  0  0  0
+  1 12  1  0  0  0  0
+  2 13  1  0  0  0  0
+  3 14  1  0  0  0  0
+  7 15  1  0  0  0  0
+  7 16  1  0  0  0  0
+  8 17  1  0  0  0  0
+  8 18  1  0  0  0  0
+  9 19  1  0  0  0  0
+  9 20  1  0  0  0  0
+ 10 21  1  0  0  0  0
+ 11 22  1  0  0  0  0
+M  END
+$$$$
+""")
+  f.close()
+
+  molReader = Chem.SDMolSupplier(f.name)
+  CalcCrippenLogP(molReader, molWriter)
+
+  molReader = Chem.SDMolSupplier(f.name)
+  CalcEStateIndices(molReader, molWriter)
+
+  molReader = Chem.SDMolSupplier(f.name)
+  CalcLipinski(molReader, molWriter)
+
+  molReader = Chem.SDMolSupplier(f.name)
+  CalcDescriptors(molReader, molWriter)
+
+  molReader = Chem.SDMolSupplier(f.name)
+  CalcDescriptors3D(molReader, molWriter)
+
+  molReader = Chem.SDMolSupplier(f.name)
+  CalcFreeSASA(molReader, molWriter)
+
+  os.unlink(f.name)
 
 #############################################################################

@@ -169,28 +169,3 @@ def Demo2():
     print(bcom)
 
 #############################################################################
-if __name__ == "__main__":
-  parser = argparse.ArgumentParser(description="RDKit fp utils")
-  OPS=[ "demopath", "demomorgan", "demomaccs", "list_maccskeys" ]
-  parser.add_argument("op", choices=OPS, help="OPERATION")
-  parser.add_argument("-v", "--verbose", action="count", default=0)
-  args = parser.parse_args()
-
-  logging.basicConfig(format='%(levelname)s:%(message)s', level=(logging.DEBUG if args.verbose>1 else logging.INFO))
-
-  logging.info(f"RDKit version: {rdkit.rdBase.rdkitVersion}")
-
-  if args.op == "list_maccskeys":
-    ListMACCSkeys()
-
-  elif args.op == "demomaccs":
-    DemoMACCSKeys()
-
-  elif args.op == "demopath":
-    DemoPath()
-
-  elif args.op == "demomorgan":
-    DemoMorgan()
-
-  else:
-    parser.error(f"Unsupported operation: {args.op}")
