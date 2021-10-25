@@ -52,22 +52,22 @@ freesasa: Accessible Surface Area (SASA) and related descriptors (requires 3D co
   molWriter = util.File2Molwriter(args.ofile, args.delim, args.oheader) if args.ofile is not None else Chem.SDWriter("-")
 
   if args.op == "descriptors":
-    properties.CalcDescriptors(molReader, molWriter)
+    properties.Run_CalcDescriptors(molReader, molWriter)
 
   elif args.op == "descriptors3d":
-    properties.CalcDescriptors3D(molReader, molWriter)
+    properties.Run_CalcDescriptors3D(molReader, molWriter)
 
   elif args.op == "estate":
-    properties.CalcEStateIndices(molReader, molWriter)
+    properties.Run_CalcEStateIndices(molReader, molWriter)
 
   elif args.op == "logp":
-    properties.CalcCrippenLogP(molReader, molWriter)
+    properties.Run_CalcCrippenLogP(molReader, molWriter)
 
   elif args.op == "lipinski":
-    properties.CalcLipinski(molReader, molWriter)
+    properties.Run_CalcLipinski(molReader, molWriter)
 
   elif args.op == "freesasa":
-    properties.CalcFreeSASA(molReader, molWriter)
+    properties.Run_CalcFreeSASA(molReader, molWriter)
 
   elif args.op == "demo":
     properties.Demo()
