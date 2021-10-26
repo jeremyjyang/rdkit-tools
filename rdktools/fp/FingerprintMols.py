@@ -215,6 +215,7 @@ def FingerprintsFromDetails(details, reportFreq=10):
 
   if fps:
     if details.outFileName:
+      logging.info(f"Writing pickled FPs to {details.outFileName}")
       outF = open(details.outFileName, 'wb+')
       for i in range(len(fps)):
         pickle.dump(fps[i], outF)
@@ -231,7 +232,7 @@ def FingerprintsFromDetails(details, reportFreq=10):
       colTypes = DbUtils.TypeFinder(data, len(data), len(data[0]))
       typeStrs = DbUtils.GetTypeStrings([details.idName, details.smilesName], colTypes,
                                         keyCol=details.idName)
-      cols = '%s, %s %s' % (typeStrs[0], details.fpColName, DbModule.binaryTypeName)
+      cols = f"{typeStrs[0]}, {details.fpColName} {DbModule.binaryTypeName}"
 
       # FIX: we should really check to see if the table
       #  is already there and, if so, add the appropriate

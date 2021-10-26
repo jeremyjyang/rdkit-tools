@@ -26,13 +26,16 @@ from rdkit.ML.Cluster import ClusterUtils
 #from rdkit.Chem.Fingerprints import MolSimilarity #USING CUSTOM VERSION.
 #from rdkit.Chem.Fingerprints import ClusterMols #USING CUSTOM VERSION.
 
-from .. import fp as rdktools_fp
-from .. import util as rdktools_util
+from ..fp import FingerprintMols #CUSTOM VERSION.
+from ..fp import MolSimilarity #CUSTOM VERSION.
+from ..fp import ClusterMols #CUSTOM VERSION.
+
+from ..fp import Utils
 
 #############################################################################
 def ParseArgs(args):
   """Based on Chem/Fingerprints/FingerprintMols.py"""
-  details = rdktools_fp.FingerprintMols.FingerprinterDetails()
+  details = FingerprintMols.FingerprinterDetails()
   if args.ifile: details.inFileName = args.ifile
   if args.ofile: details.outFileName = args.ofile
   if args.useHs: details.useHs = 1
@@ -91,7 +94,7 @@ if __name__ == "__main__":
 FingerprintMols.py, MolSimilarity.py, ClusterMols.py,
 with enhanced command-line functionality for molecular
 fingerprint-based analytics."""
-  FPALGOS=["RDKIT", "MACCS", "MORGAN"]
+  FPALGOS = ["RDKIT", "MACCS", "MORGAN"]
   MORGAN_NBITS=1024; MORGAN_RADIUS=2;
   METRICS = ["ALLBIT", "ASYMMETRIC", "DICE", "COSINE", "KULCZYNSKI", "MCCONNAUGHEY", "ONBIT", "RUSSEL", "SOKAL", "TANIMOTO", "TVERSKY"]
   parser = argparse.ArgumentParser(description="RDKit fingerprint-based analytics", epilog=EPILOG)
@@ -147,9 +150,10 @@ fingerprint-based analytics."""
   if args.op=="FingerprintMols": 
     logging.info("FingerprintMols ({0})".format(f"{args.fpAlgo}({args.morgan_radius},{args.morgan_nbits})" if args.fpAlgo=="MORGAN" else args.fpAlgo))
     details = ParseArgs(args)
-    rdktools_fp.ShowDetails(details)
-    rdktools_fp.FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
+    Utils.ShowDetails(details)
+    FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
     if args.ofile is not None: logging.info(f"FPs written to: {args.ofile}")
+    else: logging.info(f"No output file specified.")
 
   elif args.op=="MolSimilarity":
     logging.info("MolSimilarity ({0}, {1})".format(args.fpAlgo, f"{args.metric}({args.tversky_alpha},{args.tversky_beta})" if args.metric=="TVERSKY" else args.metric))
@@ -158,13 +162,13 @@ fingerprint-based analytics."""
     details.outFileName = ftmp.name
     logging.debug(f"Temporary file: {ftmp.name}")
     ftmp.close()
-    rdktools_fp.ShowDetails(details)
+    Utils.ShowDetails(details)
     queryMol = MolFromSmiles(re.sub(r'\s.*$', '', args.querySmiles))
     if queryMol is None:
       logging.error(f"Failed to parse SMILES: {args.querySmiles}")
     queryName = re.sub(r'^[\S]*\s', '', args.querySmiles)
     logging.info("{0}; Query: {1}".format((f"TopN:{args.topN}" if args.topN else f"threshold: {args.thresh}"), (f"{queryName}" if queryName else f"{querySmiles}")))
-    rdktools_fp.FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
+    FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
     n_fp=0; fps=[];
     with open(ftmp.name, "rb") as fin:
       while True:
@@ -176,8 +180,8 @@ fingerprint-based analytics."""
         n_fp+=1
     os.remove(ftmp.name)
     details.outFileName = args.ofile
-    queryFp = rdktools_fp.FingerprintMols.FingerprintMol(queryMol, **details.__dict__)
-    results = rdktools_fp.MolSimilarity.ScreenFingerprints(details, fps, probeFp=queryFp)
+    queryFp = FingerprintMols.FingerprintMol(queryMol, **details.__dict__)
+    results = MolSimilarity.ScreenFingerprints(details, fps, probeFp=queryFp)
     n_hit=0; 
     results.reverse()
     fout = open(args.ofile, "w+") if args.ofile else sys.stdout
@@ -191,7 +195,7 @@ fingerprint-based analytics."""
     details.outFileName = ftmp.name
     logging.debug(f"Temporary file: {ftmp.name}")
     ftmp.close()
-    rdktools_fp.FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
+    FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
     n_fp=0; fps=[];
     with open(ftmp.name, "rb") as fin:
       while True:
@@ -205,7 +209,7 @@ fingerprint-based analytics."""
     details.outFileName = args.ofile
 
     logging.info(f"ClusterMols ({args.fpAlgo}, {args.metric}, {args.clusterAlgo})")
-    clustTree, dMat = rdktools_fp.ClusterMols.ClusterPoints(fps, details.metric, details.clusterAlgo, haveLabels=0, haveActs=1, returnDistances=True)
+    clustTree, dMat = ClusterMols.ClusterPoints(fps, details.metric, details.clusterAlgo, haveLabels=0, haveActs=1, returnDistances=True)
 
     logging.info(f"dMat.ndim:{dMat.ndim}; dMat.shape:{dMat.shape}; dMat.size:{dMat.size}")
 
