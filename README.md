@@ -25,15 +25,15 @@ $ conda activate rdkit
 
 ## Contents
 
-* [Formats](#Formats)
-* [Depictions](#Depictions)
-* [Standardization](#Standardization)
-* [Fingerprints](#Fingerprints)
-* [Conformations](#Conformations)
-* [Properties](#Properties)
-* [Scaffolds](#Scaffolds)
-* [SMARTS](#SMARTS)
-* [Reactions](#Reactions)
+* [Formats](#Formats) - chemical file format conversion
+* [Depictions](#Depictions) - 2D molecular depictions
+* [Standardization](#Standardization) - molecular standardization 
+* [Fingerprints](#Fingerprints) - molecular path and pattern based binary feature vectors, similarity, and clustering tools
+* [Conformations](#Conformations) - distance geometry based 3D conformation generation
+* [Properties](#Properties) - molecular property calculation: Lipinsky, Wildman-Crippen LogP, Kier-Hall electrotopological descriptors, solvent accessible surface area (SASA), and more.
+* [Scaffolds](#Scaffolds) - Bemis-Murcko and BRICS scaffold analysis, rdScaffoldNetworks.
+* [SMARTS](#SMARTS) - molecular pattern matching (subgraph isomorphism)
+* [Reactions](#Reactions) - SMIRKS based reaction transforms
 
 
 ## Formats
