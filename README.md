@@ -23,10 +23,96 @@ $ conda activate rdkit
 (rdkit) $ conda install -c conda-forge networkx=2.5 
 ```
 
-## Scaffold analysis
+## Contents
+
+* [Formats](#Formats)
+* [Depictions](#Depictions)
+* [Standardization](#Standardization)
+* [Fingerprints](#Fingerprints)
+* [Conformations](#Conformations)
+* [Properties](#Properties)
+* [Scaffolds](#Scaffolds)
+* [SMARTS](#SMARTS)
+* [Reactions](#Reactions)
+
+
+## Formats
 
 ```
-$ conda activate rdkit
+(rdkit) $ python3 -m rdktools.formats.App -h
+usage: App.py [-h] [--i IFILE] [--o OFILE] [--kekulize] [--sanitize] [--header]
+              [--delim DELIM] [--smilesColumn SMILESCOLUMN] [--nameColumn NAMECOLUMN]
+              [-v]
+              {mdl2smi,mdl2tsv,smi2mdl,smiclean,mdlclean,mol2inchi,mol2inchikey,demo}
+
+RDKit chemical format utility
+
+positional arguments:
+  {mdl2smi,mdl2tsv,smi2mdl,smiclean,mdlclean,mol2inchi,mol2inchikey,demo}
+                        operation
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --i IFILE             input file (SMILES/TSV or SDF)
+  --o OFILE             output file (specify '-' for stdout)
+  --kekulize            Kekulize
+  --sanitize            Sanitize
+  --header              input SMILES/TSV file has header line
+  --delim DELIM         delimiter for SMILES/TSV
+  --smilesColumn SMILESCOLUMN
+                        input SMILES column
+  --nameColumn NAMECOLUMN
+                        input name column
+  -v, --verbose
+```
+
+## Depictions
+
+```
+(rdkit) $ python3 -m rdktools.depict.App -h
+usage: App.py [-h] [--i IFILE] [--ifmt {AUTO,SMI,MDL}] [--ofmt {PNG,JPEG,PDF}]
+              [--smilesColumn SMILESCOLUMN] [--nameColumn NAMECOLUMN] [--header]
+              [--delim DELIM] [--height HEIGHT] [--width WIDTH] [--kekulize]
+              [--wedgebonds] [--pdf_title PDF_TITLE] [--batch_dir BATCH_DIR]
+              [--batch_prefix BATCH_PREFIX] [--o OFILE] [-v]
+              {single,batch,pdf,demo,demo2}
+
+RDKit molecule depiction utility
+
+positional arguments:
+  {single,batch,pdf,demo,demo2}
+                        OPERATION
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --i IFILE             input molecule file
+  --ifmt {AUTO,SMI,MDL}
+                        input file format
+  --ofmt {PNG,JPEG,PDF}
+                        output file format
+  --smilesColumn SMILESCOLUMN
+  --nameColumn NAMECOLUMN
+  --header              SMILES/TSV file has header
+  --delim DELIM         SMILES/TSV field delimiter
+  --height HEIGHT       height of image
+  --width WIDTH         width of image
+  --kekulize            display Kekule form
+  --wedgebonds          stereo wedge bonds
+  --pdf_title PDF_TITLE
+                        PDF doc title
+  --batch_dir BATCH_DIR
+                        destination for batch files
+  --batch_prefix BATCH_PREFIX
+                        prefix for batch files
+  --o OFILE             output file
+  -v, --verbose
+
+Modes: single = one image; batch = multiple images; pdf = multi-page
+```
+
+## Scaffolds
+
+```
 (rdkit) $ python3 -m rdktools.scaffold.App -h
 usage: App.py [-h] [--i IFILE] [--o OFILE] [--o_html OFILE_HTML]
               [--scratchdir SCRATCHDIR] [--smicol SMICOL] [--namcol NAMCOL]
@@ -64,7 +150,7 @@ usage: App.py [-h] [--i IFILE] [--o OFILE] [--norms {default,unm}]
               [--i_norms IFILE_NORMS] [--remove_isomerism] [-v]
               {standardize,list_norms,show_params,demo}
 App.py: error: the following arguments are required: op
-lengua$ python3 -m rdktools.standard.App -h
+(rdkit) $ python3 -m rdktools.standard.App -h
 usage: App.py [-h] [--i IFILE] [--o OFILE] [--norms {default,unm}]
               [--i_norms IFILE_NORMS] [--remove_isomerism] [-v]
               {standardize,list_norms,show_params,demo}
@@ -87,7 +173,7 @@ optional arguments:
   -v, --verbose
 ```
 
-## Conformation generation:
+## Conformations
 
 ```
 (rdkit) $ python3 -m rdktools.conform.App -h
@@ -110,7 +196,7 @@ optional arguments:
 Based on distance geometry method by Blaney et al.
 ```
 
-## Fingerprint-based analytics
+## Fingerprints
 
 ```
 (rdkit) $ python3 -m rdktools.fp.App MolSimilarity -h
@@ -239,10 +325,37 @@ Examples:
 (rdkit) $ python3 -m rdktools.fp.App ClusterMols --i drugcentral.smi --smilesColumn "smiles" --idColumn "name" --fpAlgo MORGAN --morgan_nbits 512 --clusterAlgo BUTINA --metric TANIMOTO
 ```
 
-## Molecular properties
+## SMARTS
 
 ```
-$ python3 -m rdktools.properties.App -h
+(rdkit) $ python3 -m rdktools.smarts.App -h
+usage: App.py [-h] [--i IFILE] [--o OFILE] [--smarts SMARTS] [--usa] [--delim DELIM]
+              [--smilesColumn SMILESCOLUMN] [--nameColumn NAMECOLUMN] [--header] [-v]
+              {matchCounts,matchFilter,demo}
+
+RDKit SMARTS utility
+
+positional arguments:
+  {matchCounts,matchFilter,demo}
+                        OPERATION
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --i IFILE             input file, SMI or SDF
+  --o OFILE             output file, TSV
+  --smarts SMARTS       query SMARTS
+  --usa                 unique set-of-atoms match counts
+  --delim DELIM         delimiter for SMILES/TSV
+  --smilesColumn SMILESCOLUMN
+  --nameColumn NAMECOLUMN
+  --header              SMILES/TSV has header line
+  -v, --verbose
+```
+
+## Properties
+
+```
+(rdkit) $ python3 -m rdktools.properties.App -h
 usage: App.py [-h] --i IFILE [--o OFILE] [--iheader] [--oheader] [--kekulize]
               [--sanitize] [--delim DELIM] [--smilesColumn SMILESCOLUMN]
               [--nameColumn NAMECOLUMN] [-v]
