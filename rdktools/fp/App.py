@@ -13,6 +13,8 @@ rdkit.DataStructs.cDataStructs.ExplicitBitVect
 #############################################################################
 import os,sys,re,json,time,argparse,logging,pickle,tempfile
 
+import pandas as pd
+
 import rdkit
 import rdkit.Chem.AllChem
 from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolToSmiles, MolFromSmiles
@@ -102,7 +104,8 @@ fingerprint-based analytics."""
   parser.add_argument("op", choices=OPS, help="OPERATION")
   #FingerprintMols, MolSimilarity
   parser.add_argument("--i", dest="ifile", help="input file; if provided and no tableName is specified, data will be read from the input file.  Text files delimited with either commas (extension .csv) or tabs (extension .txt) are supported.")
-  parser.add_argument("--o", dest="ofile", help="name of the output file (output will be a pickle file with one label,fingerprint entry for each molecule).")
+  parser.add_argument("--o", dest="ofile", help="output file (pickle file with one label,fingerprint entry for each molecule).")
+  parser.add_argument("--output_as_dataframe", action="store_true", help="Output FPs as Pandas dataframe with names as index, columns as feature names, if available.")
   parser.add_argument("--useHs", action="store_true", help="include Hs in the fingerprint Default is *false*.")
   parser.add_argument("--useValence", action="store_true", help="include valence information in the fingerprints Default is *false*.")
   parser.add_argument("--dbName", help="name of the database from which to pull input molecule information.  If output is going to a database, this will also be used for that unless the --outDbName option is used.")
@@ -152,7 +155,21 @@ fingerprint-based analytics."""
     details = ParseArgs(args)
     Utils.ShowDetails(details)
     FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
-    if args.ofile is not None: logging.info(f"FPs written to: {args.ofile}")
+    if args.ofile is not None and args.output_as_dataframe:
+      X=[]; ids=[];
+      with open(args.ofile, "rb") as fin:
+        while True:
+          try:
+            id_this,fp = pickle.load(fin)
+            x = [fp.GetBit(j) for j in range(fp.GetNumBits())]
+            X.append(x)
+            ids.append(id_this)
+          except Exception as e:
+            break
+        df = pd.DataFrame(X, index=ids)
+      os.remove(args.ofile)
+      df.to_pickle(args.ofile, compression="gzip")
+    if args.ofile is not None: logging.info(f"FPs written {'(DATAFRAME)' if args.output_as_dataframe else ''}: {args.ofile}")
     else: logging.info(f"No output file specified.")
 
   elif args.op=="MolSimilarity":
