@@ -7,15 +7,42 @@ import rdkit
 from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolStandardize, MolToSmiles, MolFromSmiles
 
 #############################################################################
-def Standardize(stdzr, remove_isomerism, molReader, molWriter):
-  n_mol=0; 
+def StdMol(stdzr, mol, sanitize, isomeric=True):
+  smi = MolToSmiles(mol, isomericSmiles=isomeric) if mol else None
+  if sanitize:
+    flag = Chem.SanitizeMol(mol)
+    logging.debug(f"Sanitize_flag: {flag}")
+  mol_std = stdzr.standardize(mol) if mol else None
+  smi_std = MolToSmiles(mol_std, isomericSmiles=isomeric) if mol_std else None
+  logging.debug(f"{smi:>28s} >> {smi_std}")
+  return mol_std
+
+#############################################################################
+def Standardize(stdzr, sanitize, isomeric, molReader, molWriter):
+  n_mol=0; n_out=0; n_empty=0; n_err=0;
   for mol in molReader:
     n_mol+=1
+    if mol is None:
+      n_err+=1
+      logging.error(f"[N={n_mol}] Failed to read mol.")
+      continue
     molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-    logging.debug(f"{n_mol}. {molname}:")
-    mol2 = StdMol(stdzr, mol, remove_isomerism)
+    if mol.GetNumAtoms()==0:
+      logging.info(f"[N={n_mol}] {molname}: Empty molecule -- no atoms.")
+      n_empty+=1
+      mol2 = mol
+    else:
+      logging.debug(f"[N={n_mol}] {molname}: {MolToSmiles(mol, isomericSmiles=isomeric)}")
+      try:
+        mol2 = StdMol(stdzr, mol, sanitize, isomeric)
+      except Exception as e:
+        logging.error(f"[N={n_mol}]: standardize failed: {e}")
+        n_err+=1
+        mol2 = mol
     molWriter.write(mol2)
-  logging.info(f"{n_mol} mols written to {args.ofile}")
+    n_out+=1
+  logging.info(f"Mols in: {n_mol}; mols out: {n_out}; empty mols: {n_empty}")
+  logging.info(f"Errors: {n_err}")
 
 #############################################################################
 def MyNorms():
@@ -61,7 +88,7 @@ def MyStandardizer(norms):
 	tautomer_scores = MolStandardize.tautomer.TAUTOMER_SCORES,
 	max_tautomers = MolStandardize.tautomer.MAX_TAUTOMERS
 	)
-  return(stdzr)
+  return stdzr
 
 #############################################################################
 def ListNormalizations(norms, fout):
@@ -69,14 +96,6 @@ def ListNormalizations(norms, fout):
   if fout is not None: df.to_csv(fout, "\t", index=True)
   logging.info(f"Normalizations: {len(norms)}")
   return df
-
-#############################################################################
-def StdMol(stdzr, mol, remove_isomerism=False):
-  smi = MolToSmiles(mol, isomericSmiles=(not remove_isomerism)) if mol else None
-  mol_std = stdzr.standardize(mol) if mol else None
-  smi_std = MolToSmiles(mol_std, isomericSmiles=(not remove_isomerism)) if mol_std else None
-  logging.debug(f"{smi:>28s} >> {smi_std}")
-  return(mol_std)
 
 #############################################################################
 def Demo():

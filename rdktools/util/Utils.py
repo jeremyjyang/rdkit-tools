@@ -57,12 +57,12 @@ def ReadMols(molReader):
   return mols
 
 #############################################################################
-def File2Molreader(ifile, idelim, smicol, namcol, header):
+def File2Molreader(ifile, idelim, smicol, namcol, header, sanitize=True):
   if ifile is None: return None
   if re.sub(r'.*\.', '', ifile).lower() in ('smi', 'smiles', 'csv', 'tsv'):
-    molReader = SmilesMolSupplier(ifile, delimiter=idelim, smilesColumn=smicol, nameColumn=namcol, titleLine=header, sanitize=True)
-  elif re.sub(r'.*\.', '', ifile).lower() in ('sdf','sd','mdl','mol'):
-    molReader = SDMolSupplier(ifile, sanitize=True, removeHs=True)
+    molReader = SmilesMolSupplier(ifile, delimiter=idelim, smilesColumn=smicol, nameColumn=namcol, titleLine=header, sanitize=sanitize)
+  elif re.sub(r'.*\.', '', ifile).lower() in ('sdf', 'sd', 'mdl', 'mol'):
+    molReader = SDMolSupplier(ifile, sanitize=sanitize, removeHs=True)
   else:
     molReader = None
     logging.error(f'Invalid file extension: {ifile}')

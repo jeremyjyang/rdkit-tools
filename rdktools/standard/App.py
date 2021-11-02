@@ -3,36 +3,38 @@
 import os,sys,re,time,argparse,logging
 
 import rdkit
-#import rdkit.Chem.AllChem
-from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolStandardize, MolToSmiles, MolFromSmiles
+from rdkit.Chem import MolStandardize
 
 from .. import standard
+from .. import util
 
 #############################################################################
 def GetNorms(args):
-  if args.norms=="unm":
+  if args.normset=="UNM":
     norms = standard.MyNorms()
-  elif args.ifile_norms:
-    fin = open(args.ifile_norms)
+  elif args.ifile_normset:
+    fin = open(args.ifile_normset)
     norms = standard.ReadNormsFile(fin)
-  else:
+  else: #DEFAULT
     norms = MolStandardize.normalize.NORMALIZATIONS
   return norms
 
 #############################################################################
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="RDKit chemical standardizer", epilog="")
+  NORMSETS = ["DEFAULT", "UNM"]
   OPS = ["standardize", "list_norms", "show_params", "demo"]
   parser.add_argument("op", choices=OPS, help="OPERATION")
-  parser.add_argument("--i", dest="ifile", help="input file, SMI or SDF")
-  parser.add_argument("--o", dest="ofile", help="output file, SMI or SDF")
-  parser.add_argument("--delim", default=" \t", help="SMILES/TSV delimiter")
+  parser.add_argument("--i", dest="ifile", required=True, help="input file, SMI or SDF")
+  parser.add_argument("--o", dest="ofile", default="-", help="output file, SMI or SDF")
+  parser.add_argument("--delim", default="\t", help="SMILES/TSV delimiter")
   parser.add_argument("--smilesColumn", type=int, default=0, help="")
   parser.add_argument("--nameColumn", type=int, default=1, help="")
   parser.add_argument("--header", action="store_true", help="SMILES/TSV has header line")
-  parser.add_argument("--norms", choices=["default", "unm"], default="default", help="normalizations")
-  parser.add_argument("--i_norms", dest="ifile_norms", help="input normalizations file, format: SMIRKS<space>NAME")
-  parser.add_argument("--remove_isomerism", action="store_true", help="if true, output SMILES isomerism removed")
+  parser.add_argument("--sanitize", action="store_true", help="Sanitize molecules as read.")
+  parser.add_argument("--normset", choices=NORMSETS, default="DEFAULT", help="normalization sets")
+  parser.add_argument("--i_normset", dest="ifile_normset", help="input normalizations file, format: SMIRKS<space>NAME")
+  parser.add_argument("--isomericSmiles", action="store_true", help="If false, output SMILES isomerism removed")
   parser.add_argument("-v", "--verbose", action="count", default=0)
   args = parser.parse_args()
 
@@ -51,12 +53,11 @@ if __name__ == "__main__":
     standard.ListNormalizations(norms, fout)
 
   elif args.op=="standardize":
-    if not (args.ifile and args.ofile): parser.error('--i and --o required.')
-    molReader = util.File2Molreader(ifile, args.delim, args.smilesColumn, args.nameColumn, args.header)
-    molWriter = util.File2Molwriter(args.ofile, args.delim, args.header, isomericSmiles=(not args.remove_isomerism), kekuleSmiles=True)
+    molReader = util.File2Molreader(args.ifile, args.delim, args.smilesColumn, args.nameColumn, args.header, False) #Sanitize separately.
+    molWriter = util.File2Molwriter(args.ofile, args.delim, args.header, isomericSmiles=args.isomericSmiles, kekuleSmiles=True)
     norms = GetNorms(args)
     stdzr = standard.MyStandardizer(norms)
-    standard.Standardize(stdzr, args.remove_isomerism, molReader, molWriter)
+    standard.Standardize(stdzr, args.sanitize, args.isomericSmiles, molReader, molWriter)
 
   elif args.op=="demo":
     standard.Demo()
