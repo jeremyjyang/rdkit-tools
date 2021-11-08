@@ -113,6 +113,10 @@ if __name__=='__main__':
   parser.add_argument("--delim", default=" \t", help="SMILES/TSV field delimiter")
   parser.add_argument("--height", type=int, help='height of image', default=120)
   parser.add_argument("--width", type=int, help='width of image', default=140)
+  parser.add_argument("--nPerRow", type=int, help='images per row (PDF)', default=3)
+  parser.add_argument("--nPerCol", type=int, help='images per col (PDF)', default=5)
+  parser.add_argument("--grid_height", type=int, help='grid height (PDF)', default=560)
+  parser.add_argument("--grid_width", type=int, help='grid width (PDF)', default=440)
   parser.add_argument("--kekulize", action="store_true", help="display Kekule form")
   parser.add_argument("--wedgebonds", action="store_true", help="stereo wedge bonds")
   parser.add_argument("--pdf_title", help="PDF doc title")
@@ -142,9 +146,8 @@ if __name__=='__main__':
 
   elif args.op == 'pdf':
     if not args.ifile: parser.error('Input file required.')
-    imgs = depict.ReadMols2Images(args.ifile, args.ifmt, args.smilesColumn, args.nameColumn, args.delim, args.header, args.width, args.height, args.kekulize, args.wedgebonds) 
     title = args.pdf_title if args.pdf_title else os.path.basename(args.ifile)
-    depict.WriteImages2PDFFile(imgs, args.width, args.height, title, args.ofile)
+    depict.WriteImages2PDFFile(args.ifile, args.ifmt, args.smilesColumn, args.nameColumn, args.delim, args.header, args.kekulize, args.wedgebonds, args.grid_width, args.grid_height, args.nPerRow, args.nPerCol, title, args.ofile)
 
   elif args.op == 'single':
     if not args.ifile: parser.error('Input file required.')

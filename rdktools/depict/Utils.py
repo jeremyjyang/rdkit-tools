@@ -87,14 +87,15 @@ def WriteImages2ImageFiles(imgs, ofmt, batch_dir, batch_prefix):
     WriteImage2ImageFile(img, ofmt, ofile)
 
 #############################################################################
-def WriteImages2PDFFile(imgs, img_width, img_height, title, ofile):
+def WriteImages2PDFFile(ifile, ifmt, smilesColumn, nameColumn, delim, header, kekulize, wedgebonds, grid_width, grid_height, nPerRow, nPerCol, title, ofile):
   '''Converts PIL Image objects to pylatex StandAloneGraphics objects, then
   write LaTeX tex and pdf with grid of depictions.'''
+  img_width = int(grid_width/nPerRow)
+  img_height = int(grid_height/nPerCol)
+  logging.debug(f"grid_width={grid_width}; grid_height={grid_height}; w={img_width}; h={img_height}; nPerRow={nPerRow}; nPerCol={nPerCol}")
+  imgs = ReadMols2Images(ifile, ifmt, smilesColumn, nameColumn, delim, header, img_width, img_height, kekulize, wedgebonds)  
   sagps = [util_latex.Utils.PILImage2SAGPlus(img) for img in imgs]
-  npr = int(440/img_width)
-  npc = int(560/img_height)
-  logging.debug(f"w={img_width} ; h={img_height} ; npr={npr} ; npc={npc}")
-  util.latex.WriteImageGrid(sagps, img_width, img_height, npr, npc, title, ofile)
+  util.latex.WriteImageGrid(sagps, img_width, img_height, nPerRow, nPerCol, title, ofile)
 
 #############################################################################
 def InitializeCanvas():
