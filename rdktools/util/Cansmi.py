@@ -8,29 +8,31 @@ from rdkit import Chem
 from .. import util
 
 #############################################################################
-def CanonicalizeSmiles(isomeric, molReader, molWriter):
-  n_mol=0; n_out=0; n_err=0; n_empty=0;
+def MolName(mol):
+  return mol.GetProp('_Name') if mol is not None and mol.HasProp('_Name') else ''
+
+#############################################################################
+def CanonicalizeSmiles(isoSmi, molReader, molWriter):
+  n_mol=0; n_out=0; n_err=0; n_empty_in=0; n_empty_out=0;
   cansmis = set();
   for mol in molReader:
     n_mol+=1
     if mol is None:
       n_err+=1
       logging.error(f"[N={n_mol}] Failed to read mol.")
-      continue
-    molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-    if mol.GetNumAtoms()==0:
-      logging.info(f"[N={n_mol}] {molname}: Empty molecule -- no atoms.")
-      n_empty+=1
+      mol = Chem.Mol() #empty mol
+    elif mol.GetNumAtoms()==0:
+      logging.info(f"[N={n_mol}] {MolName(mol)}: Empty molecule -- no atoms.")
+      n_empty_in+=1
     else:
-      logging.debug(f"[N={n_mol}] {molname}: {Chem.MolToSmiles(mol, isomericSmiles=isomeric)}")
-      cansmi = Chem.MolToSmiles(mol, isomericSmiles=isomeric)
+      logging.debug(f"[N={n_mol}] {MolName(mol)}: {Chem.MolToSmiles(mol, isomericSmiles=isoSmi)}")
+      cansmi = Chem.MolToSmiles(mol, isomericSmiles=isoSmi)
       cansmis.add(cansmi)
+    if mol.GetNumAtoms()==0: n_empty_out+=1
     molWriter.write(mol)
     n_out+=1
-  logging.info(f"Mols in: {n_mol}; mols out: {n_out}")
-  logging.info(f"Empty mols: {n_empty}; non-empty mols: {n_mol-n_empty}")
-  logging.info(f"Unique canonical {'ISOMERIC ' if isomeric else ''}SMILES: {len(cansmis)}")
-  logging.info(f"Errors: {n_err}")
+  logging.info(f"Mols in: {n_mol}; empty mols in: {n_empty_in}; mols out: {n_out}; empty mols out: {n_empty_out}; errors: {n_err}")
+  logging.info(f"Unique CANONICAL {'ISOMERIC ' if isoSmi else ''}SMILES: {len(cansmis)}")
 
 #############################################################################
 if __name__ == "__main__":

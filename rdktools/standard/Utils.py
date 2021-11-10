@@ -4,6 +4,7 @@ import os,sys,re,time,argparse,logging
 import pandas as pd
 
 import rdkit
+from rdkit import Chem
 from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolStandardize, MolToSmiles, MolFromSmiles
 
 #############################################################################
@@ -19,30 +20,31 @@ def StdMol(stdzr, mol, sanitize, isomeric=True):
 
 #############################################################################
 def Standardize(stdzr, sanitize, isomeric, molReader, molWriter):
-  n_mol=0; n_out=0; n_empty=0; n_err=0;
+  n_mol=0; n_out=0; n_empty_in=0; n_empty_out=0; n_err=0;
   for mol in molReader:
     n_mol+=1
     if mol is None:
       n_err+=1
       logging.error(f"[N={n_mol}] Failed to read mol.")
-      continue
-    molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-    if mol.GetNumAtoms()==0:
+      mol_out = Chem.Mol() #empty mol
+    elif mol.GetNumAtoms()==0:
+      molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
       logging.info(f"[N={n_mol}] {molname}: Empty molecule -- no atoms.")
-      n_empty+=1
-      mol2 = mol
+      n_empty_in+=1
+      mol_out = mol
     else:
+      molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
       logging.debug(f"[N={n_mol}] {molname}: {MolToSmiles(mol, isomericSmiles=isomeric)}")
       try:
-        mol2 = StdMol(stdzr, mol, sanitize, isomeric)
+        mol_out = StdMol(stdzr, mol, sanitize, isomeric)
       except Exception as e:
         logging.error(f"[N={n_mol}]: standardize failed: {e}")
         n_err+=1
-        mol2 = mol
-    molWriter.write(mol2)
+        mol_out = mol
+    if mol_out.GetNumAtoms()==0: n_empty_out+=1
+    molWriter.write(mol_out)
     n_out+=1
-  logging.info(f"Mols in: {n_mol}; mols out: {n_out}; empty mols: {n_empty}")
-  logging.info(f"Errors: {n_err}")
+  logging.info(f"Mols in: {n_mol}; empty mols in: {n_empty_in}; mols out: {n_out}; empty mols out: {n_empty_out}; errors: {n_err}")
 
 #############################################################################
 def MyNorms():
@@ -115,9 +117,9 @@ def Demo():
         'CCC(CC)COC(=O)[C@H](C)N[P@](=O)(OC[C@H]1O[C@](C#N)([C@H](O)[C@@H]1O)C1=CC=C2N1N=CN=C2N)OC1=CC=CC=C1',
         ]
   for smi in smis:
-    mol1 = MolFromSmiles(smi)
-    mol2 = stdzr.standardize(mol1) if mol1 else None
-    smi_std = MolToSmiles(mol2, isomericSmiles=True) if mol2 else None
+    mol = MolFromSmiles(smi)
+    mol_out = stdzr.standardize(mol) if mol else None
+    smi_std = MolToSmiles(mol_out, isomericSmiles=True) if mol_out else None
     logging.info(f"{smi:>28s} >> {smi_std}")
 
 #############################################################################
