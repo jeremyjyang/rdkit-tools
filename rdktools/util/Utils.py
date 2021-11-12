@@ -39,6 +39,10 @@ DEMOSMIS = [
 	]
 
 #############################################################################
+def MolName(mol):
+  return mol.GetProp("_Name") if mol is not None and mol.HasProp("_Name") else ""
+
+#############################################################################
 def moltosvg(mol, molSize=(450,250), kekulize=True):
     mc = rdMolDraw2D.PrepareMolForDrawing(mol)
     drawer = rdMolDraw2D.MolDraw2DSVG(molSize[0], molSize[1])

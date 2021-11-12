@@ -7,13 +7,16 @@ import rdkit
 from rdkit import Chem
 from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolStandardize, MolToSmiles, MolFromSmiles
 
+from .. import util
+
 #############################################################################
 def StdMol(stdzr, mol, sanitize, isomeric=True):
   smi = MolToSmiles(mol, isomericSmiles=isomeric) if mol else None
-  if sanitize:
+  if mol and sanitize:
     flag = Chem.SanitizeMol(mol)
     logging.debug(f"Sanitize_flag: {flag}")
   mol_std = stdzr.standardize(mol) if mol else None
+  if mol_std: mol_std.SetProp("_Name", util.MolName(mol)) #Sometimes name is lost?
   smi_std = MolToSmiles(mol_std, isomericSmiles=isomeric) if mol_std else None
   logging.debug(f"{smi:>28s} >> {smi_std}")
   return mol_std
@@ -28,13 +31,11 @@ def Standardize(stdzr, sanitize, isomeric, molReader, molWriter):
       logging.error(f"[N={n_mol}] Failed to read mol.")
       mol_out = Chem.Mol() #empty mol
     elif mol.GetNumAtoms()==0:
-      molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-      logging.info(f"[N={n_mol}] {molname}: Empty molecule -- no atoms.")
+      logging.info(f"[N={n_mol}] {util.MolName(mol)}: Empty molecule -- no atoms.")
       n_empty_in+=1
       mol_out = mol
     else:
-      molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-      logging.debug(f"[N={n_mol}] {molname}: {MolToSmiles(mol, isomericSmiles=isomeric)}")
+      logging.debug(f"[N={n_mol}] {util.MolName(mol)}: {MolToSmiles(mol, isomericSmiles=isomeric)}")
       try:
         mol_out = StdMol(stdzr, mol, sanitize, isomeric)
       except Exception as e:

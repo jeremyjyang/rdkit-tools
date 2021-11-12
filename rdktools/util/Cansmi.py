@@ -8,10 +8,6 @@ from rdkit import Chem
 from .. import util
 
 #############################################################################
-def MolName(mol):
-  return mol.GetProp('_Name') if mol is not None and mol.HasProp('_Name') else ''
-
-#############################################################################
 def CanonicalizeSmiles(isoSmi, molReader, molWriter):
   n_mol=0; n_out=0; n_err=0; n_empty_in=0; n_empty_out=0;
   cansmis = set();
@@ -22,10 +18,10 @@ def CanonicalizeSmiles(isoSmi, molReader, molWriter):
       logging.error(f"[N={n_mol}] Failed to read mol.")
       mol = Chem.Mol() #empty mol
     elif mol.GetNumAtoms()==0:
-      logging.info(f"[N={n_mol}] {MolName(mol)}: Empty molecule -- no atoms.")
+      logging.info(f"[N={n_mol}] {util.MolName(mol)}: Empty molecule -- no atoms.")
       n_empty_in+=1
     else:
-      logging.debug(f"[N={n_mol}] {MolName(mol)}: {Chem.MolToSmiles(mol, isomericSmiles=isoSmi)}")
+      logging.debug(f"[N={n_mol}] {util.MolName(mol)}: {Chem.MolToSmiles(mol, isomericSmiles=isoSmi)}")
       cansmi = Chem.MolToSmiles(mol, isomericSmiles=isoSmi)
       cansmis.add(cansmi)
     if mol.GetNumAtoms()==0: n_empty_out+=1
