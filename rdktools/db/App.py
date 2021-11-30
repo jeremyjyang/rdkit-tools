@@ -3,6 +3,7 @@
 DrugCentral PostgreSql db client.
 """
 import os,sys,argparse,re,time,logging
+import pandas as pd
 
 from .. import db
 from .. import util
@@ -17,6 +18,7 @@ if __name__=='__main__':
 	"list_tables_rowCounts",
 	"list_columns",
 	"test_rdkit",
+	"show_params",
 	"molSubstructureSearch",
 	"molSimilaritySearch",
 	]
@@ -45,6 +47,10 @@ if __name__=='__main__':
   if args.dbname: params['DBNAME'] = args.dbname 
   if args.dbusr: params['DBUSR'] = args.dbusr 
   if args.dbpw: params['DBPW'] = args.dbpw 
+
+  if args.op=='show_params':
+    pd.DataFrame({key:[params[key]] for key in params.keys()}).transpose().to_csv(sys.stdout, "\t", index=True, header=False)
+    sys.exit()
 
   fout = open(args.ofile, "w+") if args.ofile else sys.stdout
 
