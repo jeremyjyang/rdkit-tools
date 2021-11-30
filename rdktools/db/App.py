@@ -61,11 +61,8 @@ if __name__=='__main__':
 
   t0 = time.time()
 
-  try:
-    dbcon = util_db.Connect(params['DBHOST'], params['DBPORT'], params['DBNAME'], params['DBUSR'], params['DBPW'])
-  except Exception as e:
-    logging.error("Connect failed.")
-    parser.error(f"{e}")
+  dbcon = util_db.Connect(params['DBHOST'], params['DBPORT'], params['DBNAME'], params['DBUSR'], params['DBPW'])
+  if dbcon is None: sys.exit()
 
   if args.op=='list_tables':
     util_db.ListTables(dbcon, args.dbschema, fout)

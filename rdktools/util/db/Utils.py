@@ -15,8 +15,13 @@ DBSCHEMA="public"
 def Connect(dbhost, dbport, dbname, dbusr, dbpw):
   """Connect to db; specify default cursor type DictCursor."""
   dsn = (f"host='{dbhost}' port='{dbport}' dbname='{dbname}' user='{dbusr}' password='{dbpw}'")
-  dbcon = psycopg2.connect(dsn)
-  dbcon.cursor_factory = psycopg2.extras.DictCursor
+  try:
+    dbcon = psycopg2.connect(dsn)
+    logging.info(f"DB connect ok; {dbname}:{dbhost}:{dbport}:{dbusr}")
+    dbcon.cursor_factory = psycopg2.extras.DictCursor
+  except Exception as e:
+    dbcon = None
+    logging.info(f"DB connect failed; {dbname}:{dbhost}:{dbport}:{dbusr}; {e}")
   return dbcon
 
 #############################################################################
@@ -32,9 +37,8 @@ def ListTables(dbcon, dbschema=DBSCHEMA, fout=None):
 def ListTablesRowCounts(dbcon, dbschema=DBSCHEMA, fout=None):
   '''Listing the table rowcounts.'''
   df=None;
-  sql1 = (f"SELECT table_name FROM information_schema.tables WHERE table_schema = '{dbschema}'")
-  df1 = pd.read_sql(sql1, dbcon)
-  for tname in df1.table_name:
+  tables = ListTables(dbcon, dbschema).table_name
+  for tname in tables:
     sql2 = (f"SELECT COUNT(*) AS rowcount FROM {dbschema}.{tname}")
     df_this = pd.read_sql(sql2, dbcon)
     df_this["schema"] = dbschema
@@ -46,8 +50,9 @@ def ListTablesRowCounts(dbcon, dbschema=DBSCHEMA, fout=None):
   return df
 
 #############################################################################
-def ListColumns(tables, dbcon, dbschema=DBSCHEMA, fout=None):
+def ListColumns(dbcon, dbschema=DBSCHEMA, fout=None):
   df=None;
+  tables = ListTables(dbcon, dbschema).table_name
   for tname in tables:
     sql = (f"SELECT column_name,data_type FROM information_schema.columns WHERE table_schema = '{dbschema}' AND table_name = '{tname}'")
     df_this = pd.read_sql(sql, dbcon)

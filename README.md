@@ -14,7 +14,7 @@ RDKit:
 
 ## Dependencies
 
-* RDKit Python package (possibly via conda).
+* RDKit Python package (via conda recommended).
 
 ```
 $ conda create -n rdkit -c conda-forge rdkit ipykernel
@@ -22,6 +22,8 @@ $ conda activate rdkit
 (rdkit) $ conda install -c conda-forge pyvis 
 (rdkit) $ conda install -c conda-forge networkx=2.5 
 ```
+
+See also: [conda/environment.yml](conda/environment.yml)
 
 ## Contents
 
