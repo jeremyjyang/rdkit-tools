@@ -56,14 +56,16 @@ def DemoMACCSKeys():
   Mols2FPs_MACCSKeys(mols, molWriter)
 
 #############################################################################
-def ListMACCSkeys():
+def ListMACCSkeys(fout):
   data=[];
   for i,val in rdkit.Chem.MACCSkeys.smartsPatts.items():
     smarts,n = val
     logging.debug(f"{i}\t{n}\t{smarts}")
     data.append([i, n, smarts])
   df = pd.DataFrame(data, columns=['I', 'N', 'SMARTS'])
-  df.to_csv(sys.stdout, "\t", index=False)
+  if fout is not None: df.to_csv(fout, "\t", index=False)
+  logging.info(f"n_out: {df.shape[0]}")
+  return df
 
 #############################################################################
 def Mols2FPs_RDK(mols, molWriter=None):

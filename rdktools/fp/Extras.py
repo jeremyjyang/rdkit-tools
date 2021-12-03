@@ -16,15 +16,18 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="RDKit fp utils")
   OPS=[ "demopath", "demomorgan", "demomaccs", "list_maccskeys" ]
   parser.add_argument("op", choices=OPS, help="OPERATION")
+  parser.add_argument( "--o",  dest="ofile")
   parser.add_argument("-v", "--verbose", action="count", default=0)
   args = parser.parse_args()
 
   logging.basicConfig(format='%(levelname)s:%(message)s', level=(logging.DEBUG if args.verbose>1 else logging.INFO))
 
+  fout = open(args.ofile, "w+") if args.ofile else sys.stdout
+
   logging.info(f"RDKit version: {rdkit.rdBase.rdkitVersion}")
 
   if args.op == "list_maccskeys":
-    rdktools_fp.ListMACCSkeys()
+    rdktools_fp.ListMACCSkeys(fout)
 
   elif args.op == "demomaccs":
     rdktools_fp.DemoMACCSKeys()

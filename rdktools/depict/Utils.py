@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 #############################################################################
 import sys,os,platform,re,logging
+import pandas as pd
 import PIL
 from PIL import Image
 
@@ -35,7 +36,10 @@ def SelectFormat(ifmt, ifile):
   return ifmt
 
 #############################################################################
-def ReadMols(ifile, ifmt, smiCol, namCol, delim, header):
+def ReadMols(ifile, ifmt, smiCol, namCol, delim, header, parse_as_smarts):
+  #logging.debug(f'ReadMols parse_as_smarts={parse_as_smarts}')
+  if parse_as_smarts:
+    return ReadMolsFromSmarts(ifile, smiCol, namCol, delim, header)
   molSupplier = SelectMolsupplier(ifile, ifmt, smiCol, namCol, delim, header)
   mols=[]; i_mol=0;
   for mol in molSupplier:
@@ -44,6 +48,29 @@ def ReadMols(ifile, ifmt, smiCol, namCol, delim, header):
     logging.debug(f'{i_mol}. "{molname}"')
     mols.append(mol)
   logging.debug(f'mols read: {i_mol}')
+  return mols
+
+#############################################################################
+def ReadMolsFromSmarts(ifile, smiCol, namCol, delim, header):
+  mols=[]; i_mol=0;
+  with pd.read_csv(ifile, sep=delim, header=(0 if header else None), iterator=True, chunksize=10, engine="python") as reader:
+    for df_this in reader:
+      for i in range(df_this.shape[0]):
+        i_mol+=1
+        smarts = df_this.iloc[i,smiCol]
+        molname = df_this.iloc[i,namCol]
+        try:
+          mol = rdkit.Chem.rdmolfiles.MolFromSmarts(smarts)
+        except Exception as e:
+          logging.error(f'{i_mol}. "{molname}"; {e}')
+          mol = rdkit.Chem.Mol() #empty mol
+        if mol is None: mol = rdkit.Chem.Mol() #empty mol
+        logging.debug(f"type(mol): {type(mol)}")
+        logging.debug(f"type(molname): {type(molname)}")
+        mol.SetProp('_Name', str(molname) if bool(molname) else f"mol_{i_mol}")
+        logging.debug(f'{i_mol}. "{molname}"')
+        mols.append(mol)
+  logging.debug(f'mols read (from SMARTS): {i_mol}')
   return mols
 
 #############################################################################
@@ -67,8 +94,8 @@ def Mols2Images(mols, width, height, kekulize, wedgeBonds):
   return imgs
 
 #############################################################################
-def ReadMols2Images(ifile, ifmt, smiCol, namCol, delim, header, width, height, kekulize, wedgebonds):
-  mols = ReadMols(ifile, ifmt, smiCol, namCol, delim, header)
+def ReadMols2Images(ifile, ifmt, smiCol, namCol, delim, header, kekulize, wedgebonds, parse_as_smarts, width, height):
+  mols = ReadMols(ifile, ifmt, smiCol, namCol, delim, header, parse_as_smarts)
   return Mols2Images(mols,  width, height, kekulize, wedgebonds)
 
 #############################################################################
@@ -87,13 +114,13 @@ def WriteImages2ImageFiles(imgs, ofmt, batch_dir, batch_prefix):
     WriteImage2ImageFile(img, ofmt, ofile)
 
 #############################################################################
-def WriteImages2PDFFile(ifile, ifmt, smilesColumn, nameColumn, delim, header, kekulize, wedgebonds, grid_width, grid_height, nPerRow, nPerCol, title, ofile):
+def WriteImages2PDFFile(ifile, ifmt, smilesColumn, nameColumn, delim, header, kekulize, wedgebonds, parse_as_smarts, grid_width, grid_height, nPerRow, nPerCol, title, ofile):
   '''Converts PIL Image objects to pylatex StandAloneGraphics objects, then
   write LaTeX tex and pdf with grid of depictions.'''
   img_width = int(grid_width/nPerRow)
   img_height = int(grid_height/nPerCol)
   logging.debug(f"grid_width={grid_width}; grid_height={grid_height}; w={img_width}; h={img_height}; nPerRow={nPerRow}; nPerCol={nPerCol}")
-  imgs = ReadMols2Images(ifile, ifmt, smilesColumn, nameColumn, delim, header, img_width, img_height, kekulize, wedgebonds)  
+  imgs = ReadMols2Images(ifile, ifmt, smilesColumn, nameColumn, delim, header, kekulize, wedgebonds, parse_as_smarts, img_width, img_height) 
   sagps = [util_latex.Utils.PILImage2SAGPlus(img) for img in imgs]
   util.latex.WriteImageGrid(sagps, img_width, img_height, nPerRow, nPerCol, title, ofile)
 
