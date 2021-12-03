@@ -121,6 +121,8 @@ if __name__=='__main__':
   parser.add_argument("--wedgebonds", action="store_true", help="stereo wedge bonds")
   parser.add_argument("--parse_as_smarts", action="store_true", help="SMILES format: parse as SMARTS")
   parser.add_argument("--pdf_title", help="PDF doc title")
+  parser.add_argument("--pdf_doctype", choices=depict.PDF_DOCTYPES, default="usletter", help="usletter, legalpaper, a4paper, etc.")
+  parser.add_argument("--pdf_landscape", action="store_true")
   parser.add_argument("--batch_dir", help="destination for batch files", default='/tmp')
   parser.add_argument("--batch_prefix", help="prefix for batch files", default="RDKDEPICT")
   parser.add_argument("--o", dest="ofile", help="output file")
@@ -151,7 +153,10 @@ if __name__=='__main__':
     depict.WriteImages2PDFFile(args.ifile, args.ifmt, args.smilesColumn, args.nameColumn, args.delim, args.header,
 	args.kekulize, args.wedgebonds,
 	args.parse_as_smarts, 
-	args.grid_width, args.grid_height, args.nPerRow, args.nPerCol, title, args.ofile)
+	args.grid_width, args.grid_height, args.nPerRow, args.nPerCol,
+	args.pdf_doctype,
+	args.pdf_landscape,
+	title, args.ofile)
 
   elif args.op == 'single':
     if not args.ifile: parser.error('Input file required.')
