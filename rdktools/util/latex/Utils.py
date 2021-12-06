@@ -29,24 +29,22 @@ def PILImage2SAGPlus(img):
 def WriteImageGrid(imgs, img_width, img_height, npr, npc, doctype, landscape, title, ofile):
   title = title if title else 'Depictions'
   geo_opts = {
-	"includeheadfoot":False,
-	"headheight":"10pt",
-	"headsep":"8pt",
 	"landscape":landscape,
-	"tmargin": "2cm", 
-	"lmargin": "2cm", 
-	"rmargin":"2cm"}
+	"includeheadfoot":False,
+	"headheight":"10pt", "headsep":"8pt",
+	"tmargin": "2cm", "lmargin": "2cm", "rmargin":"2cm"}
   doc_opts = [doctype, "12pt"]
   doc = pylatex.Document(geometry_options=geo_opts, document_options=doc_opts,
-	documentclass="article",
-	inputenc="utf8",
-	indent=False, page_numbers=False)
+	#documentclass="article",
+	documentclass="report",
+	#maketitle=False,
+	inputenc="utf8", indent=False, page_numbers=True)
   header = pylatex.PageStyle("header")
-  with header.create(pylatex.Head("R")) as head:
-    head.append('N = %d'%len(imgs))
+  with header.create(pylatex.Head("R")) as head: #R means right
+    head.append(f"N = {len(imgs)}")
   with header.create(pylatex.Foot("C")) as foot:
-    foot.append('%s'%time.strftime('%Y-%m-%d ',time.localtime()))
-    foot.append(pylatex.utils.italic('Powered by PyLaTeX (%s).'%os.path.basename(__name__)))
+    foot.append(time.strftime('%Y-%m-%d ', time.localtime())) #C means center
+    foot.append(pylatex.utils.italic(f"Powered by PyLaTeX ({os.path.basename(__name__)})."))
   doc.preamble.append(header)
   doc.change_document_style("header")
 
@@ -62,7 +60,7 @@ def WriteImageGrid(imgs, img_width, img_height, npr, npc, doctype, landscape, ti
           page_row+=1
           imgs_this = imgs[i_img:i_img+npr]
           imgnames_this = [img.name for img in imgs_this]
-          logging.debug('DEBUG: page %d ; row %d (%s)...'%(i_page,page_row,','.join(imgnames_this)))
+          logging.debug(f"PAGE {i_page}; ROW {page_row}; {','.join(imgnames_this)}")
           table.add_row(imgs_this+['' for j in range(npr-len(imgs_this))])
           #table.add_hline()
           table.add_row(imgnames_this+['' for j in range(npr-len(imgs_this))])
@@ -71,9 +69,9 @@ def WriteImageGrid(imgs, img_width, img_height, npr, npc, doctype, landscape, ti
           if (page_row%npc)==0:
             break #page-break
 
-  ofile=re.sub('\.pdf$','', ofile, re.I)
+  ofile = re.sub('\.pdf$','', ofile, re.I)
   for ext in ('tex', 'pdf'):
-    logging.debug('Output file: %s.%s'%(ofile,ext))
+    logging.debug(f"Output file: {ofile}.{ext}")
 
   #Create .tex and .pdf files (adds extensions).
   doc.generate_pdf(ofile, clean_tex=False, silent=True)

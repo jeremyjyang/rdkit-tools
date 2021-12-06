@@ -78,8 +78,7 @@ $$$$
     hitatoms.extend(match)
     hitatoms.sort()  ##repeats ok?
 
-  width = 400
-  height = 300
+  width,height = 400,300
 
   img = rdkit.Chem.Draw.MolToImage(mol, size=(width, height), kekulize=True, highlightAtoms=hitatoms, wedgeBonds=True)
   img.show()
@@ -107,21 +106,21 @@ if __name__=='__main__':
   parser.add_argument("--i", dest="ifile", help="input molecule file")
   parser.add_argument("--ifmt", choices=ifmts, help='input file format', default='AUTO')
   parser.add_argument("--ofmt", choices=ofmts, help='output file format', default='PNG')
-  parser.add_argument("--smilesColumn", type=int, default=0,  help='')
-  parser.add_argument("--nameColumn", type=int, default=1,  help='')
+  parser.add_argument("--smilesColumn", type=int, default=0)
+  parser.add_argument("--nameColumn", type=int, default=1)
   parser.add_argument("--header", action="store_true", help="SMILES/TSV file has header")
   parser.add_argument("--delim", default="\t", help="SMILES/TSV field delimiter")
   parser.add_argument("--height", type=int, help='height of image', default=120)
   parser.add_argument("--width", type=int, help='width of image', default=140)
-  parser.add_argument("--nPerRow", type=int, help='images per row (PDF)', default=3)
-  parser.add_argument("--nPerCol", type=int, help='images per col (PDF)', default=5)
-  parser.add_argument("--grid_height", type=int, help='grid height (PDF)', default=560)
-  parser.add_argument("--grid_width", type=int, help='grid width (PDF)', default=440)
   parser.add_argument("--kekulize", action="store_true", help="display Kekule form")
   parser.add_argument("--wedgebonds", action="store_true", help="stereo wedge bonds")
   parser.add_argument("--parse_as_smarts", action="store_true", help="SMILES format: parse as SMARTS")
+  parser.add_argument("--nPerRow", type=int, help='PDF images per row', default=3)
+  parser.add_argument("--nPerCol", type=int, help='PDF images per col', default=5)
+  parser.add_argument("--grid_height", type=int, help='PDF grid height; default automatic')
+  parser.add_argument("--grid_width", type=int, help='PDF grid width; default automatic')
   parser.add_argument("--pdf_title", help="PDF doc title")
-  parser.add_argument("--pdf_doctype", choices=depict.PDF_DOCTYPES, default="usletter", help="usletter, legalpaper, a4paper, etc.")
+  parser.add_argument("--pdf_doctype", choices=depict.PDF_DOCTYPES.keys(), default="usletter", help=(",".join(depict.PDF_DOCTYPES.keys())))
   parser.add_argument("--pdf_landscape", action="store_true")
   parser.add_argument("--batch_dir", help="destination for batch files", default='/tmp')
   parser.add_argument("--batch_prefix", help="prefix for batch files", default="RDKDEPICT")
@@ -141,10 +140,8 @@ if __name__=='__main__':
     imgs = depict.ReadMols2Images(args.ifile, args.ifmt, args.smilesColumn, args.nameColumn, args.delim, args.header, args.width, args.height, args.kekulize, args.wedgebonds) 
     if not args.batch_dir:
       parser.error('--batch_dir required for --batch_mode.')
-      parser.print_help()
     if not os.access(args.batch_dir, os.W_OK):
       parser.error(f"batch_dir {args.batch_dir} non-existent or non-writeable.")
-      parser.print_help()
     depict.WriteImages2ImageFiles(imgs, args.ofmt, args.batch_dir, args.batch_prefix)
 
   elif args.op == 'pdf':
@@ -173,5 +170,5 @@ if __name__=='__main__':
     Demo2()
 
   else:
-    parser.print_help()
+    parser.error(f"Operation not supported: {args.op}")
 

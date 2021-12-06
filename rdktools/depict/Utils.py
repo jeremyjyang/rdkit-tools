@@ -12,7 +12,17 @@ import rdkit.Chem.AllChem
 
 from ..util import latex as util_latex
 
-PDF_DOCTYPES = ["usletter", "letterpaper", "legalpaper", "a4paper", "a5paper", "b5paper"]
+PDF_DOCTYPES = {
+	"usletter":{"width":215.9, "height":279.4}, # 8.5 x 11 in, 215.9 by 279.4 mm
+	"letterpaper":{"width":215.9, "height":279.4}, # 8.5 x 11 in, 215.9 x 279.4 mm
+	"legalpaper":{"width":216, "height":356}, # 8.5 x 14.0 in, 216 x 356 mm
+	"ledgerpaper":{"width":279, "height":432}, # 11.0 x 17.0 in, 279 x 432 mm
+	"tabloidpaper":{"width":279, "height":432}, # 11.0 x 17.0 in, 279 x 432 mm
+	"a2paper":{"width":420, "height":594}, #16-1/2 x 23-3/8 in, 420 x 594 mm
+	"a3paper":{"width":297, "height":420}, #11-3/4 x 16-1/2 in, 297 x 420 mm
+	"a4paper":{"width":210, "height":297}, #8-1/4 x 11-3/4 in, 210 x 297 mm
+	"a5paper":{"width":148, "height":210} #5-7/8 x 8-1/4 in, 148 x 210 mm
+	}
 
 #############################################################################
 def SelectMolsupplier(ifile, ifmt, smiCol, namCol, delim, header):
@@ -115,9 +125,14 @@ def WriteImages2ImageFiles(imgs, ofmt, batch_dir, batch_prefix):
     WriteImage2ImageFile(img, ofmt, ofile)
 
 #############################################################################
+# PIL default: 72 ppi
+# 25.4 mm per in
 def WriteImages2PDFFile(ifile, ifmt, smilesColumn, nameColumn, delim, header, kekulize, wedgebonds, parse_as_smarts, grid_width, grid_height, nPerRow, nPerCol, doctype, landscape, title, ofile):
   '''Converts PIL Image objects to pylatex StandAloneGraphics objects, then
   write LaTeX tex and pdf with grid of depictions.'''
+  if grid_width is None: grid_width = (PDF_DOCTYPES[doctype]["width"] - 3*25.4)*(72/25.4)
+  if grid_height is None: grid_height = (PDF_DOCTYPES[doctype]["height"] - 3*25.4)*(72/25.4)
+  if landscape: grid_width,grid_height = grid_height,grid_width
   img_width = int(grid_width/nPerRow)
   img_height = int(grid_height/nPerCol)
   logging.debug(f"grid_width={grid_width}; grid_height={grid_height}; w={img_width}; h={img_height}; nPerRow={nPerRow}; nPerCol={nPerCol}")
