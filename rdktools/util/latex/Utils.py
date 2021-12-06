@@ -20,23 +20,27 @@ def PILImage2SAGPlus(img):
   return sagp
 
 #############################################################################
-def WriteImageGrid(imgs, img_width, img_height, npr, npc, title, ofile):
+# usletter|letterpaper - 215.9 mm x 279.4 mm
+# legalpaper - 215.9 mm x 355.6 mm
+# a4paper - 210 mm x 297 mm 
+# a5paper - 148 mm x 210 mm
+# b5paper - 250 mm x 176 mm
+###
+def WriteImageGrid(imgs, img_width, img_height, npr, npc, doctype, landscape, title, ofile):
   title = title if title else 'Depictions'
-
   geo_opts = {
 	"includeheadfoot":False,
 	"headheight":"10pt",
 	"headsep":"8pt",
-	"landscape":False,
+	"landscape":landscape,
 	"tmargin": "2cm", 
 	"lmargin": "2cm", 
 	"rmargin":"2cm"}
-  doc_opts = ["usletter", "12pt"]
+  doc_opts = [doctype, "12pt"]
   doc = pylatex.Document(geometry_options=geo_opts, document_options=doc_opts,
 	documentclass="article",
 	inputenc="utf8",
 	indent=False, page_numbers=False)
-
   header = pylatex.PageStyle("header")
   with header.create(pylatex.Head("R")) as head:
     head.append('N = %d'%len(imgs))

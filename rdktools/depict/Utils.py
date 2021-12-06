@@ -10,8 +10,9 @@ import rdkit.Chem.Draw
 import rdkit.rdBase
 import rdkit.Chem.AllChem
 
-from .. import util
 from ..util import latex as util_latex
+
+PDF_DOCTYPES = ["usletter", "letterpaper", "legalpaper", "a4paper", "a5paper", "b5paper"]
 
 #############################################################################
 def SelectMolsupplier(ifile, ifmt, smiCol, namCol, delim, header):
@@ -114,7 +115,7 @@ def WriteImages2ImageFiles(imgs, ofmt, batch_dir, batch_prefix):
     WriteImage2ImageFile(img, ofmt, ofile)
 
 #############################################################################
-def WriteImages2PDFFile(ifile, ifmt, smilesColumn, nameColumn, delim, header, kekulize, wedgebonds, parse_as_smarts, grid_width, grid_height, nPerRow, nPerCol, title, ofile):
+def WriteImages2PDFFile(ifile, ifmt, smilesColumn, nameColumn, delim, header, kekulize, wedgebonds, parse_as_smarts, grid_width, grid_height, nPerRow, nPerCol, doctype, landscape, title, ofile):
   '''Converts PIL Image objects to pylatex StandAloneGraphics objects, then
   write LaTeX tex and pdf with grid of depictions.'''
   img_width = int(grid_width/nPerRow)
@@ -122,7 +123,11 @@ def WriteImages2PDFFile(ifile, ifmt, smilesColumn, nameColumn, delim, header, ke
   logging.debug(f"grid_width={grid_width}; grid_height={grid_height}; w={img_width}; h={img_height}; nPerRow={nPerRow}; nPerCol={nPerCol}")
   imgs = ReadMols2Images(ifile, ifmt, smilesColumn, nameColumn, delim, header, kekulize, wedgebonds, parse_as_smarts, img_width, img_height) 
   sagps = [util_latex.Utils.PILImage2SAGPlus(img) for img in imgs]
-  util.latex.WriteImageGrid(sagps, img_width, img_height, nPerRow, nPerCol, title, ofile)
+  util_latex.WriteImageGrid(sagps, 
+	img_width, img_height, 
+	nPerRow, nPerCol, 
+	doctype, landscape,
+	title, ofile)
 
 #############################################################################
 def InitializeCanvas():
