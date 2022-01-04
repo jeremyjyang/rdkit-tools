@@ -1,11 +1,14 @@
 # `RDKIT-TOOLS`
 
-Tools for use with RDKit.
+Tools for use with RDKit. Motivated and intended for use with
+[CFDE](https://nih-cfde.org/) and CFChemDb, developed by the IDG-CFDE team.
 
 See also:
 
 * [GitHub repository `rdkit-tools`](https://github.com/jeremyjyang/rdkit-tools)
 * [Pypi package `rdktools`](https://pypi.org/project/rdktools/)
+* [CFDE: Common Fund Data Ecosystem](https://nih-cfde.org/)
+* [CFChemDb](https://github.com/druggablegenome/idg-cfde)
 
 RDKit:
 
