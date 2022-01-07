@@ -124,6 +124,7 @@ if __name__=='__main__':
   parser.add_argument("--pdf_landscape", action="store_true")
   parser.add_argument("--batch_dir", help="destination for batch files", default='/tmp')
   parser.add_argument("--batch_prefix", help="prefix for batch files", default="RDKDEPICT")
+  parser.add_argument("--smiles", help="Single molecule input SMILES.")
   parser.add_argument("--o", dest="ofile", help="output file")
   parser.add_argument("-v", "--verbose", action="count", default=0)
   args = parser.parse_args()
@@ -147,21 +148,20 @@ if __name__=='__main__':
   elif args.op == 'pdf':
     if not args.ifile: parser.error('Input file required.')
     title = args.pdf_title if args.pdf_title else os.path.basename(args.ifile)
-    depict.WriteImages2PDFFile(args.ifile, args.ifmt, args.smilesColumn, args.nameColumn, args.delim, args.header,
-	args.kekulize, args.wedgebonds,
-	args.parse_as_smarts, 
-	args.grid_width, args.grid_height, args.nPerRow, args.nPerCol,
-	args.pdf_doctype,
-	args.pdf_landscape,
-	title, args.ofile)
+    depict.WriteImages2PDFFile(args.ifile, args.ifmt, args.smilesColumn, args.nameColumn, args.delim, args.header, args.kekulize, args.wedgebonds, args.parse_as_smarts, args.grid_width, args.grid_height, args.nPerRow, args.nPerCol, args.pdf_doctype, args.pdf_landscape, title, args.ofile)
 
   elif args.op == 'single':
-    if not args.ifile: parser.error('Input file required.')
-    imgs = depict.ReadMols2Images(args.ifile, args.ifmt, args.smilesColumn, args.nameColumn, args.delim, args.header,
-	args.kekulize, args.wedgebonds, 
-	args.parse_as_smarts, 
-	args.width, args.height)
-    depict.WriteImage2ImageFile(imgs[0], args.ofmt, args.ofile)
+    if args.smiles:
+      with tempfile.NamedTemporaryFile("w+b", suffix=".smi", delete=False) as ftmp:
+        ftmp.write(bytes(f"{args.smiles}\tINPUT_SMILES\n", encoding="utf-8"))
+        ftmp.flush()
+        imgs = depict.ReadMols2Images(ftmp.name, "SMI", 0, 1, "\t", False, args.kekulize, args.wedgebonds, args.parse_as_smarts, args.width, args.height)
+        depict.WriteImage2ImageFile(imgs[0], args.ofmt, args.ofile)
+    elif args.ifile:
+      imgs = depict.ReadMols2Images(args.ifile, args.ifmt, args.smilesColumn, args.nameColumn, args.delim, args.header, args.kekulize, args.wedgebonds, args.parse_as_smarts, args.width, args.height)
+      depict.WriteImage2ImageFile(imgs[0], args.ofmt, args.ofile)
+    else:
+      parser.error(f"--i or --smiles required for operation: {args.op}")
 
   elif args.op == 'demo':
     Demo()

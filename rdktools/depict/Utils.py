@@ -97,10 +97,13 @@ def Mols2Images(mols, width, height, kekulize, wedgeBonds):
       imgs.append(img_blank)
       continue
     rdkit.Chem.AllChem.Compute2DCoords(mol, clearConfs=True)
+
     #Fails with RDKit 2017.03.1
-    #img = rdkit.Chem.Draw.MolToImage(mol, size=(width, height), kekulize=kekulize, wedgeBonds=wedgeBonds, fitImage=True)
-    img = Mol2Image(mol, width, height, kekulize, wedgeBonds, None)
-    img.info['name']=mol.GetProp('_Name')
+    img = rdkit.Chem.Draw.MolToImage(mol, size=(width, height), kekulize=kekulize, wedgeBonds=wedgeBonds, fitImage=True)
+
+    #img = Mol2Image(mol, width, height, kekulize, wedgeBonds, None)
+
+    img.info['name'] = mol.GetProp('_Name')
     imgs.append(img)
   return imgs
 
@@ -172,42 +175,32 @@ def InitializeCanvas():
   return Canvas
 
 #############################################################################
-def Mol2Image(mol, width=300, height=300, kekulize=True, wedgeBonds=True, highlightAtoms=None):
-  """	We need this custom function because the RDKit function
-	rdkit.Chem.Draw.MolToImage() does not allow atom highlighting.
-	Aha!  Now (2014) this is possible.
-  """
-  global Canvas
-  try:
-    x = Canvas #Check that Canvas defined.
-  except:
-    Canvas = InitializeCanvas()
-
-  if not mol:
-    raise ValueError('NULL molecule.') #python3
-
-  img = Image.new("RGBA", (width, height), "white")
-  canvas = Canvas(img)
-  if RDKIT_useAGG:
-    canvas.setantialias(True)
-  drawing = rdkit.Chem.Draw.MolDrawing(canvas)
-
-  if kekulize:
-    mol = rdkit.Chem.Mol(mol.ToBinary())
-    rdkit.Chem.Kekulize(mol)
-
-  drawing.wedgeDashedBonds=wedgeBonds
-
-  #Scaling needed or larger image just has more border.
-  #...but fails with error.
-  #drawing.scaleAndCenter(mol,mol.GetConformer(0),coordCenter=True)
-
-  if highlightAtoms:
-    drawing.AddMol(mol, highlightAtoms=highlightAtoms)
-  else:
-    drawing.AddMol(mol)
-  canvas.flush()
-
-  return img
-
+#def Mol2Image(mol, width=300, height=300, kekulize=True, wedgeBonds=True, highlightAtoms=None):
+#  We needed this custom function because the RDKit function
+#  rdkit.Chem.Draw.MolToImage() did not allow atom highlighting.
+#  Now (2014+) this is possible.
+#
+#  global Canvas
+#  try:
+#    x = Canvas #Check that Canvas defined.
+#  except:
+#    Canvas = InitializeCanvas()
+#  if not mol:
+#    raise ValueError('NULL molecule.') #python3
+#  img = Image.new("RGBA", (width, height), "white")
+#  canvas = Canvas(img)
+#  if RDKIT_useAGG:
+#    canvas.setantialias(True)
+#  drawing = rdkit.Chem.Draw.MolDrawing(canvas)
+#  if kekulize:
+#    mol = rdkit.Chem.Mol(mol.ToBinary())
+#    rdkit.Chem.Kekulize(mol)
+#  drawing.wedgeDashedBonds=wedgeBonds
+#  if highlightAtoms:
+#    drawing.AddMol(mol, highlightAtoms=highlightAtoms)
+#  else:
+#    drawing.AddMol(mol)
+#  canvas.flush()
+#  return img
+#
 #############################################################################
