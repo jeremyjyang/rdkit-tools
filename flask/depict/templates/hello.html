@@ -1,0 +1,12 @@
+<!doctype html>
+<head>
+  <link rel="stylesheet" href="{{url_for('static', filename='biocomp.css')}}">
+</head>
+<title>Hello from Flask</title>
+{% if name %}
+  <h1>Hello {{ name }}!</h1>
+{% else %}
+  <h1>Hello, World!</h1>
+{% endif %}
+<hr>
+<img height="80" src="{{url_for('static', filename='unm_logo.png')}}" align="middle" />

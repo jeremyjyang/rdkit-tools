@@ -1,0 +1,56 @@
+html,button,td,th,p,select {
+  font-family: Helvetica,sans-serif;
+  font-size:12px;
+  color:#000066;
+}
+input,textarea {
+  font-family:monospace;
+  font-size:12px;
+  color:#000066;
+}
+h1 {
+  font-family: Helvetica,sans-serif;
+  font-size:24px;
+  color:#000066;
+  margin-bottom:0;
+}
+h2 {
+  font-family: Helvetica,sans-serif;
+  font-size:20px;
+  color:#000066;
+  margin-bottom:0;
+}
+h3 {
+  font-family: Helvetica,sans-serif;
+  font-size:16px;
+  color:#000066;
+  margin-bottom:0;
+}
+table.tidy { border:2px; padding:5px; }
+tr.tidy { background-color:white; }
+th.tidy { background-color:white; text-align:center; vertical-align:top; }
+td.tidy { background-color:white; text-align:left; vertical-align:top; }
+.vtxt { -webkit-transform:rotate(270deg);
+        moz-transform:rotate(270deg);
+        -o-transform:rotate(270deg);
+        writing-mode:tb-rl; }
+#TipLayer
+{
+  position:absolute;
+  top:-100;
+  visibility:hidden;
+  z-index:10;
+  a:hover{visibility:visible}; /* workaround IE6 bug */
+}
+#ddtooltip
+{
+  position: absolute;
+  width: 150px;
+  border: 2px solid black;
+  padding: 2px;
+  background-color: lightyellow;
+  visibility: hidden;
+  z-index: 20;
+  a:hover{visibility:visible}; /* workaround IE6 bug */
+}
+
