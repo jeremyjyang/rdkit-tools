@@ -1,8 +1,8 @@
-# Based on https://flask.palletsprojects.com/en/2.0.x/tutorial/factory/
+# Ref: https://flask.palletsprojects.com/en/2.0.x/tutorial/factory/
 
 import os,io,base64,logging
 
-from flask import Flask,render_template
+from flask import Flask,render_template,request
 from markupsafe import escape
 
 import rdkit.Chem
@@ -24,17 +24,18 @@ def create_app(test_config=None):
     )
 
     if test_config is None:
-        # load the instance config, if it exists, when not testing
-        app.config.from_pyfile('config.py', silent=True)
+      # load the instance config, if it exists, when not testing
+      app.config.from_pyfile('config.py', silent=True)
     else:
-        # load the test config if passed in
-        app.config.from_mapping(test_config)
+      # load the test config if passed in
+      app.config.from_mapping(test_config)
 
     # ensure the instance folder exists
-    try:
+    if not os.path.exists(app.instance_path):
+      try:
         os.makedirs(app.instance_path)
-    except OSError:
-        pass
+      except OSError:
+        logging.error(f"Failed to create instance_path: {app.instance_path}")
 
     # simple hello
     #@app.route('/hello')
@@ -49,22 +50,32 @@ def create_app(test_config=None):
 
     @app.route('/')
     def home():
-        return 'Depict app (under construction).'
+      return 'Depict app (under construction).'
 
     @app.route('/mol2img/<smiles>', methods=['GET'])
     def mol2img(smiles):
+      logging.info(f"SMILES: {escape(smiles)}")
+      logging.debug(f"request.method: {request.method}")
+      logging.debug(f"request.args.get('kekulize'): {request.args.get('kekulize')}")
+      logging.debug(f"request.args.get('width'): {request.args.get('width')}")
+      logging.debug(f"request.args.get('height'): {request.args.get('height')}")
       # show depiction for smiles
       mol = rdkit.Chem.MolFromSmiles(smiles)
-      #mol = rdkit.Chem.AddHs(mol)
       rdkit.Chem.AllChem.Compute2DCoords(mol, clearConfs=True)
-      # PIL.Image.Image
-      img = depict.Utils.Mol2Image(mol, width=300, height=200, kekulize=True, wedgeBonds=True)
+      width = int(request.args.get('width')) if request.args.get('width') else 400
+      height = int(request.args.get('height')) if request.args.get('height') else 400
+      kekulize = bool(request.args.get('kekulize'))
+      img = depict.Utils.Mol2Image(mol, width=width, height=height, kekulize=kekulize, wedgeBonds=True) # PIL.Image.Image
       img_bytearray = io.BytesIO()
-      #img_bytearray.write(b'Content-type: image/png\n\n')
       img.save(img_bytearray, format='PNG')
-      imgdata_b64 = base64.b64encode(img_bytearray.getvalue())
-      logging.debug(f"SMILES: {escape(smiles)}")
+      tmpfile = f"{app.instance_path}/tmp.png"
+      fout = open(tmpfile, "wb+")
+      fout.write(img_bytearray.getvalue())
+      fout.close()
+      imgdata_b64 = base64.b64encode(img_bytearray.getvalue()).decode("ascii")
+      logging.debug(f"SEE: {tmpfile}")
       logging.debug(f"len(imgdata_b64): {len(imgdata_b64)}")
+      #logging.debug(f"imgdata_b64: {imgdata_b64}")
       return render_template('image.html', result=imgdata_b64)
 
 
