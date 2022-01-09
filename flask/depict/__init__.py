@@ -65,7 +65,8 @@ def create_app(test_config=None):
       width = int(request.args.get('width')) if request.args.get('width') else 400
       height = int(request.args.get('height')) if request.args.get('height') else 400
       kekulize = bool(request.args.get('kekulize'))
-      img = depict.Utils.Mol2Image(mol, width=width, height=height, kekulize=kekulize, wedgeBonds=True) # PIL.Image.Image
+      #img = depict.Utils.Mol2Image(mol, width=width, height=height, kekulize=kekulize, wedgeBonds=True)
+      img = rdkit.Chem.Draw.MolToImage(mol, size=(width, height), kekulize=kekulize, wedgeBonds=True, fitImage=True) # PIL.Image.Image
       img_bytearray = io.BytesIO()
       img.save(img_bytearray, format='PNG')
       tmpfile = f"{app.instance_path}/tmp.png"
