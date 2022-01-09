@@ -3,6 +3,8 @@
 import os,io,base64,logging
 
 from flask import Flask,render_template,request
+#from flask_sqlalchemy import SQLAlchemy
+
 from markupsafe import escape
 
 import rdkit.Chem
@@ -18,10 +20,19 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
-    app.config.from_mapping(
-        SECRET_KEY='dev',
-        DATABASE=os.path.join(app.instance_path, 'flaskr.sqlite'),
-    )
+
+    app.config.from_object(os.environ['APP_SETTINGS'])
+    #app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    #db = SQLAlchemy(app)
+
+    #app.config.from_mapping(
+    #    SECRET_KEY='dev',
+    #    DATABASE=os.path.join(app.instance_path, 'flaskr.sqlite'),
+    #)
+
+    # PostgreSql db
+    from . import db
+    db.init_app(app)
 
     if test_config is None:
       # load the instance config, if it exists, when not testing
