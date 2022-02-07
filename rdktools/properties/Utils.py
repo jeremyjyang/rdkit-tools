@@ -21,9 +21,10 @@ def CalcCrippenLogP(mol):
 def Run_CalcCrippenLogP(molReader, molWriter):
   i_mol=0
   for mol in molReader:
+    if mol is None: continue
     i_mol+=1
     name = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-    logging.info(f"{i_mol}. {name}")
+    logging.debug(f"{i_mol}. {name}")
     CalcCrippenLogP(mol)
     if i_mol==1:
       molWriter.SetProps(mol.GetPropNames())
@@ -58,6 +59,7 @@ References:
 
   i_mol=0
   for mol in molReader:
+    if mol is None: continue
     i_mol+=1
     CalcEStateIndices(mol)
     if i_mol==1:
@@ -94,9 +96,10 @@ def CalcLipinski(mol):
 def Run_CalcLipinski(molReader, molWriter):
   i_mol=0
   for mol in molReader:
+    if mol is None: continue
     i_mol+=1
     name = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-    logging.info(f"{i_mol}. {name}")
+    logging.debug(f"{i_mol}. {name}")
     CalcLipinski(mol)
     if i_mol==1:
       molWriter.SetProps(mol.GetPropNames())
@@ -124,9 +127,10 @@ def CalcDescriptors(mol):
 def Run_CalcDescriptors(molReader, molWriter):
   i_mol=0
   for mol in molReader:
+    if mol is None: continue
     i_mol+=1
     name = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-    logging.info(f"{i_mol}. {name}")
+    logging.debug(f"{i_mol}. {name}")
     CalcDescriptors(mol)
     if i_mol==1:
       molWriter.SetProps(mol.GetPropNames())
@@ -188,9 +192,10 @@ def Run_CalcDescriptors3D(molReader, molWriter):
   """Requires 3D conformations."""
   i_mol=0
   for mol in molReader:
+    if mol is None: continue
     i_mol+=1
     name = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-    logging.info(f"{i_mol}. {name}")
+    logging.debug(f"{i_mol}. {name}")
     CalcDescriptors3D(mol)
     if i_mol==1:
       molWriter.SetProps(mol.GetPropNames())
@@ -219,10 +224,11 @@ def Run_CalcFreeSASA(molReader, molWriter):
   """Requires 3D conformations."""
   i_mol=0
   for mol in molReader:
+    if mol is None: continue
     i_mol+=1
     name = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
     CalcFreeSASA(mol)
-    logging.info(f"{i_mol}. {name}; SASA: {val:f}")
+    logging.debug(f"{i_mol}. {name}; SASA: {val:f}")
     if i_mol==1:
       molWriter.SetProps(mol.GetPropNames())
     molWriter.write(mol)
