@@ -5,10 +5,10 @@ Tools for use with RDKit. Motivated and intended for use with
 
 See also:
 
-* [GitHub repository `rdkit-tools`](https://github.com/jeremyjyang/rdkit-tools)
-* [Pypi package `rdktools`](https://pypi.org/project/rdktools/)
+* [CFChemDb](https://github.com/druggablegenome/idg-cfde) (repository)
+* [CFChemDb_UI](https://github.com/jeremyjyang/CFChemDb_UI) (repository)
+* [rdktools](https://pypi.org/project/rdktools/) (Pypi package)
 * [CFDE: Common Fund Data Ecosystem](https://nih-cfde.org/)
-* [CFChemDb](https://github.com/druggablegenome/idg-cfde)
 
 RDKit:
 
