@@ -292,6 +292,7 @@ class FingerprinterDetails(object):
     self.outFileName = ''
     self.outTableName = ''
     self.inFileName = ''
+    self.iheader = False
     self.replaceTable = True
     self.molPklName = ''
     self.useSmiles = True

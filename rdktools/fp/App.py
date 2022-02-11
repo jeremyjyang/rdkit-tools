@@ -39,6 +39,7 @@ def ParseArgs(args):
   """Based on Chem/Fingerprints/FingerprintMols.py"""
   details = FingerprintMols.FingerprinterDetails()
   if args.ifile: details.inFileName = args.ifile
+  details.iheader = bool(args.iheader)
   if args.ofile: details.outFileName = args.ofile
   if args.useHs: details.useHs = 1
   if args.useValence: details.useValence = 1
@@ -104,6 +105,7 @@ fingerprint-based analytics."""
   parser.add_argument("op", choices=OPS, help="OPERATION")
   #FingerprintMols, MolSimilarity
   parser.add_argument("--i", dest="ifile", help="input file; if provided and no tableName is specified, data will be read from the input file.  Text files delimited with either commas (extension .csv) or tabs (extension .txt) are supported.")
+  parser.add_argument("--iheader", action="store_true", help="input file has header line")
   parser.add_argument("--o", dest="ofile", help="output file (pickle file with one label,fingerprint entry for each molecule).")
   parser.add_argument("--output_as_dataframe", action="store_true", help="Output FPs as Pandas dataframe with names as index, columns as feature names, if available.")
   parser.add_argument("--useHs", action="store_true", help="include Hs in the fingerprint Default is *false*.")
