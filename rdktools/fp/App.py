@@ -107,7 +107,8 @@ fingerprint-based analytics."""
   parser.add_argument("--i", dest="ifile", help="input file; if provided and no tableName is specified, data will be read from the input file.  Text files delimited with either commas (extension .csv) or tabs (extension .txt) are supported.")
   parser.add_argument("--iheader", action="store_true", help="input file has header line")
   parser.add_argument("--o", dest="ofile", help="output file (pickle file with one label,fingerprint entry for each molecule).")
-  parser.add_argument("--output_as_dataframe", action="store_true", help="Output FPs as Pandas dataframe with names as index, columns as feature names, if available.")
+  parser.add_argument("--output_as_dataframe", action="store_true", help="Output FPs as Pandas dataframe (pickled) with names as index, columns as feature names, if available.")
+  parser.add_argument("--output_as_tsv", action="store_true", help="Output FPs as TSV with names as index, columns as feature names, if available.")
   parser.add_argument("--useHs", action="store_true", help="include Hs in the fingerprint Default is *false*.")
   parser.add_argument("--useValence", action="store_true", help="include valence information in the fingerprints Default is *false*.")
   parser.add_argument("--dbName", help="name of the database from which to pull input molecule information.  If output is going to a database, this will also be used for that unless the --outDbName option is used.")
@@ -157,7 +158,7 @@ fingerprint-based analytics."""
     details = ParseArgs(args)
     Utils.ShowDetails(details)
     FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
-    if args.ofile is not None and args.output_as_dataframe:
+    if args.ofile is not None and (args.output_as_dataframe or args.output_as_tsv):
       X=[]; ids=[];
       with open(args.ofile, "rb") as fin:
         while True:
@@ -169,10 +170,15 @@ fingerprint-based analytics."""
           except Exception as e:
             break
         df = pd.DataFrame(X, index=ids)
-      os.remove(args.ofile)
-      df.to_pickle(args.ofile, compression="gzip")
-    if args.ofile is not None: logging.info(f"FPs written {'(DATAFRAME)' if args.output_as_dataframe else ''}: {args.ofile}")
-    else: logging.info(f"No output file specified.")
+      os.remove(args.ofile) #Overwrite
+      if args.output_as_dataframe:
+        df.to_pickle(args.ofile, compression="gzip")
+      else:
+        #Convert boolean to 1|0 reducing file size.
+        df.fillna(False).astype(int).to_csv(args.ofile, "\t", index=True)
+      logging.info(f"FPs written {'(DATAFRAME, pickled)' if args.output_as_dataframe else 'TSV'}: {args.ofile}")
+    else:
+      logging.info(f"FPs written (pickled): {args.ofile}")
 
   elif args.op=="MolSimilarity":
     logging.info("MolSimilarity ({0}, {1})".format(args.fpAlgo, f"{args.metric}({args.tversky_alpha},{args.tversky_beta})" if args.metric=="TVERSKY" else args.metric))
