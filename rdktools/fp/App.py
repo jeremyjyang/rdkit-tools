@@ -98,8 +98,31 @@ FingerprintMols.py, MolSimilarity.py, ClusterMols.py,
 with enhanced command-line functionality for molecular
 fingerprint-based analytics."""
   FPALGOS = ["RDKIT", "MACCS", "MORGAN"]
-  MORGAN_NBITS=1024; MORGAN_RADIUS=2;
   METRICS = ["ALLBIT", "ASYMMETRIC", "DICE", "COSINE", "KULCZYNSKI", "MCCONNAUGHEY", "ONBIT", "RUSSEL", "SOKAL", "TANIMOTO", "TVERSKY"]
+  DEFAULTS={
+	"minSize":64,
+	"maxSize":2048,
+	"density":0.3,
+	"fpColName":"AutoFragmentFP",
+	"minPath":1,
+	"minPath":1,
+	"maxPath":7,
+	"nBitsPerHash":2,
+	"nBitsPerHash":2,
+	"smilesColumn":"#SMILES",
+	"idColumn":"Name",
+	"nameColumn":"Name",
+	"input_format":"SMILES",
+	"fpAlgo":"RDKIT",
+	"morgan_nbits":1024,
+	"morgan_radius":2,
+	"topN":12,
+	"metric":"TANIMOTO",
+	"tversky_alpha":.8,
+	"tversky_beta":.2,
+	"clusterAlgo":"WARD",
+	"reportFreq":100
+	}
   parser = argparse.ArgumentParser(description="RDKit fingerprint-based analytics", epilog=EPILOG)
   OPS=[ "FingerprintMols", "MolSimilarity", "ClusterMols" ]
   parser.add_argument("op", choices=OPS, help="OPERATION")
@@ -113,36 +136,36 @@ fingerprint-based analytics."""
   parser.add_argument("--useValence", action="store_true", help="include valence information in the fingerprints Default is *false*.")
   parser.add_argument("--dbName", help="name of the database from which to pull input molecule information.  If output is going to a database, this will also be used for that unless the --outDbName option is used.")
   parser.add_argument("--tableName", help="name of the database table from which to pull input molecule information")
-  parser.add_argument("--minSize", type=int, default=64, help="minimum size of the fingerprints to be generated (limits the amount of folding that happens).")
-  parser.add_argument("--maxSize", type=int, default=2048, help="base size of the fingerprints to be generated.")
-  parser.add_argument("--density", type=float, default=0.3, help="target bit density in the fingerprint.  The fingerprint will be folded until this density is reached.")
+  parser.add_argument("--minSize", type=int, default=DEFAULTS["minSize"], help=f"minimum size of the fingerprints to be generated (limits the amount of folding that happens) [{DEFAULTS['minSize']}].")
+  parser.add_argument("--maxSize", type=int, default=DEFAULTS["maxSize"], help=f"base size of the fingerprints to be generated [{DEFAULTS['maxSize']}].")
+  parser.add_argument("--density", type=float, default=DEFAULTS["density"], help=f"target bit density in the fingerprint.  The fingerprint will be folded until this density is reached [{DEFAULTS['density']}].")
   parser.add_argument("--outTable", help="name of the output db table used to store fingerprints.  If this table already exists, it will be replaced.")
   parser.add_argument("--outDbName", help="name of output database, if it's being used.  Defaults to be the same as the input db.")
-  parser.add_argument("--fpColName", default="AutoFragmentFP", help="name to use for the column which stores fingerprints (in pickled format) in the output db table.")
-  parser.add_argument("--minPath", type=int, default=1, help="minimum path length to be included in fragment-based fingerprints.")
-  parser.add_argument("--maxPath", type=int, default=7, help="maximum path length to be included in fragment-based fingerprints.")
-  parser.add_argument("--nBitsPerHash", type=int, default=2, help="number of bits to be set in the output fingerprint for each fragment.")
+  parser.add_argument("--fpColName", default=DEFAULTS["fpColName"], help=f"name to use for the column which stores fingerprints (in pickled format) in the output db table [{DEFAULTS['fpColName']}].")
+  parser.add_argument("--minPath", type=int, default=DEFAULTS["minPath"], help=f"minimum path length to be included in fragment-based fingerprints [{DEFAULTS['minPath']}].")
+  parser.add_argument("--maxPath", type=int, default=DEFAULTS["maxPath"], help=f"maximum path length to be included in fragment-based fingerprints [{DEFAULTS['maxPath']}].")
+  parser.add_argument("--nBitsPerHash", type=int, default=DEFAULTS["nBitsPerHash"], help=f"number of bits to be set in the output fingerprint for each fragment [{DEFAULTS['nBitsPerHash']}].")
   parser.add_argument("--discrim", action="store_true", help="use of path-based discriminators to hash bits.")
-  parser.add_argument("--smilesColumn", default="#SMILES", help="name of the SMILES column in the input database.")
+  parser.add_argument("--smilesColumn", default=DEFAULTS["smilesColumn"], help=f"name of the SMILES column in the input database [{DEFAULTS['smilesColumn']}].")
   parser.add_argument("--molPkl", help="")
-  parser.add_argument("--input_format", choices=["SMILES", "SD"], default="SMILES", help="SMILES table or SDF file.")
-  parser.add_argument("--idColumn", "--nameColumn", default="Name", help="name of the id column in the input database.  Defaults to the first column for dbs.")
+  parser.add_argument("--input_format", choices=["SMILES", "SD"], default=DEFAULTS["input_format"], help="SMILES table or SDF file [{DEFAULTS['input_format']}].")
+  parser.add_argument("--idColumn", "--nameColumn", default=DEFAULTS["idColumn"], help=f"name of the id column in the input database.  Defaults to the first column for dbs [{DEFAULTS['idColumn']}].")
   parser.add_argument("--maxMols", type=int, help="maximum number of molecules to be fingerprinted.")
-  parser.add_argument("--fpAlgo", default="RDKIT", choices=FPALGOS, help="RDKIT = Daylight path-based; MACCS = MDL MACCS 166 keys")
-  parser.add_argument("--morgan_nbits", type=int, default=MORGAN_NBITS)
-  parser.add_argument("--morgan_radius", type=int, default=MORGAN_RADIUS)
+  parser.add_argument("--fpAlgo", default="RDKIT", choices=FPALGOS, help=f"RDKIT = Daylight path-based; MACCS = MDL MACCS 166 keys [{DEFAULTS['fpAlgo']}]")
+  parser.add_argument("--morgan_nbits", type=int, default=DEFAULTS["morgan_nbits"], help=f"[{DEFAULTS['morgan_nbits']}]")
+  parser.add_argument("--morgan_radius", type=int, default=DEFAULTS["morgan_radius"], help=f"[{DEFAULTS['morgan_radius']}]")
   parser.add_argument("--replaceTable", action="store_true", help="")
   parser.add_argument("--smilesTable", help="name of database table which contains SMILES for the input fingerprints.  If provided with --smilesName, output will contain SMILES data.")
-  parser.add_argument("--topN", type=int, default=12, help="top N similar; precedence over threshold.")
+  parser.add_argument("--topN", type=int, default=DEFAULTS["topN"], help=f"top N similar; precedence over threshold [{DEFAULTS['topN']}].")
   parser.add_argument("--thresh", type=float, help="similarity threshold.")
   parser.add_argument("--querySmiles", help="query smiles for similarity screening.")
-  parser.add_argument("--metric", choices=METRICS, default="TANIMOTO", help="similarity algorithm")
-  parser.add_argument("--tversky_alpha", type=float, default=.8, help="Tversky alpha parameter, weights query molecule features")
-  parser.add_argument("--tversky_beta", type=float, default=.2, help="Tversky beta parameter, weights target molecule features")
-  parser.add_argument("--clusterAlgo", choices=["WARD", "SLINK", "CLINK", "UPGMA", "BUTINA"], default="WARD", help="clustering algorithm: WARD = Ward's minimum variance; SLINK = single-linkage clustering algorithm; CLINK = complete-linkage clustering algorithm; UPGMA = group-average clustering algorithm; BUTINA = Butina JCICS 39 747-750 (1999)")
+  parser.add_argument("--metric", choices=METRICS, default=DEFAULTS["metric"], help=f"similarity algorithm [{DEFAULTS['metric']}]")
+  parser.add_argument("--tversky_alpha", type=float, default=DEFAULTS["tversky_alpha"], help=f"Tversky alpha parameter, weights query molecule features [{DEFAULTS['tversky_alpha']}]")
+  parser.add_argument("--tversky_beta", type=float, default=DEFAULTS["tversky_beta"], help=f"Tversky beta parameter, weights target molecule features [{DEFAULTS['tversky_beta']}]")
+  parser.add_argument("--clusterAlgo", choices=["WARD", "SLINK", "CLINK", "UPGMA", "BUTINA"], default=DEFAULTS["clusterAlgo"], help=f"clustering algorithm: WARD = Ward's minimum variance; SLINK = single-linkage clustering algorithm; CLINK = complete-linkage clustering algorithm; UPGMA = group-average clustering algorithm; BUTINA = Butina JCICS 39 747-750 (1999) [{DEFAULTS['clusterAlgo']}]")
   parser.add_argument("--actTable", help="name of table containing activity values (used to color points in the cluster tree).")
   parser.add_argument("--actName", help="name of column with activities in the activity table. The values in this column should either be integers or convertible into integers.")
-  parser.add_argument("--reportFreq", type=int, default=100)
+  parser.add_argument("--reportFreq", type=int, default=DEFAULTS["reportFreq"], help=f"[{DEFAULTS['reportFreq']}]")
   parser.add_argument("--showVis", action="store_true", help="show visualization if available.")
   parser.add_argument("-v", "--verbose", action="count", default=0)
   args = parser.parse_args()
