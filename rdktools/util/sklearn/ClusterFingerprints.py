@@ -66,13 +66,14 @@ def Demo(display=False):
 def DescribeModel(model):
   logging.info(f"clusters: {model.n_clusters_}")
   logging.info(f"leaves: {model.n_leaves_}")
-  logging.info(f"labels: {str(model.labels_)}")
+  labels = [str(label) for label in model.labels_]
+  logging.info(f"labels: {','.join(labels)}")
   feature_names_in = model.feature_names_in_ #ndarray of shape (n_features_in_,)
   logging.info(f"feature_names_in: {feature_names_in}")
   children = model.children_ #array-like of shape (n_samples-1,2)
   distances = model.distances_ #array-like of shape (n_nodes-1,)
   for i,row in enumerate(children):
-    logging.info(f"{i+1:5d}: merge {row[0]:5d}, {row[1]:5d} ({distances[i]:6.3f})")
+    logging.info(f"{i+1:5d}: merge {row[0]:5d}, {row[1]:5d} (d:{distances[i]:6.3f})")
 
 #############################################################################
 if __name__=="__main__":
