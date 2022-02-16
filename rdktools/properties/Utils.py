@@ -1,4 +1,25 @@
 #!/usr/bin/env python3
+"""
+Descriptors:
+	ExactMolWt,HeavyAtomMolWt,MolWt,
+	MaxAbsPartialCharge,MaxPartialCharge,MinAbsPartialCharge,MinPartialCharge,
+	NumRadicalElectrons,NumValenceElectrons,
+	https://www.rdkit.org/docs/source/rdkit.Chem.Descriptors.html
+	https://www.rdkit.org/docs/source/rdkit.Chem.rdPartialCharges.html
+
+Descriptors3D:
+	Asphericity,Eccentricity,InertialShapeFactor,NPR1,NPR2,PMI1,PMI2,PMI3,
+	RadiusOfGyration,SpherocityIndex
+	https://www.rdkit.org/docs/source/rdkit.Chem.Descriptors3D.html
+
+Lipinski:
+	FractionCSP3,HeavyAtomCount,NHOHCount,NOCount,
+	NumAliphaticCarbocycles,NumAliphaticHeterocycles,NumAliphaticRings,
+	NumAromaticCarbocycles,NumAromaticHeterocycles,
+	NumAromaticRings,NumHAcceptors,NumHDonors,NumHeteroatoms,NumRotatableBonds,
+	NumSaturatedCarbocycles,NumSaturatedHeterocycles,NumSaturatedRings,RingCount
+	https://www.rdkit.org/docs/source/rdkit.Chem.Lipinski.html
+"""
 #
 import sys,os,logging,tempfile
 
@@ -45,8 +66,6 @@ def CalcEStateIndices(mol):
 def Run_CalcEStateIndices(molReader, molWriter):
   """
 Calculate Kier-Hall electrotopological descriptors
-  [x] smiles or molfile input and output with data
-  [ ] stdout and stdin
   [ ] sumDeltaI -- can it be done with RDKit?
  
 References:
@@ -54,7 +73,7 @@ References:
      structure information at the atomic level for molecular graphs",
      JCICS 31 (1) 76-82 (1991)
   2. L.B. Kier and L.H. Hall _Molecular Structure Description:
-     The Electrotopological State"_  Academic Press (1999)
+     The Electrotopological State",  Academic Press (1999)
   """
 
   i_mol=0
