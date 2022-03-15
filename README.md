@@ -22,8 +22,8 @@ RDKit:
 ```
 $ conda create -n rdkit -c conda-forge rdkit ipykernel
 $ conda activate rdkit
-(rdkit) $ conda install -c conda-forge pyvis 
-(rdkit) $ conda install -c conda-forge networkx=2.5 
+(rdktools) $ conda install -c conda-forge pyvis 
+(rdktools) $ conda install -c conda-forge networkx=2.5 
 ```
 
 See also: [conda/environment.yml](conda/environment.yml)
@@ -39,12 +39,13 @@ See also: [conda/environment.yml](conda/environment.yml)
 * [Scaffolds](#Scaffolds) - Bemis-Murcko and BRICS scaffold analysis, rdScaffoldNetworks.
 * [SMARTS](#SMARTS) - molecular pattern matching (subgraph isomorphism)
 * [Reactions](#Reactions) - SMIRKS based reaction transforms
+* [util.sklearn](#util.sklearn) - Scikit-learn utilities for processing molecular fingerprints and other feature vectors.
 
 
 ## Formats
 
 ```
-(rdkit) $ python3 -m rdktools.formats.App -h
+(rdktools) $ python3 -m rdktools.formats.App -h
 usage: App.py [-h] [--i IFILE] [--o OFILE] [--kekulize] [--sanitize] [--header]
               [--delim DELIM] [--smilesColumn SMILESCOLUMN] [--nameColumn NAMECOLUMN]
               [-v]
@@ -74,7 +75,7 @@ optional arguments:
 ## Depictions
 
 ```
-(rdkit) $ python3 -m rdktools.depict.App -h
+(rdktools) $ python3 -m rdktools.depict.App -h
 usage: App.py [-h] [--i IFILE] [--ifmt {AUTO,SMI,MDL}] [--ofmt {PNG,JPEG,PDF}]
               [--smilesColumn SMILESCOLUMN] [--nameColumn NAMECOLUMN] [--header]
               [--delim DELIM] [--height HEIGHT] [--width WIDTH] [--kekulize]
@@ -118,7 +119,7 @@ Modes: single = one image; batch = multiple images; pdf = multi-page
 ## Scaffolds
 
 ```
-(rdkit) $ python3 -m rdktools.scaffold.App -h
+(rdktools) $ python3 -m rdktools.scaffold.App -h
 usage: App.py [-h] [--i IFILE] [--o OFILE] [--o_html OFILE_HTML]
               [--scratchdir SCRATCHDIR] [--smicol SMICOL] [--namcol NAMCOL]
               [--idelim IDELIM] [--odelim ODELIM] [--iheader] [--oheader]
@@ -150,12 +151,12 @@ optional arguments:
 ## Standardization
 
 ```
-(rdkit) $ python3 -m rdktools.standard.App
+(rdktools) $ python3 -m rdktools.standard.App
 usage: App.py [-h] [--i IFILE] [--o OFILE] [--norms {default,unm}]
               [--i_norms IFILE_NORMS] [--remove_isomerism] [-v]
               {standardize,list_norms,show_params,demo}
 App.py: error: the following arguments are required: op
-(rdkit) $ python3 -m rdktools.standard.App -h
+(rdktools) $ python3 -m rdktools.standard.App -h
 usage: App.py [-h] [--i IFILE] [--o OFILE] [--norms {default,unm}]
               [--i_norms IFILE_NORMS] [--remove_isomerism] [-v]
               {standardize,list_norms,show_params,demo}
@@ -181,7 +182,7 @@ optional arguments:
 ## Conformations
 
 ```
-(rdkit) $ python3 -m rdktools.conform.App -h
+(rdktools) $ python3 -m rdktools.conform.App -h
 usage: App.py [-h] [--i IFILE] [--o OFILE] [--ff {UFF,MMFF}] [--optiters OPTITERS]
               [--nconf NCONF] [--etol ETOL] [--title_in_header] [-v]
 
@@ -204,7 +205,7 @@ Based on distance geometry method by Blaney et al.
 ## Fingerprints
 
 ```
-(rdkit) $ python3 -m rdktools.fp.App MolSimilarity -h
+(rdktools) $ python3 -m rdktools.fp.App MolSimilarity -h
 usage: App.py [-h] [--i IFILE] [--o OFILE] [--useHs] [--useValence]
               [--dbName DBNAME] [--tableName TABLENAME] [--minSize MINSIZE]
               [--maxSize MAXSIZE] [--density DENSITY] [--outTable OUTTABLE]
@@ -319,21 +320,21 @@ molecular fingerprint-based analytics.
 Examples:
 
 ```
-(rdkit) $ python3 -m rdktools.fp.App FingerprintMols --i drugcentral.smi --smilesColumn "smiles" --idColumn "name" --fpAlgo MORGAN --morgan_nbits 2048
+(rdktools) $ python3 -m rdktools.fp.App FingerprintMols --i drugcentral.smiles --smilesColumn "smiles" --idColumn "name" --fpAlgo MORGAN --morgan_nbits 2048 --output_as_tsv --o drugcentral_morganfp.tsv
 ```
 
 ```
-(rdkit) $ python3 -m rdktools.fp.App MolSimilarity --i drugcentral.smi --smilesColumn "smiles" --idColumn "name" --querySmiles "NCCc1ccc(O)c(O)c1 dopamine" --fpAlgo MORGAN --morgan_nbits 512 --metric TVERSKY --tversky_alpha 0.8 --tversky_beta 0.2
+(rdktools) $ python3 -m rdktools.fp.App MolSimilarity --i drugcentral.smiles --smilesColumn "smiles" --idColumn "name" --querySmiles "NCCc1ccc(O)c(O)c1 dopamine" --fpAlgo MORGAN --morgan_nbits 512 --metric TVERSKY --tversky_alpha 0.8 --tversky_beta 0.2
 ```
 
 ```
-(rdkit) $ python3 -m rdktools.fp.App ClusterMols --i drugcentral.smi --smilesColumn "smiles" --idColumn "name" --fpAlgo MORGAN --morgan_nbits 512 --clusterAlgo BUTINA --metric TANIMOTO
+(rdktools) $ python3 -m rdktools.fp.App ClusterMols --i drugcentral.smiles --smilesColumn "smiles" --idColumn "name" --fpAlgo MORGAN --morgan_nbits 512 --clusterAlgo BUTINA --metric TANIMOTO
 ```
 
 ## SMARTS
 
 ```
-(rdkit) $ python3 -m rdktools.smarts.App -h
+(rdktools) $ python3 -m rdktools.smarts.App -h
 usage: App.py [-h] [--i IFILE] [--o OFILE] [--smarts SMARTS] [--usa] [--delim DELIM]
               [--smilesColumn SMILESCOLUMN] [--nameColumn NAMECOLUMN] [--header] [-v]
               {matchCounts,matchFilter,demo}
@@ -360,7 +361,7 @@ optional arguments:
 ## Properties
 
 ```
-(rdkit) $ python3 -m rdktools.properties.App -h
+(rdktools) $ python3 -m rdktools.properties.App -h
 usage: App.py [-h] --i IFILE [--o OFILE] [--iheader] [--oheader] [--kekulize]
               [--sanitize] [--delim DELIM] [--smilesColumn SMILESCOLUMN]
               [--nameColumn NAMECOLUMN] [-v]
@@ -389,3 +390,10 @@ optional arguments:
 ```
 
 
+### util.sklearn
+
+Scikit-learn utilities for processing molecular fingerprints and other feature vectors.
+
+```
+python3 -m rdktools.util.sklearn.ClusterFingerprints cluster --i data/drugcentral_morganfp.tsv --display --truncate_level 5
+```
