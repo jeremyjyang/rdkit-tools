@@ -394,6 +394,42 @@ optional arguments:
 
 Scikit-learn utilities for processing molecular fingerprints and other feature vectors.
 
+(rdktools) lengua$ python3 -m rdktools.util.sklearn.ClusterFingerprints -h
+usage: ClusterFingerprints.py [-h] [--i IFILE] [--o OFILE] [--o_vis OFILE_VIS]
+                              [--scratchdir SCRATCHDIR] [--idelim IDELIM]
+                              [--odelim ODELIM]
+                              [--affinity {euclidean,l1,l2,manhattan,cosine,precomputed}]
+                              [--linkage {ward,complete,average,single}]
+                              [--truncate_level TRUNCATE_LEVEL] [--iheader] [--oheader]
+                              [--dendrogram_orientation {left,top,right,bottom}]
+                              [--display] [-v]
+                              {cluster,demo}
+
+Hierarchical, agglomerative clustering by Scikit-learn
+
+positional arguments:
+  {cluster,demo}        OPERATION
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --i IFILE             input file, TSV
+  --o OFILE             output file, TSV
+  --o_vis OFILE_VIS     output file, PNG or HTML
+  --scratchdir SCRATCHDIR
+  --idelim IDELIM       delim for input TSV
+  --odelim ODELIM       delim for output TSV
+  --affinity {euclidean,l1,l2,manhattan,cosine,precomputed}
+  --linkage {ward,complete,average,single}
+  --truncate_level TRUNCATE_LEVEL
+                        Level from root of hierarchy for clusters and dendrogram.
+  --iheader             input TSV has header
+  --oheader             output TSV has header
+  --dendrogram_orientation {left,top,right,bottom}
+  --display             display dendrogram
+  -v, --verbose
 ```
-python3 -m rdktools.util.sklearn.ClusterFingerprints cluster --i data/drugcentral_morganfp.tsv --display --truncate_level 5
+```
+
+```
+(rdktools) $ python3 -m rdktools.util.sklearn.ClusterFingerprints cluster --i drugcentral_morganfp.tsv --display --truncate_level 5
 ```

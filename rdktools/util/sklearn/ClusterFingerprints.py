@@ -7,6 +7,7 @@ chemical fingerprints.
 https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html
 https://scikit-learn.org/stable/auto_examples/cluster/plot_agglomerative_dendrogram.html
 https://docs.scipy.org/doc/scipy/reference/cluster.hierarchy.html
+https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.dendrogram.html
 """
 import sys,os,time,argparse,logging
 import pandas as pd
@@ -20,16 +21,12 @@ import sklearn
 from sklearn.cluster import AgglomerativeClustering
 
 #############################################################################
-def PlotDendrogram(X, model, orientation, **kwargs):
+def PlotDendrogram(model, orientation, **kwargs):
   """
-https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.dendrogram.html
 scipy.cluster.hierarchy.dendrogram(Z, p=30, truncate_mode=None, color_threshold=None, get_leaves=True, orientation='top', labels=None, count_sort=False, distance_sort=False, show_leaf_counts=True, no_plot=False, no_labels=False, leaf_font_size=None, leaf_rotation=None, leaf_label_func=None, show_contracted=False, link_color_func=None, ax=None, above_threshold_color='C0')
 """
-  # Could use ? scipy.cluster.hierarchy.linkage(y, method='single', metric='euclidean', optimal_ordering=False)
-  #Z = linkage(model.distances_, method='single', metric='euclidean', optimal_ordering=False)
-
-  # Create linkage matrix (Z) and then plot the dendrogram
-  # create the counts of samples under each node
+  # Create linkage matrix (Z) and then plot the dendrogram.
+  # Create the counts of samples under each node.
   counts = np.zeros(model.children_.shape[0])
   n_samples = len(model.labels_)
   for i, merge in enumerate(model.children_):
@@ -44,9 +41,9 @@ scipy.cluster.hierarchy.dendrogram(Z, p=30, truncate_mode=None, color_threshold=
   # Stack 1-D arrays as columns into a 2-D array.
   Z = np.column_stack([model.children_, model.distances_, counts]).astype(float)
 
-  # Plot the corresponding dendrogram
-  #dendrogram(Z, orientation=orientation, labels=["foo" for i in range(Z.shape[0]+1)], **kwargs)
-  dendrogram(Z, orientation=orientation, labels=X.index, **kwargs)
+  # Generate the corresponding dendrogram
+  ddg = dendrogram(Z, orientation=orientation, labels=model.labels_, **kwargs)
+  return ddg
 
 #############################################################################
 def ClusterFeaturevectors(X, affinity, linkage):
@@ -56,6 +53,7 @@ def ClusterFeaturevectors(X, affinity, linkage):
 	compute_distances=True,
 	distance_threshold=0, n_clusters=None) # distance_threshold=0 ensures full tree.
   model = model.fit(X)
+  model.labels_ = X.index #IDs
   return model
 
 #############################################################################
@@ -63,13 +61,24 @@ def DescribeModel(model):
   logging.info(f"clusters: {model.n_clusters_}")
   logging.info(f"leaves: {model.n_leaves_}")
   labels = [str(label) for label in model.labels_]
-  logging.debug(f"labels: {','.join(labels)}")
-  feature_names_in = model.feature_names_in_ #ndarray of shape (n_features_in_,)
-  logging.info(f"feature_names_in: {feature_names_in}")
-  children = model.children_ #array-like of shape (n_samples-1,2)
-  distances = model.distances_ #array-like of shape (n_nodes-1,)
-  for i,row in enumerate(children):
-    logging.debug(f"{i+1:5d}: merge {row[0]:5d}, {row[1]:5d} (d:{distances[i]:6.3f})")
+  logging.debug(f"""labels ({len(labels)}): "{'","'.join(labels[:10])}"...""")
+  logging.debug(f"feature_names_in ({len(model.feature_names_in_)}): {model.feature_names_in_}") #ndarray of shape (n_features_in_,)
+  for i,row in enumerate(model.children_): #array-like of shape (n_samples-1,2)
+    logging.debug(f"{i+1:5d}: merge {row[0]:5d}, {row[1]:5d} (d:{model.distances_[i]:6.3f})") #distances_: array-like of shape (n_nodes-1,)
+
+#############################################################################
+def WriteDistanceFile(model, ofile):
+  fout = open(ofile, "w+")
+  for i,nodePair in enumerate(model.children_):
+    nodeA,nodeB = nodePair
+    fout.write(f"{nodeA}\t{model.labels_[nodeA] if nodeA<len(model.labels_) else ''}\t{nodeB}\t{model.labels_[nodeB] if nodeB<len(model.labels_) else ''}\t{model.distances_[i]:.3f}\n")
+  fout.close()
+  logging.info(f"Output distance matrix written: {ofile}")
+
+#############################################################################
+def DescribeDendrogram(ddg):
+  logging.debug(f"Dendrogram.color_list: {ddg['color_list']}")
+  logging.debug(f"Dendrogram.ivl: {ddg['ivl'][:10]}...")
 
 #############################################################################
 if __name__=="__main__":
@@ -81,6 +90,7 @@ if __name__=="__main__":
   parser.add_argument("op", choices=OPS, help="OPERATION")
   parser.add_argument("--i", dest="ifile", help="input file, TSV")
   parser.add_argument("--o", dest="ofile", help="output file, TSV")
+  parser.add_argument("--o_dist", dest="ofile_dist", help="output distance file, TSV")
   parser.add_argument("--o_vis", dest="ofile_vis", default="/tmp/cluster_dendrogram.html", help="output file, PNG or HTML")
   parser.add_argument("--scratchdir", default="/tmp")
   parser.add_argument("--idelim", default="\t", help="delim for input TSV")
@@ -113,7 +123,8 @@ if __name__=="__main__":
     DescribeModel(model)
     if args.display:
       pyplot.title(f"Hierarchical Clustering Dendrogram ({args.linkage}/{args.affinity})")
-      PlotDendrogram(X, model, orientation=args.dendrogram_orientation, truncate_mode="level", p=args.truncate_level)
+      ddg = PlotDendrogram(model, orientation=args.dendrogram_orientation, truncate_mode="level", p=args.truncate_level)
+      DescribeDendrogram(ddg)
       pyplot.xlabel("Number of points in node (or index of point if no parenthesis).")
       pyplot.show()
 
@@ -127,17 +138,18 @@ if __name__=="__main__":
     X.set_index("Name", drop=True, verify_integrity=True, inplace=True)
     model = ClusterFeaturevectors(X, args.affinity, args.linkage)
     DescribeModel(model)
+    if args.ofile_dist: WriteDistanceFile(model, args.ofile_dist)
     if args.display:
       pyplot.title(f"Hierarchical Clustering Dendrogram ({args.linkage}/{args.affinity})")
-      PlotDendrogram(X, model, orientation=args.dendrogram_orientation, truncate_mode="level", p=args.truncate_level)
+      ddg = PlotDendrogram(model, orientation=args.dendrogram_orientation, truncate_mode="level", p=args.truncate_level)
+      DescribeDendrogram(ddg)
       if args.dendrogram_orientation in ("top", "bottom"):
-        pyplot.xlabel("Number of points in node (or index of point if no parenthesis).")
         pyplot.yticks(ticks=[])
         pyplot.margins(y=.3)
       else:
-        pyplot.ylabel("Number of points in node (or index of point if no parenthesis).")
         pyplot.xticks(ticks=[])
         pyplot.margins(x=.3)
+      pyplot.xlabel("(Labels: N_in_cluster, or ID if singleton).")
       pyplot.show()
 
   else:
