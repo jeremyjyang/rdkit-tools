@@ -394,6 +394,7 @@ optional arguments:
 
 Scikit-learn utilities for processing molecular fingerprints and other feature vectors.
 
+```
 (rdktools) lengua$ python3 -m rdktools.util.sklearn.ClusterFingerprints -h
 usage: ClusterFingerprints.py [-h] [--i IFILE] [--o OFILE] [--o_vis OFILE_VIS]
                               [--scratchdir SCRATCHDIR] [--idelim IDELIM]
@@ -428,8 +429,7 @@ optional arguments:
   --display             display dendrogram
   -v, --verbose
 ```
-```
 
 ```
-(rdktools) $ python3 -m rdktools.util.sklearn.ClusterFingerprints cluster --i drugcentral_morganfp.tsv --display --truncate_level 5
+(rdktools) $ python3 -m rdktools.util.sklearn.ClusterFingerprints cluster --i drugcentral_morganfp.tsv --truncate_level 5 --display
 ```

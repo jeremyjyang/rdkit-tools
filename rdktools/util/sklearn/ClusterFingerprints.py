@@ -8,6 +8,8 @@ https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeC
 https://scikit-learn.org/stable/auto_examples/cluster/plot_agglomerative_dendrogram.html
 https://docs.scipy.org/doc/scipy/reference/cluster.hierarchy.html
 https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.dendrogram.html
+ 
+scipy.cluster.hierarchy.dendrogram(Z, p=30, truncate_mode=None, color_threshold=None, get_leaves=True, orientation='top', labels=None, count_sort=False, distance_sort=False, show_leaf_counts=True, no_plot=False, no_labels=False, leaf_font_size=None, leaf_rotation=None, leaf_label_func=None, show_contracted=False, link_color_func=None, ax=None, above_threshold_color='C0')
 """
 import sys,os,time,argparse,logging
 import pandas as pd
@@ -15,19 +17,14 @@ import numpy as np
 import matplotlib as mpl
 from matplotlib import pyplot
 import scipy
-from scipy.cluster.hierarchy import dendrogram,linkage
+from scipy.cluster.hierarchy import dendrogram,linkage,fcluster
 
 import sklearn
 from sklearn.cluster import AgglomerativeClustering
 
 #############################################################################
-def PlotDendrogram(model, orientation, **kwargs):
-  """
-scipy.cluster.hierarchy.dendrogram(Z, p=30, truncate_mode=None, color_threshold=None, get_leaves=True, orientation='top', labels=None, count_sort=False, distance_sort=False, show_leaf_counts=True, no_plot=False, no_labels=False, leaf_font_size=None, leaf_rotation=None, leaf_label_func=None, show_contracted=False, link_color_func=None, ax=None, above_threshold_color='C0')
-"""
-  # Create linkage matrix (Z) and then plot the dendrogram.
-  # Create the counts of samples under each node.
-  counts = np.zeros(model.children_.shape[0])
+def Model2LinkageMatrix(model):
+  counts = np.zeros(model.children_.shape[0]) # Counts of samples each node.
   n_samples = len(model.labels_)
   for i, merge in enumerate(model.children_):
     current_count = 0
@@ -37,13 +34,9 @@ scipy.cluster.hierarchy.dendrogram(Z, p=30, truncate_mode=None, color_threshold=
       else:
         current_count += counts[child_idx - n_samples]
     counts[i] = current_count
-
   # Stack 1-D arrays as columns into a 2-D array.
-  Z = np.column_stack([model.children_, model.distances_, counts]).astype(float)
-
-  # Generate the corresponding dendrogram
-  ddg = dendrogram(Z, orientation=orientation, labels=model.labels_, **kwargs)
-  return ddg
+  Z = np.column_stack([model.children_, model.distances_, counts]).astype(np.float64)
+  return Z
 
 #############################################################################
 def ClusterFeaturevectors(X, affinity, linkage):
@@ -57,14 +50,47 @@ def ClusterFeaturevectors(X, affinity, linkage):
   return model
 
 #############################################################################
+# Report cluster count by level. With each merge, cluster count decrements.
 def DescribeModel(model):
   logging.info(f"clusters: {model.n_clusters_}")
   logging.info(f"leaves: {model.n_leaves_}")
   labels = [str(label) for label in model.labels_]
   logging.debug(f"""labels ({len(labels)}): "{'","'.join(labels[:10])}"...""")
   logging.debug(f"feature_names_in ({len(model.feature_names_in_)}): {model.feature_names_in_}") #ndarray of shape (n_features_in_,)
+  n_clusters = model.n_clusters_
   for i,row in enumerate(model.children_): #array-like of shape (n_samples-1,2)
-    logging.debug(f"{i+1:5d}: merge {row[0]:5d}, {row[1]:5d} (d:{model.distances_[i]:6.3f})") #distances_: array-like of shape (n_nodes-1,)
+    n_clusters-=1
+    logging.debug(f"{i+1:5d}: merge {row[0]:5d}, {row[1]:5d} (d:{model.distances_[i]:6.3f}) n_clusters:{n_clusters:6d}") #distances_: array-like of shape (n_nodes-1,)
+
+#############################################################################
+def LinkageMatrix2FlatClusters(Z, criterion="inconsistent", depth=2, t=None, min_c=4, max_c=20):
+  if t is not None:
+    fc = fcluster(Z, t, criterion, depth)
+  else:
+    t=0.7 #max intra-cluster dist
+    fc=None; fc_prev=None;
+    while True:
+      if fc is not None: fc_prev = fc
+      t += 0.01
+      fc = fcluster(Z, t, criterion, depth)
+      n_c = len(set(fc))
+      if n_c==1:
+        fc = fc_prev
+        break
+      elif n_c>=min_c and n_c<=max_c:
+        logging.debug(f"t={t:.2f}; n_clusters={n_c}")
+        break
+      else:
+        logging.debug(f"t={t:.2f}; n_clusters={n_c}")
+  return fc
+
+#############################################################################
+def WriteFlatClusters(fc, ofile):
+  df = pd.DataFrame(fc)
+  df.columns = ["cluster_id"]
+  df["id"] = df.index + 1
+  df = df[["id", "cluster_id"]]
+  df.to_csv(ofile, "\t", index=False)
 
 #############################################################################
 def WriteDistanceFile(model, ofile):
@@ -121,9 +147,10 @@ if __name__=="__main__":
     X = pd.DataFrame(iris.data, columns=iris.feature_names)
     model = ClusterFeaturevectors(X, args.affinity, args.linkage)
     DescribeModel(model)
+    Z = Model2LinkageMatrix(model)
     if args.display:
       pyplot.title(f"Hierarchical Clustering Dendrogram ({args.linkage}/{args.affinity})")
-      ddg = PlotDendrogram(model, orientation=args.dendrogram_orientation, truncate_mode="level", p=args.truncate_level)
+      ddg = dendrogram(Z, orientation=args.dendrogram_orientation, truncate_mode="level", p=args.truncate_level)
       DescribeDendrogram(ddg)
       pyplot.xlabel("Number of points in node (or index of point if no parenthesis).")
       pyplot.show()
@@ -138,10 +165,13 @@ if __name__=="__main__":
     X.set_index("Name", drop=True, verify_integrity=True, inplace=True)
     model = ClusterFeaturevectors(X, args.affinity, args.linkage)
     DescribeModel(model)
+    Z = Model2LinkageMatrix(model)
+    fc = LinkageMatrix2FlatClusters(Z, criterion="inconsistent", depth=2, t=None, min_c=4, max_c=20)
+    if args.ofile: WriteFlatClusters(fc, args.ofile)
     if args.ofile_dist: WriteDistanceFile(model, args.ofile_dist)
     if args.display:
       pyplot.title(f"Hierarchical Clustering Dendrogram ({args.linkage}/{args.affinity})")
-      ddg = PlotDendrogram(model, orientation=args.dendrogram_orientation, truncate_mode="level", p=args.truncate_level)
+      ddg = dendrogram(Z, orientation=args.dendrogram_orientation, truncate_mode="level", p=args.truncate_level)
       DescribeDendrogram(ddg)
       if args.dendrogram_orientation in ("top", "bottom"):
         pyplot.yticks(ticks=[])
