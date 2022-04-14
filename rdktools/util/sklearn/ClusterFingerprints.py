@@ -46,7 +46,7 @@ def ClusterFeaturevectors(X, affinity, linkage):
 	compute_distances=True,
 	distance_threshold=0, n_clusters=None) # distance_threshold=0 ensures full tree.
   model = model.fit(X)
-  model.labels_ = X.index #IDs
+  model.labels_ = X.index # Preserve IDs via model.labels_.
   return model
 
 #############################################################################
@@ -85,11 +85,12 @@ def LinkageMatrix2FlatClusters(Z, criterion="inconsistent", depth=2, t=None, min
   return fc
 
 #############################################################################
-def WriteFlatClusters(fc, ofile):
+def WriteFlatClusters(fc, labels, ofile):
   df = pd.DataFrame(fc)
   df.columns = ["cluster_id"]
   df["id"] = df.index + 1
-  df = df[["id", "cluster_id"]]
+  df['name'] = labels
+  df = df[["id", "name", "cluster_id"]]
   df.to_csv(ofile, "\t", index=False)
 
 #############################################################################
@@ -141,37 +142,30 @@ if __name__=="__main__":
 
   t0=time.time()
 
-  if args.op=="demo":
-    from sklearn.datasets import load_iris
-    iris = load_iris()
-    X = pd.DataFrame(iris.data, columns=iris.feature_names)
+  if args.op in ("cluster", "demo"):
+    if args.op=="demo":
+      from sklearn.datasets import load_iris
+      iris = load_iris()
+      X = pd.DataFrame(iris.data, columns=iris.feature_names)
+    else:
+      if args.ifile is None:
+        logging.error(f"--ifile required for operation: {args.op}")
+      X = pd.read_csv(args.ifile, sep="\t")
+      logging.info(f"Input file {args.ifile}: {X.shape[0]} x {X.shape[1]}")
+      # Convert 1st col to index (must be unique IDs).
+      X.columns = ["Name"]+list(X.columns[1:])
+      X.set_index("Name", drop=True, verify_integrity=True, inplace=True)
     model = ClusterFeaturevectors(X, args.affinity, args.linkage)
     DescribeModel(model)
+    if args.ofile_dist:
+      WriteDistanceFile(model, args.ofile_dist)
     Z = Model2LinkageMatrix(model)
+    if args.ofile:
+      fc = LinkageMatrix2FlatClusters(Z, criterion="inconsistent", depth=2, t=None, min_c=4, max_c=20)
+      WriteFlatClusters(fc, model.labels_, args.ofile)
     if args.display:
       pyplot.title(f"Hierarchical Clustering Dendrogram ({args.linkage}/{args.affinity})")
-      ddg = dendrogram(Z, orientation=args.dendrogram_orientation, truncate_mode="level", p=args.truncate_level)
-      DescribeDendrogram(ddg)
-      pyplot.xlabel("Number of points in node (or index of point if no parenthesis).")
-      pyplot.show()
-
-  elif args.op=="cluster":
-    if args.ifile is None:
-      logging.error(f"--ifile required for operation: {args.op}")
-    X = pd.read_csv(args.ifile, sep="\t")
-    logging.info(f"Input file {args.ifile}: {X.shape[0]} x {X.shape[1]}")
-    # Convert 1st col to index (must be unique IDs).
-    X.columns = ["Name"]+list(X.columns[1:])
-    X.set_index("Name", drop=True, verify_integrity=True, inplace=True)
-    model = ClusterFeaturevectors(X, args.affinity, args.linkage)
-    DescribeModel(model)
-    Z = Model2LinkageMatrix(model)
-    fc = LinkageMatrix2FlatClusters(Z, criterion="inconsistent", depth=2, t=None, min_c=4, max_c=20)
-    if args.ofile: WriteFlatClusters(fc, args.ofile)
-    if args.ofile_dist: WriteDistanceFile(model, args.ofile_dist)
-    if args.display:
-      pyplot.title(f"Hierarchical Clustering Dendrogram ({args.linkage}/{args.affinity})")
-      ddg = dendrogram(Z, orientation=args.dendrogram_orientation, truncate_mode="level", p=args.truncate_level)
+      ddg = dendrogram(Z, orientation=args.dendrogram_orientation, truncate_mode="level", p=args.truncate_level, labels=model.labels_)
       DescribeDendrogram(ddg)
       if args.dendrogram_orientation in ("top", "bottom"):
         pyplot.yticks(ticks=[])
@@ -179,12 +173,11 @@ if __name__=="__main__":
       else:
         pyplot.xticks(ticks=[])
         pyplot.margins(x=.3)
-      pyplot.xlabel("(Labels: N_in_cluster, or ID if singleton).")
+      pyplot.xlabel("Labels: (N_in_cluster) or ID if singleton.")
       pyplot.show()
 
   else:
     parser.error(f"Unsupported operation: {args.op}")
 
   logging.info(f"""Elapsed: {time.strftime('%Hh:%Mm:%Ss', time.gmtime(time.time()-t0))}""")
-
 
