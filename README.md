@@ -39,6 +39,7 @@ See also: [conda/environment.yml](conda/environment.yml)
 * [Scaffolds](#Scaffolds) - Bemis-Murcko and BRICS scaffold analysis, rdScaffoldNetworks.
 * [SMARTS](#SMARTS) - molecular pattern matching (subgraph isomorphism)
 * [Reactions](#Reactions) - SMIRKS based reaction transforms
+* [util.sklearn](#util.sklearn) - Scikit-learn utilities for processing molecular fingerprints and other feature vectors.
 
 
 ## Formats
@@ -204,24 +205,23 @@ Based on distance geometry method by Blaney et al.
 ## Fingerprints
 
 ```
-(rdktools) $ python3 -m rdktools.fp.App MolSimilarity -h
-usage: App.py [-h] [--i IFILE] [--o OFILE] [--useHs] [--useValence]
-              [--dbName DBNAME] [--tableName TABLENAME] [--minSize MINSIZE]
-              [--maxSize MAXSIZE] [--density DENSITY] [--outTable OUTTABLE]
-              [--outDbName OUTDBNAME] [--fpColName FPCOLNAME]
-              [--minPath MINPATH] [--maxPath MAXPATH]
-              [--nBitsPerHash NBITSPERHASH] [--discrim]
-              [--smilesColumn SMILESCOLUMN] [--molPkl MOLPKL]
-              [--input_format {SMILES,SD}] [--idColumn IDCOLUMN]
+(rdktools) $ python3 -m rdktools.fp.App -h
+
+usage: App.py [-h] [--i IFILE] [--iheader] [--o OFILE] [--output_as_dataframe]
+              [--output_as_tsv] [--useHs] [--useValence] [--dbName DBNAME]
+              [--tableName TABLENAME] [--minSize MINSIZE] [--maxSize MAXSIZE]
+              [--density DENSITY] [--outTable OUTTABLE] [--outDbName OUTDBNAME]
+              [--fpColName FPCOLNAME] [--minPath MINPATH] [--maxPath MAXPATH]
+              [--nBitsPerHash NBITSPERHASH] [--discrim] [--smilesColumn SMILESCOLUMN]
+              [--molPkl MOLPKL] [--input_format {SMILES,SD}] [--idColumn IDCOLUMN]
               [--maxMols MAXMOLS] [--fpAlgo {RDKIT,MACCS,MORGAN}]
               [--morgan_nbits MORGAN_NBITS] [--morgan_radius MORGAN_RADIUS]
-              [--keepTable] [--smilesTable SMILESTABLE] [--topN TOPN]
+              [--replaceTable] [--smilesTable SMILESTABLE] [--topN TOPN]
               [--thresh THRESH] [--querySmiles QUERYSMILES]
               [--metric {ALLBIT,ASYMMETRIC,DICE,COSINE,KULCZYNSKI,MCCONNAUGHEY,ONBIT,RUSSEL,SOKAL,TANIMOTO,TVERSKY}]
               [--tversky_alpha TVERSKY_ALPHA] [--tversky_beta TVERSKY_BETA]
-              [--clusterAlgo {WARD,SLINK,CLINK,UPGMA,BUTINA}]
-              [--actTable ACTTABLE] [--actName ACTNAME]
-              [--reportFreq REPORTFREQ] [-v]
+              [--clusterAlgo {WARD,SLINK,CLINK,UPGMA,BUTINA}] [--actTable ACTTABLE]
+              [--actName ACTNAME] [--reportFreq REPORTFREQ] [--showVis] [-v]
               {FingerprintMols,MolSimilarity,ClusterMols}
 
 RDKit fingerprint-based analytics
@@ -232,103 +232,109 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  --i IFILE             Input file; if provided and no tableName is specified,
-                        data will be read from the input file. Text files
-                        delimited with either commas (extension .csv) or tabs
-                        (extension .txt) are supported.
-  --o OFILE             Name of the output file (output will be a pickle file
-                        with one label,fingerprint entry for each molecule).
-  --useHs               Include Hs in the fingerprint Default is *false*.
-  --useValence          Include valence information in the fingerprints
-                        Default is *false*.
-  --dbName DBNAME       Name of the database from which to pull input molecule
-                        information. If output is going to a database, this
-                        will also be used for that unless the --outDbName
-                        option is used.
+  --i IFILE             input file; if provided and no tableName is specified, data will
+                        be read from the input file. Text files delimited with either
+                        commas (extension .csv) or tabs (extension .txt) are supported.
+  --iheader             input file has header line
+  --o OFILE             output file (pickle file with one label,fingerprint entry for
+                        each molecule).
+  --output_as_dataframe
+                        Output FPs as Pandas dataframe (pickled) with names as index,
+                        columns as feature names, if available.
+  --output_as_tsv       Output FPs as TSV with names as index, columns as feature names,
+                        if available.
+  --useHs               include Hs in the fingerprint Default is *false*.
+  --useValence          include valence information in the fingerprints Default is
+                        *false*.
+  --dbName DBNAME       name of the database from which to pull input molecule
+                        information. If output is going to a database, this will also be
+                        used for that unless the --outDbName option is used.
   --tableName TABLENAME
-                        Name of the database table from which to pull input
-                        molecule information
-  --minSize MINSIZE     Minimum size of the fingerprints to be generated
-                        (limits the amount of folding that happens).
-  --maxSize MAXSIZE     Base size of the fingerprints to be generated.
-  --density DENSITY     Target bit density in the fingerprint. The fingerprint
-                        will be folded until this density is reached.
-  --outTable OUTTABLE   name of the output db table used to store
-                        fingerprints. If this table already exists, it will be
-                        replaced.
+                        name of the database table from which to pull input molecule
+                        information
+  --minSize MINSIZE     minimum size of the fingerprints to be generated (limits the
+                        amount of folding that happens) [64].
+  --maxSize MAXSIZE     base size of the fingerprints to be generated [2048].
+  --density DENSITY     target bit density in the fingerprint. The fingerprint will be
+                        folded until this density is reached [0.3].
+  --outTable OUTTABLE   name of the output db table used to store fingerprints. If this
+                        table already exists, it will be replaced.
   --outDbName OUTDBNAME
-                        name of output database, if it's being used. Defaults
-                        to be the same as the input db.
+                        name of output database, if it's being used. Defaults to be the
+                        same as the input db.
   --fpColName FPCOLNAME
-                        name to use for the column which stores fingerprints
-                        (in pickled format) in the output db table.
-  --minPath MINPATH     Minimum path length to be included in fragment-based
-                        fingerprints.
-  --maxPath MAXPATH     Maximum path length to be included in fragment-based
-                        fingerprints.
+                        name to use for the column which stores fingerprints (in pickled
+                        format) in the output db table [AutoFragmentFP].
+  --minPath MINPATH     minimum path length to be included in fragment-based
+                        fingerprints [1].
+  --maxPath MAXPATH     maximum path length to be included in fragment-based
+                        fingerprints [7].
   --nBitsPerHash NBITSPERHASH
-                        Number of bits to be set in the output fingerprint for
-                        each fragment.
-  --discrim             Use of path-based discriminators to hash bits.
+                        number of bits to be set in the output fingerprint for each
+                        fragment [2].
+  --discrim             use of path-based discriminators to hash bits.
   --smilesColumn SMILESCOLUMN
-                        Name of the SMILES column in the input database.
+                        name of the SMILES column in the input database [#SMILES].
   --molPkl MOLPKL
   --input_format {SMILES,SD}
-                        SMILES table or SDF file.
-  --idColumn IDCOLUMN   Name of the id column in the input database. Defaults
-                        to the first column for dbs.
-  --maxMols MAXMOLS     Maximum number of molecules to be fingerprinted.
+                        SMILES table or SDF file [{DEFAULTS['input_format']}].
+  --idColumn IDCOLUMN, --nameColumn IDCOLUMN
+                        name of the id column in the input database. Defaults to the
+                        first column for dbs [Name].
+  --maxMols MAXMOLS     maximum number of molecules to be fingerprinted.
   --fpAlgo {RDKIT,MACCS,MORGAN}
-                        RDKIT = Daylight path-based; MACCS = MDL MACCS 166
-                        keys
+                        RDKIT = Daylight path-based; MACCS = MDL MACCS 166 keys [RDKIT]
   --morgan_nbits MORGAN_NBITS
+                        [1024]
   --morgan_radius MORGAN_RADIUS
-  --keepTable
+                        [2]
+  --replaceTable
   --smilesTable SMILESTABLE
-  --topN TOPN           Top N similar; precedence over threshold.
-  --thresh THRESH       Similarity threshold.
+                        name of database table which contains SMILES for the input
+                        fingerprints. If provided with --smilesName, output will contain
+                        SMILES data.
+  --topN TOPN           top N similar; precedence over threshold [12].
+  --thresh THRESH       similarity threshold.
   --querySmiles QUERYSMILES
-                        Query smiles for similarity screening.
+                        query smiles for similarity screening.
   --metric {ALLBIT,ASYMMETRIC,DICE,COSINE,KULCZYNSKI,MCCONNAUGHEY,ONBIT,RUSSEL,SOKAL,TANIMOTO,TVERSKY}
-                        Similarity algorithm
+                        similarity algorithm [TANIMOTO]
   --tversky_alpha TVERSKY_ALPHA
-                        Tversky alpha parameter, weights query molecule
-                        features
+                        Tversky alpha parameter, weights query molecule features [0.8]
   --tversky_beta TVERSKY_BETA
-                        Tversky beta parameter, weights target molecule
-                        features
+                        Tversky beta parameter, weights target molecule features [0.2]
   --clusterAlgo {WARD,SLINK,CLINK,UPGMA,BUTINA}
-                        Clustering algorithm: WARD = Ward's minimum variance;
-                        SLINK = single-linkage clustering algorithm; CLINK =
-                        complete-linkage clustering algorithm; UPGMA = group-
-                        average clustering algorithm; BUTINA = Butina JCICS 39
-                        747-750 (1999)
-  --actTable ACTTABLE   name of table containing activity values (used to
-                        color points in the cluster tree).
-  --actName ACTNAME     name of column with activities in the activity table.
-                        The values in this column should either be integers or
-                        convertible into integers.
+                        clustering algorithm: WARD = Ward's minimum variance; SLINK =
+                        single-linkage clustering algorithm; CLINK = complete-linkage
+                        clustering algorithm; UPGMA = group-average clustering
+                        algorithm; BUTINA = Butina JCICS 39 747-750 (1999) [WARD]
+  --actTable ACTTABLE   name of table containing activity values (used to color points
+                        in the cluster tree).
+  --actName ACTNAME     name of column with activities in the activity table. The values
+                        in this column should either be integers or convertible into
+                        integers.
   --reportFreq REPORTFREQ
+                        [100]
+  --showVis             show visualization if available.
   -v, --verbose
 
-This app employs custom, updated versions of RDKit FingerprintMols.py,
-MolSimilarity.py, ClusterMols.py, with enhanced command-line functionality for
-molecular fingerprint-based analytics.
+This app employs custom, updated versions of RDKit FingerprintMols.py, MolSimilarity.py,
+ClusterMols.py, with enhanced command-line functionality for molecular fingerprint-based
+analytics.
 ```
 
 Examples:
 
 ```
-(rdktools) $ python3 -m rdktools.fp.App FingerprintMols --i drugcentral.smi --smilesColumn "smiles" --idColumn "name" --fpAlgo MORGAN --morgan_nbits 2048
+(rdktools) $ python3 -m rdktools.fp.App FingerprintMols --i drugcentral.smiles --smilesColumn "smiles" --idColumn "name" --fpAlgo MORGAN --morgan_nbits 2048 --output_as_tsv --o drugcentral_morganfp.tsv
 ```
 
 ```
-(rdktools) $ python3 -m rdktools.fp.App MolSimilarity --i drugcentral.smi --smilesColumn "smiles" --idColumn "name" --querySmiles "NCCc1ccc(O)c(O)c1 dopamine" --fpAlgo MORGAN --morgan_nbits 512 --metric TVERSKY --tversky_alpha 0.8 --tversky_beta 0.2
+(rdktools) $ python3 -m rdktools.fp.App MolSimilarity --i drugcentral.smiles --smilesColumn "smiles" --idColumn "name" --querySmiles "NCCc1ccc(O)c(O)c1 dopamine" --fpAlgo MORGAN --morgan_nbits 512 --metric TVERSKY --tversky_alpha 0.8 --tversky_beta 0.2
 ```
 
 ```
-(rdktools) $ python3 -m rdktools.fp.App ClusterMols --i drugcentral.smiles --smilesColumn "smiles" --idColumn "name" --fpAlgo MORGAN --morgan_nbits
-512 --clusterAlgo WARD --metric TANIMOTO
+(rdktools) $ python3 -m rdktools.fp.App ClusterMols --i drugcentral.smiles --smilesColumn "smiles" --idColumn "name" --fpAlgo MORGAN --morgan_nbits 512 --clusterAlgo BUTINA --metric TANIMOTO
 ```
 
 ## SMARTS
@@ -389,3 +395,46 @@ optional arguments:
   -v, --verbose
 ```
 
+### util.sklearn
+
+Scikit-learn utilities for processing molecular fingerprints and other feature vectors.
+
+```
+(rdktools) lengua$ python3 -m rdktools.util.sklearn.ClusterFingerprints -h
+usage: ClusterFingerprints.py [-h] [--i IFILE] [--o OFILE] [--o_vis OFILE_VIS]
+                              [--scratchdir SCRATCHDIR] [--idelim IDELIM]
+                              [--odelim ODELIM]
+                              [--affinity {euclidean,l1,l2,manhattan,cosine,precomputed}]
+                              [--linkage {ward,complete,average,single}]
+                              [--truncate_level TRUNCATE_LEVEL] [--iheader] [--oheader]
+                              [--dendrogram_orientation {left,top,right,bottom}]
+                              [--display] [-v]
+                              {cluster,demo}
+
+Hierarchical, agglomerative clustering by Scikit-learn
+
+positional arguments:
+  {cluster,demo}        OPERATION
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --i IFILE             input file, TSV
+  --o OFILE             output file, TSV
+  --o_vis OFILE_VIS     output file, PNG or HTML
+  --scratchdir SCRATCHDIR
+  --idelim IDELIM       delim for input TSV
+  --odelim ODELIM       delim for output TSV
+  --affinity {euclidean,l1,l2,manhattan,cosine,precomputed}
+  --linkage {ward,complete,average,single}
+  --truncate_level TRUNCATE_LEVEL
+                        Level from root of hierarchy for clusters and dendrogram.
+  --iheader             input TSV has header
+  --oheader             output TSV has header
+  --dendrogram_orientation {left,top,right,bottom}
+  --display             display dendrogram
+  -v, --verbose
+```
+
+```
+(rdktools) $ python3 -m rdktools.util.sklearn.ClusterFingerprints cluster --i drugcentral_morganfp.tsv --truncate_level 5 --display
+```
