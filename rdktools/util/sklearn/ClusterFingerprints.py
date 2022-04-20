@@ -11,7 +11,7 @@ https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.den
  
 scipy.cluster.hierarchy.dendrogram(Z, p=30, truncate_mode=None, color_threshold=None, get_leaves=True, orientation='top', labels=None, count_sort=False, distance_sort=False, show_leaf_counts=True, no_plot=False, no_labels=False, leaf_font_size=None, leaf_rotation=None, leaf_label_func=None, show_contracted=False, link_color_func=None, ax=None, above_threshold_color='C0')
 """
-import sys,os,time,argparse,logging
+import sys,os,re,time,argparse,logging
 import pandas as pd
 import numpy as np
 import matplotlib as mpl
@@ -118,7 +118,7 @@ if __name__=="__main__":
   parser.add_argument("--i", dest="ifile", help="input file, TSV")
   parser.add_argument("--o", dest="ofile", help="output file, TSV")
   parser.add_argument("--o_dist", dest="ofile_dist", help="output distance file, TSV")
-  parser.add_argument("--o_vis", dest="ofile_vis", default="/tmp/cluster_dendrogram.html", help="output file, PNG or HTML")
+  parser.add_argument("--o_vis", dest="ofile_vis", help="output file, PNG")
   parser.add_argument("--scratchdir", default="/tmp")
   parser.add_argument("--idelim", default="\t", help="delim for input TSV")
   parser.add_argument("--odelim", default="\t", help="delim for output TSV")
@@ -163,17 +163,22 @@ if __name__=="__main__":
     if args.ofile:
       fc = LinkageMatrix2FlatClusters(Z, criterion="inconsistent", depth=2, t=None, min_c=4, max_c=20)
       WriteFlatClusters(fc, model.labels_, args.ofile)
+
+    pyplot.title(f"Hierarchical Clustering Dendrogram ({args.linkage}/{args.affinity})")
+    ddg = dendrogram(Z, orientation=args.dendrogram_orientation, truncate_mode="level", p=args.truncate_level, labels=model.labels_)
+    DescribeDendrogram(ddg)
+    if args.dendrogram_orientation in ("top", "bottom"):
+      pyplot.yticks(ticks=[])
+      pyplot.margins(y=.3)
+    else:
+      pyplot.xticks(ticks=[])
+      pyplot.margins(x=.3)
+    pyplot.xlabel("Labels: (N_in_cluster) or ID if singleton.")
+    if args.ofile_vis:
+      if re.sub(r'^.*\.', '', args.ofile_vis).lower() not in ('png', 'html'):
+        parser.error(f"--ofile_vis requires .png")
+      pyplot.savefig(args.ofile_vis)
     if args.display:
-      pyplot.title(f"Hierarchical Clustering Dendrogram ({args.linkage}/{args.affinity})")
-      ddg = dendrogram(Z, orientation=args.dendrogram_orientation, truncate_mode="level", p=args.truncate_level, labels=model.labels_)
-      DescribeDendrogram(ddg)
-      if args.dendrogram_orientation in ("top", "bottom"):
-        pyplot.yticks(ticks=[])
-        pyplot.margins(y=.3)
-      else:
-        pyplot.xticks(ticks=[])
-        pyplot.margins(x=.3)
-      pyplot.xlabel("Labels: (N_in_cluster) or ID if singleton.")
       pyplot.show()
 
   else:

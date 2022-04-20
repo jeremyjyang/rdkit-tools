@@ -116,6 +116,12 @@ optional arguments:
 Modes: single = one image; batch = multiple images; pdf = multi-page
 ```
 
+```
+python3 -m rdktools.depict.App single -height 500 --width 600 --i valium.smiles --o valium.png 
+```
+
+<img src="data/valium.png" height="400">
+
 ## Scaffolds
 
 ```

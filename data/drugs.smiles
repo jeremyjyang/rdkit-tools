@@ -1,0 +1,20 @@
+CN1C(=O)N(C)C(=O)C(N(C)C=N2)=C12	caffeine
+c1ncccc1C1CCCN1C	nicotine
+NC(C)Cc1ccccc1	adderall
+c1ccccc1C(=O)OC2CC(N3C)CCC3C2C(=O)OC	cocaine
+COc1cc2c(ccnc2cc1)C(O)C4CC(CC3)C(C=C)CN34	quinine
+CCN(CC)C(=O)[C@H]1CN([C@@H]2Cc3c[nH]c4c3c(ccc4)C2=C1)C	Lysergic acid diethylamide
+C123C5C(O)C=CC2C(N(C)CC1)Cc(ccc4O)c3c4O5	morphine
+C1C(C)=C(C=CC(C)=CC=CC(C)=CCO)C(C)(C)C1	Vitamin A
+CC1(C)SC2C(NC(=O)Cc3ccccc3)C(=O)N2C1C(=O)O	benzylpenicillin
+Oc1cc(ccc1)/C=C/c2cc(O)cc(O)c2	resveratrol
+CC/C(=C(/c1ccc(OCCN(C)C)cc1)c1ccccc1)c1ccccc1	Tamoxifen
+CN/C(=C\[N+](=O)[O-])/NCCSCC1=CC=C(O1)CN(C)C.Cl	Zantac
+CCC(CC)O[C@@H]1C=C(C[C@@H]([C@H]1NC(=O)C)N)C(=O)OCC	Tamiflu
+CNCCC(c1ccccc1)Oc2ccc(cc2)C(F)(F)F.Cl	Prozac
+CN1c2ccc(cc2C(=NCC1=O)c3ccccc3)Cl	Valium
+O=S(=O)(N1CCN(C)CC1)c4cc(C\2=N\C(=O)c3c(N/2)c(nn3C)CCC)c(OCC)cc4.O=C(O)C(O)(CC(=O)O)CC(=O)O	Viagra
+Oc2cc(cc1OC(C3CC/C(=C\C3c12)C)(C)C)CCCCC	THC
+O=C(\C=C\c1ccc(O)c(OC)c1)CC(=O)\C=C\c2cc(OC)c(O)cc2	Curcumin
+O=C3C(=O)N1CCCC[C@H]1C(=O)O[C@H](C(=C/[C@@H]2CC[C@@H](O)[C@H](OC)C2)/C)[C@H](C)[C@@H](O)CC(=O)[C@@H](/C=C(/C[C@@H](C[C@H](OC)[C@H]4O[C@]3(O)[C@H](C)C[C@@H]4OC)C)C)C\C=C	Tacrolimus
+O=C(CO)[C@@]3(O)CC[C@H]2[C@@H]4CC\C1=C\C(=O)CC[C@]1(C)[C@H]4C(=O)C[C@@]23C	Cortisone
