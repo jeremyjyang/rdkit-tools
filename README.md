@@ -5,7 +5,7 @@ Tools for use with RDKit. Motivated and intended for use with
 
 See also:
 
-* [CFChemDb](https://github.com/druggablegenome/idg-cfde) (repository)
+* [CFChemDb](https://github.com/unmtransinfo/CFChemDb) (repository)
 * [CFChemDb_UI](https://github.com/jeremyjyang/CFChemDb_UI) (repository)
 * [rdktools](https://pypi.org/project/rdktools/) (Pypi package)
 * [CFDE: Common Fund Data Ecosystem](https://nih-cfde.org/)
@@ -153,6 +153,12 @@ optional arguments:
   --brics               BRICS fragmentation rules (Degen, 2008)
   -v, --verbose
 ```
+
+```
+python3 -m rdktools.scaffold.App bmscaf --i drugs.smiles --o_vis drugs_bmscaf.png
+```
+
+<img src="data/drugs_bmscaf.png" height="400">
 
 ## Standardization
 

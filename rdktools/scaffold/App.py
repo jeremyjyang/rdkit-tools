@@ -115,7 +115,7 @@ if __name__ == "__main__":
   parser.add_argument("op", choices=OPS, default="mol2scaf", help="OPERATION")
   parser.add_argument("--i", dest="ifile", help="input file, TSV or SDF")
   parser.add_argument("--o", dest="ofile", help="output file, TSV|SDF")
-  parser.add_argument("--o_vis", dest="ofile_vis", default="/tmp/rdk_scafnet.html", help="output file, PNG or HTML")
+  parser.add_argument("--o_vis", dest="ofile_vis", help="output file, PNG")
   parser.add_argument("--scratchdir", default="/tmp")
   parser.add_argument("--smilesColumn", type=int, default=0, help="SMILES column from TSV (counting from 0)")
   parser.add_argument("--nameColumn", type=int, default=1, help="name column from TSV (counting from 0)")
@@ -153,7 +153,10 @@ if __name__ == "__main__":
     molReader = util.File2Molreader(args.ifile, args.idelim, args.smilesColumn, args.nameColumn, args.iheader)
     molWriter = util.File2Molwriter(args.ofile, args.odelim, args.oheader)
     mols = util.ReadMols(molReader)
-    scaffold.Mols2BMScaffolds(mols, molWriter)
+    scafmols = scaffold.Mols2BMScaffolds(mols, molWriter)
+    if args.ofile_vis:
+      img = rdkit.Chem.Draw.MolsToGridImage(scafmols, molsPerRow=8)
+      img.save(args.ofile_vis, format="PNG")
 
   elif args.op=="scafnet":
     molReader = util.File2Molreader(args.ifile, args.idelim, args.smilesColumn, args.nameColumn, args.iheader)

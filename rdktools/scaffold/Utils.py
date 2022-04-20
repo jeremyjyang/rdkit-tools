@@ -40,12 +40,15 @@ DEMOSMIS = [
 
 #############################################################################
 def Mols2BMScaffolds(mols, molWriter):
+  scafmols=[];
   for i,mol in enumerate(mols):
     molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
     logging.debug(f'{i+1}. {molname}')
     scafmol = MurckoScaffold.GetScaffoldForMol(mol)
+    scafmols.append(scafmol)
     molWriter.write(scafmol)
   logging.info(f'{len(mols)} mols written to {molWriter}')
+  return scafmols
 
 #############################################################################
 def Mols2ScafNet(mols, brics=False, ofile=None):
