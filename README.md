@@ -448,5 +448,7 @@ optional arguments:
 ```
 
 ```
-(rdktools) $ python3 -m rdktools.util.sklearn.ClusterFingerprints cluster --i drugcentral_morganfp.tsv --truncate_level 5 --display
+(rdktools) $ python3 -m rdktools.util.sklearn.ClusterFingerprints cluster --i drugcentral_morganfp.tsv --truncate_level 5 --o_vis drugcentral_morganfp_ward-clusters_dendrogram.png
 ```
+
+<img src="data/drugcentral_morganfp_ward-clusters_dendrogram.png" height="500">
