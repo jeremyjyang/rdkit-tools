@@ -376,6 +376,40 @@ optional arguments:
   -v, --verbose
 ```
 
+## Reactions
+
+```
+$ python3 -m rdktools.reactions.App -h
+usage: App.py [-h] [--i IFILES] [--o OFILE] [--smirks SMIRKS] [--kekulize] [--sanitize]
+              [--header] [--delim DELIM] [--smilesColumn SMILESCOLUMN]
+              [--nameColumn NAMECOLUMN] [-v]
+              {enumerateLibrary,react,demo,demo2,demo3}
+
+RDKit chemical reactions utility
+
+positional arguments:
+  {enumerateLibrary,react,demo,demo2,demo3}
+                        OPERATION
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --i IFILES            input file[s] (SMILES/TSV or SDF)
+  --o OFILE             output file (specify '-' for stdout)
+  --smirks SMIRKS       SMIRKS reaction transform
+  --kekulize            Kekulize
+  --sanitize            Sanitize
+  --header              input SMILES/TSV file has header line
+  --delim DELIM         delimiter for SMILES/TSV
+  --smilesColumn SMILESCOLUMN
+                        input SMILES column
+  --nameColumn NAMECOLUMN
+                        input name column
+  -v, --verbose
+
+Reactants specified as disconnected components of single molecule, or from separate
+input files.
+```
+
 ## Properties
 
 ```
