@@ -13,9 +13,11 @@ from .. import reactions
 
 #############################################################################
 if __name__=='__main__':
-  EPILOG = "Reactants specified as disconnected components of single molecule, or from separate input files."
+  EPILOG = """For 'react' operation, reactants are specified as disconnected
+components of single input molecule record. For 'enumerateLibrary', reactants for
+each role are specfied from separate input files, ordered as in the SMIRKS."""
   parser = argparse.ArgumentParser(description="RDKit chemical reactions utility", epilog=EPILOG)
-  OPS = [ "enumerateLibrary", "react", "demo", "demo2", "demo3"]
+  OPS = ["enumerateLibrary", "react", "demo", "demo2", "demo3", "demo4",]
   parser.add_argument("op", choices=OPS, help="OPERATION")
   parser.add_argument("--i", dest="ifiles", help="input file[s] (SMILES/TSV or SDF)")
   parser.add_argument("--o", dest="ofile", default="-", help="output file (specify '-' for stdout)")
@@ -38,16 +40,20 @@ if __name__=='__main__':
       molReaders.append(molReader)
   molWriter = util.File2Molwriter(args.ofile, args.delim, args.header)
 
-
   if args.op == "react":
-    reactions.React(args.smirks, molReaders, molWriter)
+    if len(molReaders)!=1:
+      parser.error(f"Exactly 1 input file required for operation: {args.op}")
+    reactions.React(args.smirks, molReaders[0], molWriter)
 
   elif args.op == "enumerateLibrary":
+    if len(molReaders)<1:
+      parser.error(f"1+ input file required for operation: {args.op}")
     reactions.EnumerateLibrary(args.smirks, molReaders, molWriter)
 
   elif args.op == "demo": reactions.Demo()
   elif args.op == "demo2": reactions.Demo2()
   elif args.op == "demo3": reactions.Demo3()
+  elif args.op == "demo4": reactions.Demo4()
   else:
     parser.error(f"Unsupported operation: {args.op}")
 

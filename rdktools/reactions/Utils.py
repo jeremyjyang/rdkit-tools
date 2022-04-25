@@ -12,22 +12,24 @@ from rdkit.Chem.rdChemReactions import PreprocessReaction
 
 #############################################################################
 def React(smirks, molReader, molWriter):
+  """For this function, each molecule record from the input stream must be a disconnected mixture of reactants."""
   logging.info(f"SMIRKS: {smirks}")
   rxn = rdChemReactions.ReactionFromSmarts(smirks)
   for molmix in molReader:
     reactants = Chem.rdmolops.GetMolFrags(molmix, asMols=True)
-    logging.debug(f"REACTANTS: {len(reactants)}")
-    for k,r in enumerate(reactants):
-      logging.debug(f"REACTANT {k+1}: {Chem.MolToSmiles(r)}")
+    reactant_smis = [Chem.MolToSmiles(r) for r in reactants]
+    for k,smi in enumerate(reactant_smis):
+      logging.debug(f"REACTANT {k+1}: {smi}")
     product_sets = rxn.RunReactants(reactants)
     for i,product_set in enumerate(product_sets):
       for j,product in enumerate(product_set):
         logging.info(f"PRODUCT {i+1}.{j+1}: {Chem.MolToSmiles(product)}")
+        logging.info(f"REACTION {i+1}.{j+1}: {'.'.join(reactant_smis)}>>{Chem.MolToSmiles(product)}")
         molWriter.write(product)
 
 #############################################################################
 def EnumerateLibrary(smirks, molReaders, molWriter):
-  """Reactant-set order must agree with SMIRKS reactant order."""
+  """Each input stream corresponds with a reactant-set, with the same reaction role. Reactant-set order must agree with SMIRKS reactant order."""
   logging.info(f"SMIRKS: {smirks}")
   logging.info(f"molReaders: {len(molReaders)}")
   rxn = rdChemReactions.ReactionFromSmarts(smirks)
@@ -83,7 +85,6 @@ def Demo2():
   logging.info(f"{m1.HasSubstructMatch(r1)}")
   logging.info(f"{m2.HasSubstructMatch(r1)}")
 
-
 #############################################################################
 def Demo3():
   smirks = '[O:2]=[C:1][OH].[N:3]>>[O:2]=[C:1][N:3]'
@@ -101,3 +102,13 @@ NCc1ccccc1
   molWriter = Chem.SmilesWriter("-", delimiter='\t', includeHeader=False, isomericSmiles=True, kekuleSmiles=True)
   EnumerateLibrary(smirks, molReaders, molWriter)
 
+#############################################################################
+def Demo4():
+  smirks = '[O:2]=[C:1][OH].[N:3]>>[O:2]=[C:1][N:3]'
+  molReader = Chem.SmilesMolSupplierFromText("""\
+OC=O.NC
+OC(=O)C.NCC
+OC(=O)CCc1ccccc1.NCc1ccccc1
+""", delimiter="\t", smilesColumn=0, nameColumn=0, titleLine=False)
+  molWriter = Chem.SmilesWriter("-", delimiter='\t', includeHeader=False, isomericSmiles=True, kekuleSmiles=True)
+  React(smirks, molReader, molWriter)
