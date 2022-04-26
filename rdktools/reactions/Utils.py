@@ -11,24 +11,27 @@ from rdkit.Chem import rdChemReactions
 from rdkit.Chem.rdChemReactions import PreprocessReaction
 
 #############################################################################
-def React(smirks, molReader, molWriter):
+def React(smirks, molReader, output_mode, fout):
   """For this function, each molecule record from the input stream must be a disconnected mixture of reactants."""
-  logging.info(f"SMIRKS: {smirks}")
+  osmis=[];
+  logging.debug(f"SMIRKS: {smirks}")
   rxn = rdChemReactions.ReactionFromSmarts(smirks)
-  for molmix in molReader:
+  for i,molmix in enumerate(molReader):
     reactants = Chem.rdmolops.GetMolFrags(molmix, asMols=True)
-    reactant_smis = [Chem.MolToSmiles(r) for r in reactants]
-    for k,smi in enumerate(reactant_smis):
-      logging.debug(f"REACTANT {k+1}: {smi}")
+    rsmis = [Chem.MolToSmiles(r) for r in reactants]
+    logging.debug("REACTANTS: "+(".".join([f"{rsmi}" for rsmi in rsmis])))
     product_sets = rxn.RunReactants(reactants)
-    for i,product_set in enumerate(product_sets):
-      for j,product in enumerate(product_set):
-        logging.info(f"PRODUCT {i+1}.{j+1}: {Chem.MolToSmiles(product)}")
-        logging.info(f"REACTION {i+1}.{j+1}: {'.'.join(reactant_smis)}>>{Chem.MolToSmiles(product)}")
-        molWriter.write(product)
+    for j,product_set in enumerate(product_sets):
+      psmis = [Chem.MolToSmiles(p) for p in product_set]
+      logging.debug("PRODUCTS: "+(".".join([f"{psmi}" for psmi in psmis])))
+      rxnsmi = f"{'.'.join(rsmis)}>>{'.'.join(psmis)}"
+      logging.debug(f"REACTION {i+1}.{j+1}: {rxnsmi}")
+      fout.write(f"{psmi if output_mode=='products' else rxnsmi}\n")
+      osmis.append(psmi if output_mode=='products' else rxnsmi)
+  return osmis
 
 #############################################################################
-def EnumerateLibrary(smirks, molReaders, molWriter):
+def EnumerateLibrary(smirks, molReaders, output_mode, fout):
   """Each input stream corresponds with a reactant-set, with the same reaction role. Reactant-set order must agree with SMIRKS reactant order."""
   logging.info(f"SMIRKS: {smirks}")
   logging.info(f"molReaders: {len(molReaders)}")
@@ -36,13 +39,15 @@ def EnumerateLibrary(smirks, molReaders, molWriter):
   reactant_sets=[];
   for molReader in molReaders:
     reactant_sets.append([m for m in molReader])
-  for i,reactant_set in enumerate(reactant_sets):
-    logging.debug(f"REACTANT_SET {i+1}: "+(",".join([Chem.MolToSmiles(m) for m in reactant_set])))
+  for k,reactant_set in enumerate(reactant_sets):
+    rsmis = [Chem.MolToSmiles(r) for r in reactant_set]
+    logging.debug(f"REACTANT_SET {k+1}: {','.join(rsmis)}")
   product_sets = AllChem.EnumerateLibraryFromReaction(rxn, reactant_sets) # tuple of tuples
   for i,product_set in enumerate(product_sets):
     for j,product in enumerate(product_set):
-      logging.info(f"PRODUCT {i+1}.{j+1}: {Chem.MolToSmiles(product)}")
-      molWriter.write(product)
+      psmi = Chem.MolToSmiles(product)
+      logging.info(f"PRODUCT {i+1}.{j+1}: {psmi}")
+      fout.write(psmi)
 
 #############################################################################
 def Demo():
@@ -99,8 +104,7 @@ NCC
 NCc1ccccc1
 """, delimiter="\t", smilesColumn=0, nameColumn=0, titleLine=False)
   molReaders = [ molReader1, molReader2 ]
-  molWriter = Chem.SmilesWriter("-", delimiter='\t', includeHeader=False, isomericSmiles=True, kekuleSmiles=True)
-  EnumerateLibrary(smirks, molReaders, molWriter)
+  EnumerateLibrary(smirks, molReaders, sys.stdout)
 
 #############################################################################
 def Demo4():
@@ -110,5 +114,4 @@ OC=O.NC
 OC(=O)C.NCC
 OC(=O)CCc1ccccc1.NCc1ccccc1
 """, delimiter="\t", smilesColumn=0, nameColumn=0, titleLine=False)
-  molWriter = Chem.SmilesWriter("-", delimiter='\t', includeHeader=False, isomericSmiles=True, kekuleSmiles=True)
-  React(smirks, molReader, molWriter)
+  React(smirks, molReader, sys.stdout)

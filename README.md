@@ -38,7 +38,7 @@ See also: [conda/environment.yml](conda/environment.yml)
 * [Properties](#Properties) - molecular property calculation: Lipinsky, Wildman-Crippen LogP, Kier-Hall electrotopological descriptors, solvent accessible surface area (SASA), and more.
 * [Scaffolds](#Scaffolds) - Bemis-Murcko and BRICS scaffold analysis, rdScaffoldNetworks.
 * [SMARTS](#SMARTS) - molecular pattern matching (subgraph isomorphism)
-* [Reactions](#Reactions) - SMIRKS based reaction transforms
+* [Reactions](#Reactions) - Reaction SMILES, SMARTS, and SMIRKS based reaction analytics
 * [util.sklearn](#util.sklearn) - Scikit-learn utilities for processing molecular fingerprints and other feature vectors.
 
 
@@ -380,24 +380,30 @@ optional arguments:
 
 ```
 $ python3 -m rdktools.reactions.App -h
-usage: App.py [-h] [--i IFILES] [--o OFILE] [--smirks SMIRKS] [--kekulize] [--sanitize]
-              [--header] [--delim DELIM] [--smilesColumn SMILESCOLUMN]
+usage: App.py [-h] [--i IFILES] [--o OFILE] [--output_mode {products,reactions}]
+              [--o_depict OFILE_DEPICT] [--smirks SMIRKS] [--kekulize] [--sanitize]
+              [--depict] [--header] [--delim DELIM] [--smilesColumn SMILESCOLUMN]
               [--nameColumn NAMECOLUMN] [-v]
-              {enumerateLibrary,react,demo,demo2,demo3}
+              {enumerateLibrary,react,demo,demo2,demo3,demo4}
 
 RDKit chemical reactions utility
 
 positional arguments:
-  {enumerateLibrary,react,demo,demo2,demo3}
+  {enumerateLibrary,react,demo,demo2,demo3,demo4}
                         OPERATION
 
 optional arguments:
   -h, --help            show this help message and exit
   --i IFILES            input file[s] (SMILES/TSV or SDF)
-  --o OFILE             output file (specify '-' for stdout)
+  --o OFILE             output file (SMILES) [stdout]
+  --output_mode {products,reactions}
+                        products|reactions [products]
+  --o_depict OFILE_DEPICT
+                        output depiction file (PNG) [display]
   --smirks SMIRKS       SMIRKS reaction transform
   --kekulize            Kekulize
   --sanitize            Sanitize
+  --depict              Depict (1st reaction or product only)
   --header              input SMILES/TSV file has header line
   --delim DELIM         delimiter for SMILES/TSV
   --smilesColumn SMILESCOLUMN
@@ -406,9 +412,16 @@ optional arguments:
                         input name column
   -v, --verbose
 
-Reactants specified as disconnected components of single molecule, or from separate
-input files.
+For 'react' operation, reactants are specified as disconnected components of single
+input molecule record. For 'enumerateLibrary', reactants for each role are specfied from
+separate input files, ordered as in the SMIRKS.
 ```
+
+```
+python3 -m rdktools.reactions.App react --smirks '[O:2]=[C:1][OH].[N:3]>>[O:2][C:1][N:3]' --i reactants.smiles --nameColumn 0 --depict --o_depict reaction.png
+```
+
+<img src="data/reaction.png" height="300">
 
 ## Properties
 
