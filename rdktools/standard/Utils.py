@@ -22,7 +22,32 @@ def StdMol(stdzr, mol, sanitize, isomeric=True):
   return mol_std
 
 #############################################################################
+def Canonicalize(isomeric, kekulize, molReader, molWriter):
+  """Canonicalize only."""
+  n_mol=0; n_out=0; n_empty_in=0; n_empty_out=0; n_err=0;
+  for mol in molReader:
+    n_mol+=1
+    if mol is None:
+      n_err+=1
+      logging.error(f"[N={n_mol}] Failed to read mol.")
+      mol = Chem.Mol() #empty mol
+    elif mol.GetNumAtoms()==0:
+      logging.info(f"[N={n_mol}] {util.MolName(mol)}: Empty molecule -- no atoms.")
+      n_empty_in+=1
+      n_empty_out+=1
+    else:
+      if kekulize:
+        Chem.Kekulize(mol, clearAromaticFlags=True)
+      else:
+        Chem.SanitizeMol(mol) # setAromaticity=True (default)
+      logging.debug(f"[N={n_mol}] {util.MolName(mol)}: {MolToSmiles(mol, isomericSmiles=isomeric)}")
+    molWriter.write(mol)
+    n_out+=1
+  logging.info(f"Mols in: {n_mol}; empty mols in: {n_empty_in}; mols out: {n_out}; empty mols out: {n_empty_out}; errors: {n_err}")
+
+#############################################################################
 def Standardize(stdzr, sanitize, isomeric, molReader, molWriter):
+  """Sanitize, standardize, and canonicalize."""
   n_mol=0; n_out=0; n_empty_in=0; n_empty_out=0; n_err=0;
   for mol in molReader:
     n_mol+=1

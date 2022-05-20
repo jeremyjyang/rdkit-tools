@@ -63,6 +63,20 @@ def DescribeModel(model):
     logging.debug(f"{i+1:5d}: merge {row[0]:5d}, {row[1]:5d} (d:{model.distances_[i]:6.3f}) n_clusters:{n_clusters:6d}") #distances_: array-like of shape (n_nodes-1,)
 
 #############################################################################
+# From: https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html
+# A  by 4 matrix Z is returned. At the -th iteration, clusters with indices Z[i, 0]
+# and Z[i, 1] are combined to form cluster . A cluster with an index less than
+# corresponds to one of the  original observations. The distance between clusters
+# Z[i, 0] and Z[i, 1] is given by Z[i, 2]. The fourth value Z[i, 3] represents the
+# number of original observations in the newly formed cluster.
+###
+def WriteLinkageMatrix(Z, labels, ofile):
+  df = pd.DataFrame(Z)
+  df.columns = ["idxa", "idxb", "distance", "n"]
+  df = df.astype({"idxa":"int", "idxb":"int", "n":"int"})
+  df.round(2).to_csv(ofile, "\t", index=False)
+
+#############################################################################
 def LinkageMatrix2FlatClusters(Z, criterion="inconsistent", depth=2, t=None, min_c=4, max_c=20):
   if t is not None:
     fc = fcluster(Z, t, criterion, depth)
@@ -118,6 +132,7 @@ if __name__=="__main__":
   parser.add_argument("--i", dest="ifile", help="input file, TSV")
   parser.add_argument("--o", dest="ofile", help="output file, TSV")
   parser.add_argument("--o_dist", dest="ofile_dist", help="output distance file, TSV")
+  parser.add_argument("--o_lmat", dest="ofile_lmat", help="output hierarchical tree as Scipy linkage matrix of clusters and individuals file, TSV")
   parser.add_argument("--o_vis", dest="ofile_vis", help="output file, PNG")
   parser.add_argument("--scratchdir", default="/tmp")
   parser.add_argument("--idelim", default="\t", help="delim for input TSV")
@@ -160,6 +175,8 @@ if __name__=="__main__":
     if args.ofile_dist:
       WriteDistanceFile(model, args.ofile_dist)
     Z = Model2LinkageMatrix(model)
+    if args.ofile_lmat:
+      WriteLinkageMatrix(Z, model.labels_, args.ofile_lmat)
     if args.ofile:
       fc = LinkageMatrix2FlatClusters(Z, criterion="inconsistent", depth=2, t=None, min_c=4, max_c=20)
       WriteFlatClusters(fc, model.labels_, args.ofile)
