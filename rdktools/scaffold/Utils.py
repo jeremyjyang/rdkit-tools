@@ -5,7 +5,7 @@ https://www.rdkit.org/docs/source/rdkit.Chem.Scaffolds.rdScaffoldNetwork.html
 rdScaffoldNetwork available RDKit 2020.03.1+.
 """
 #############################################################################
-import os,sys,re,logging,json,time,inspect
+import os,sys,re,logging,json,time,inspect,tempfile,stat
 
 import matplotlib as mpl
 #from matplotlib import pyplot as plt
@@ -27,16 +27,7 @@ from rdkit.Chem.Scaffolds import rdScaffoldNetwork
 import pyvis
 from pyvis.network import Network
 
-DEMOSMIS = [
-'C[C@H]1CN(CCCN1[S+]([O-])(=O)C2=CC=CC3=C2C(=CN=C3)C)C(=O)CN Rho Kinase Inhibitor IV',
-'N[S+]([O-])(=O)C1=C(Cl)C=C2NC(N[S+]([O-])(=O)C2=C1)C(Cl)Cl trichlormethiazide',
-'C[S+]([O-])C1=CC=C(C=C1)\C=C2\C(=C(\CC(O)=O)C3=C2C=CC(=C3)F)C Sulindac',
-'O=[N+]([O-])c1cc(S(=O)(=O)N2CCCC2)ccc1NN=Cc1ccccn1 PUBCHEM_CID:4036736',
-'Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 flucloxacillin',
-'CC1(C)S[C@@H]2[C@H](NC(=O)[C@H](N)c3ccccc3)C(=O)N2[C@H]1C(=O)O ampicillin',
-'CC1(C)SC2C(NC(=O)Cc3ccccc3)C(=O)N2C1C(=O)O.[Na] penicillin',
-'Cc1onc(-c2ccccc2)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 oxacillin'
-	]
+from .. import util
 
 #############################################################################
 def Mols2BMScaffolds(mols, molWriter):
@@ -83,5 +74,109 @@ def Mols2ScafNet(mols, brics=False, ofile=None):
   fout.flush()
   logging.info(f"nodes: {len(scafnet.nodes)}; edges:{len(scafnet.edges)}")
   return scafnet
+
+#############################################################################
+def DemoBM():
+  scafmols=[];
+  for smi in util.DEMOSMIS:
+    mol = MolFromSmiles(re.sub(r'\s.*$', '', smi))
+    scafmol = MurckoScaffold.GetScaffoldForMol(mol) if mol else None
+    scafmols.append(scafmol)
+    smi_std = MolToSmiles(scafmol, isomericSmiles=False) if scafmol else None
+    logging.info(f"{smi:>28s} >> {smi_std}")
+  img = rdkit.Chem.Draw.MolsToGridImage(scafmols, molsPerRow=4)
+  img.show()
+
+#############################################################################
+def DemoNetImg(scratchdir):
+  fout = tempfile.NamedTemporaryFile(prefix=scratchdir+"/", suffix=".png", mode="w+b", delete=False)
+  ofile = fout.name
+  fout.close()
+  logging.debug(f"DemoNetImg({brics}, {fout.name})")
+  smi = ('Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 flucloxacillin')
+  mols = [MolFromSmiles(re.sub(r'\s.*$', '', smi))]
+  scafnet = Mols2ScafNet(mols, False)
+  logging.info(f"Scafnet nodes: {len(scafnet.nodes)}; edges: {len(scafnet.edges)}")
+  #scafmols = [MolFromSmiles(m) for m in scafnet.nodes]
+  scafmols = []
+  for i,m in enumerate(scafnet.nodes[:]):
+    logging.debug(f"{i+1}. MolFromSmiles({m})...")
+    scafmols.append(MolFromSmiles(m))
+  logging.info(f"Scafmols: {len(scafmols)}")
+  img = Scafnet2Img(scafnet, ofile)
+  img.show()
+
+#############################################################################
+def Scafnet2Img(scafnet, ofile):
+  #title="RDKit_ScafNet:"+re.sub(r'^[^\s]*\s+(.*)$', r'\1', smi)) #How to add title?
+  img = rdkit.Chem.Draw.MolsToGridImage(scafmols, legends=[f'{i}, counts: {c}' for i,c in enumerate(scafnet.counts)], molsPerRow=4)
+  logging.debug(f"img.save({ofile})...")
+  img.save(ofile, format="PNG")
+  logging.debug(f"img.save({ofile})...Done.")
+  return img
+
+#############################################################################
+def DemoNetHtml(scratchdir):
+  fout = tempfile.NamedTemporaryFile(prefix=scratchdir+"/", suffix=".html", mode="w+", delete=False)
+  ofile = fout.name
+  fout.close()
+  logging.debug(f"DemoNetHtml({scratchdir}, {ofile})")
+  demosmi = ('Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 flucloxacillin')
+  mols = [MolFromSmiles(re.sub(r'\s.*$', '', demosmi))]
+  scafnet = Mols2ScafNet(mols, False)
+  logging.info(f"Scafnet nodes: {len(scafnet.nodes)}; edges: {len(scafnet.edges)}")
+  g = Scafnet2Html(scafnet, "RDKit_ScafNet: "+re.sub(r'^[^\s]*\s+(.*)$', r'\1', demosmi), scratchdir, ofile)
+  logging.debug(f"g.show()...")
+  os.chmod(ofile, stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IROTH|stat.S_IWOTH)
+  g.show(ofile)
+
+#############################################################################
+def Scafnet2Html(scafnet, scafname, scratchdir, ofile):
+  logging.debug(f"pyvis.network.Network()...")
+  g = pyvis.network.Network(notebook=False, height='800px', width='1000px', heading=scafname)
+  logging.debug(f"pyvis.network.Network()... Done.")
+
+  for i,n in enumerate(scafnet.nodes):
+    logging.debug(f"{i+1}. util.moltosvg(rdkit.Chem.MolFromSmiles({n})...")
+    svg = util.moltosvg(rdkit.Chem.MolFromSmiles(n))
+    with open(f'{scratchdir}/{i}.svg', 'w') as outf:
+      outf.write(svg)
+    logging.debug(f"g.add_node()...")
+    g.add_node(i, shape="image", label=' ', image=f'{scratchdir}/{i}.svg', title=svg, size=60)
+    # Segmentation fault after last node.
+  logging.debug(f"util.moltosvg()... Done.")
+  for i,e in enumerate(scafnet.edges):
+    logging.debug(f"{i+1}. g.add_edge()...")
+    g.add_edge(e.beginIdx, e.endIdx, label=str(e.type))
+  logging.debug(f"g.add_edge()... Done.")
+
+  VisJS_options = {
+    "edges": {
+     "font":{
+     "size":20
+     }
+    },
+    "nodes": {
+      "font": {
+        "color": "rgba(214,47,66,1)",
+        "size": 16,
+        "face": "tahoma"
+      }
+    },
+    "physics": {
+      "forceAtlas2Based": {
+        "gravitationalConstant": -120,
+        "springLength": 200,
+        "avoidOverlap": 0.42
+      },
+      "minVelocity": 0.75,
+      "solver": "forceAtlas2Based"
+    }
+  }
+  logging.debug(f"g.set_options()...")
+  g.set_options(options=json.dumps(VisJS_options))
+  #g.show_buttons()
+  logging.info(f"Writing SCAFNET HTML to: {ofile}")
+  return g
 
 #############################################################################
