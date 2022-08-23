@@ -3,6 +3,9 @@
 https://www.rdkit.org/docs/source/rdkit.Chem.Scaffolds.MurckoScaffold.html
 https://www.rdkit.org/docs/source/rdkit.Chem.Scaffolds.rdScaffoldNetwork.html
 rdScaffoldNetwork available RDKit 2020.03.1+.
+
+https://matplotlib.org/
+https://pyvis.readthedocs.io/en/latest/
 """
 #############################################################################
 import os,sys,re,logging,json,time,inspect,tempfile,stat
@@ -14,6 +17,7 @@ import rdkit
 import rdkit.Chem
 import rdkit.Chem.AllChem
 from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolStandardize, MolToSmiles, MolFromSmiles, Draw, rdDepictor
+from rdkit.Chem.AllChem import Compute2DCoords
 
 # fingerprints:
 from rdkit.Chem import RDKFingerprint, PatternFingerprint, LayeredFingerprint, LayeredFingerprint_substructLayers
@@ -36,6 +40,7 @@ def Mols2BMScaffolds(mols, molWriter):
     molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
     logging.debug(f'{i+1}. {molname}')
     scafmol = MurckoScaffold.GetScaffoldForMol(mol)
+    Compute2DCoords(scafmol, clearConfs=True)
     scafmols.append(scafmol)
     molWriter.write(scafmol)
   logging.info(f'{len(mols)} mols written to {molWriter}')
@@ -110,9 +115,8 @@ def DemoNetImg(scratchdir):
 def Scafnet2Img(scafnet, ofile):
   #title="RDKit_ScafNet:"+re.sub(r'^[^\s]*\s+(.*)$', r'\1', smi)) #How to add title?
   img = rdkit.Chem.Draw.MolsToGridImage(scafmols, legends=[f'{i}, counts: {c}' for i,c in enumerate(scafnet.counts)], molsPerRow=4)
-  logging.debug(f"img.save({ofile})...")
+  logging.debug(f"Writing scafnet PNG to: {ofile}")
   img.save(ofile, format="PNG")
-  logging.debug(f"img.save({ofile})...Done.")
   return img
 
 #############################################################################
@@ -126,7 +130,6 @@ def DemoNetHtml(scratchdir):
   scafnet = Mols2ScafNet(mols, False)
   logging.info(f"Scafnet nodes: {len(scafnet.nodes)}; edges: {len(scafnet.edges)}")
   g = Scafnet2Html(scafnet, "RDKit_ScafNet: "+re.sub(r'^[^\s]*\s+(.*)$', r'\1', demosmi), scratchdir, ofile)
-  logging.debug(f"g.show()...")
   os.chmod(ofile, stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IROTH|stat.S_IWOTH)
   g.show(ofile)
 
@@ -176,7 +179,9 @@ def Scafnet2Html(scafnet, scafname, scratchdir, ofile):
   logging.debug(f"g.set_options()...")
   g.set_options(options=json.dumps(VisJS_options))
   #g.show_buttons()
-  logging.info(f"Writing SCAFNET HTML to: {ofile}")
+  if ofile:
+    logging.info(f"Writing SCAFNET HTML to: {ofile}")
+    g.save_graph(ofile)
   return g
 
 #############################################################################

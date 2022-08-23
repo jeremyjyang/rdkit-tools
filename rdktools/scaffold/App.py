@@ -18,6 +18,8 @@ from rdkit.Chem.Scaffolds import rdScaffoldNetwork
 from .. import scaffold
 from .. import util
 
+SCRATCHDIR = f"{os.environ['HOME']}/tmp/rdktools"
+
 #############################################################################
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="RDKit scaffold analysis", epilog="")
@@ -25,9 +27,9 @@ if __name__ == "__main__":
   parser.add_argument("op", choices=OPS, default="mol2scaf", help="OPERATION")
   parser.add_argument("--i", dest="ifile", help="input file, TSV or SDF")
   parser.add_argument("--o", dest="ofile", help="output file, TSV|SDF")
-  parser.add_argument("--o_png", dest="ofile_png", help="visualization output file, PNG")
-  parser.add_argument("--o_html", dest="ofile_html", help="visualization output file, HTML")
-  parser.add_argument("--scratchdir", default=f"{os.environ['HOME']}/tmp/rdktools")
+  parser.add_argument("--scratchdir", default=SCRATCHDIR)
+  parser.add_argument("--o_png", dest="ofile_png", default=f"{SCRATCHDIR}/rdktools_scafnet.png", help="visualization output file, PNG")
+  parser.add_argument("--o_html", dest="ofile_html", default=f"{SCRATCHDIR}/rdktools_scafnet.html", help="visualization output file, HTML")
   parser.add_argument("--smilesColumn", type=int, default=0, help="SMILES column from TSV (counting from 0)")
   parser.add_argument("--nameColumn", type=int, default=1, help="name column from TSV (counting from 0)")
   parser.add_argument("--idelim", default="\t", help="delim for input TSV")
@@ -78,14 +80,9 @@ if __name__ == "__main__":
     mols = util.ReadMols(molReader)
     scafnet = scaffold.Mols2ScafNet(mols, args.brics, args.ofile)
     if args.ofile_png:
-      img = scaffold.Scafnet2Img(scafnet, ofile_png)
-      if args.display:
-        img.show()
+      scaffold.Scafnet2Img(scafnet, args.ofile_png)
     if args.ofile_html:
-      g = scaffold.Scafnet2Html(scafnet, args.scafname, args.scratchdir, args.ofile_html)
-      if args.display:
-        os.chmod(args.ofile_html, stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IWGRP|stat.S_IROTH|stat.S_IWOTH)
-        g.show(args.ofile_html)
+      scaffold.Scafnet2Html(scafnet, args.scafname, args.scratchdir, args.ofile_html)
 
   else:
     parser.error(f"Unsupported operation: {args.op}")
