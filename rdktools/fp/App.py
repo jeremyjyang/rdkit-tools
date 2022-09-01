@@ -7,6 +7,8 @@ RDKit, remember that 4 in ECFP4 corresponds to diameter of atom environments,
 while Morgan fingerprints take a radius parameter. So radius=2 roughly
 equivalent to ECFP4 and FCFP4.
 
+Default FP length set to 2048 bits. 
+
 https://www.rdkit.org/docs/source/rdkit.DataStructs.cDataStructs.html
 rdkit.DataStructs.cDataStructs.ExplicitBitVect
 """
@@ -100,7 +102,7 @@ fingerprint-based analytics."""
   FPALGOS = ["RDKIT", "MACCS", "MORGAN"]
   METRICS = ["ALLBIT", "ASYMMETRIC", "DICE", "COSINE", "KULCZYNSKI", "MCCONNAUGHEY", "ONBIT", "RUSSEL", "SOKAL", "TANIMOTO", "TVERSKY"]
   DEFAULTS={
-	"minSize":64,
+	"minSize":2048,
 	"maxSize":2048,
 	"density":0.3,
 	"fpColName":"AutoFragmentFP",
@@ -108,13 +110,12 @@ fingerprint-based analytics."""
 	"minPath":1,
 	"maxPath":7,
 	"nBitsPerHash":2,
-	"nBitsPerHash":2,
 	"smilesColumn":"#SMILES",
 	"idColumn":"Name",
 	"nameColumn":"Name",
 	"input_format":"SMILES",
 	"fpAlgo":"RDKIT",
-	"morgan_nbits":1024,
+	"morgan_nbits":2048,
 	"morgan_radius":2,
 	"topN":12,
 	"metric":"TANIMOTO",
@@ -138,7 +139,7 @@ fingerprint-based analytics."""
   parser.add_argument("--tableName", help="name of the database table from which to pull input molecule information")
   parser.add_argument("--minSize", type=int, default=DEFAULTS["minSize"], help=f"minimum size of the fingerprints to be generated (limits the amount of folding that happens) [{DEFAULTS['minSize']}].")
   parser.add_argument("--maxSize", type=int, default=DEFAULTS["maxSize"], help=f"base size of the fingerprints to be generated [{DEFAULTS['maxSize']}].")
-  parser.add_argument("--density", type=float, default=DEFAULTS["density"], help=f"target bit density in the fingerprint.  The fingerprint will be folded until this density is reached [{DEFAULTS['density']}].")
+  parser.add_argument("--density", type=float, default=DEFAULTS["density"], help=f"target bit density in the fingerprint.  The fingerprint will be folded until this density is reached [{DEFAULTS['density']}]. No folding if minSize==maxSize.")
   parser.add_argument("--outTable", help="name of the output db table used to store fingerprints.  If this table already exists, it will be replaced.")
   parser.add_argument("--outDbName", help="name of output database, if it's being used.  Defaults to be the same as the input db.")
   parser.add_argument("--fpColName", default=DEFAULTS["fpColName"], help=f"name to use for the column which stores fingerprints (in pickled format) in the output db table [{DEFAULTS['fpColName']}].")

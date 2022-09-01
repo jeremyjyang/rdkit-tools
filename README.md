@@ -216,6 +216,19 @@ Based on distance geometry method by Blaney et al.
 
 ## Fingerprints
 
+By default, RDKit and Morgan fingerprints are generated length 2048 bits,
+by the following methods:
+
+**RDKit path-based, Daylight-like**:
+```
+Chem.RDKFingerprint(mol, minPath=1, maxPath=7, fpSize=2048, nBitsPerHash=2, useHs=False, minSize=2048)
+```
+
+**Morgan ECFP-like**:
+```
+AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=2048)
+```
+
 ```
 (rdktools) $ python3 -m rdktools.fp.App -h
 
