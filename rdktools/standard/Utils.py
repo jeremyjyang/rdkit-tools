@@ -11,13 +11,17 @@ from .. import util
 
 #############################################################################
 def StdMol(stdzr, mol, sanitize, isomeric=True):
-  smi = MolToSmiles(mol, isomericSmiles=isomeric) if mol else None
+  if not mol: return None
+  if isomeric:
+    Set_Chiral_Flags(mol)
+    CheckStereo(mol)
+  smi = MolToSmiles(mol, isomericSmiles=isomeric)
   if mol and sanitize:
-    flag = Chem.SanitizeMol(mol)
+    flag = Chem.SanitizeMol(mol, Chem.rdmolops.SanitizeFlags.SANITIZE_ALL)
     logging.debug(f"Sanitize_flag: {flag}")
-  mol_std = stdzr.standardize(mol) if mol else None
+  mol_std = stdzr.standardize(mol)
   if mol_std: mol_std.SetProp("_Name", util.MolName(mol)) #Sometimes name is lost?
-  smi_std = MolToSmiles(mol_std, isomericSmiles=isomeric) if mol_std else None
+  smi_std = MolToSmiles(mol_std, isomericSmiles=isomeric)
   logging.debug(f"{smi:>28s} >> {smi_std}")
   return mol_std
 
@@ -149,3 +153,33 @@ def Demo():
     logging.info(f"{smi:>28s} >> {smi_std}")
 
 #############################################################################
+def CheckStereo(mol_in):
+  if not mol_in: return None
+  mol = Chem.Mol(mol_in) #copy mol
+  smi_pre = MolToSmiles(mol, isomericSmiles=True)
+  error_code = Chem.SanitizeMol(mol, Chem.rdmolops.SanitizeFlags.SANITIZE_CLEANUPCHIRALITY, catchErrors=True)
+  if error_code != 0:
+    logging.error(f"Sanitize_error: {error_code}")
+  smi_san = MolToSmiles(mol, isomericSmiles=True)
+  if smi_san != smi_pre:
+    logging.info(f"Stereo fixed: {smi_pre} >> {smi_san}")
+  else:
+    logging.info(f"Stereo ok: {smi_san}")
+  return mol
+
+#############################################################################
+def Set_Chiral_Flags(mol):
+  for a in mol.GetAtoms():
+    if a.HasProp("molParity"):
+      try:
+        parity = int(a.GetProp("molParity"))
+      except ValueError:
+        parity=None
+      if parity: logging.debug(f"{a.GetSymbol()} [idx={a.GetIdx()}] (parity={parity})")
+      if parity==1:
+        a.SetChiralTag(Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CW)
+      elif parity==2:
+        a.SetChiralTag(Chem.rdchem.ChiralType.CHI_TETRAHEDRAL_CCW)
+      elif parity==3:
+        a.SetChiralTag(Chem.rdchem.ChiralType.CHI_UNSPECIFIED)
+  return mol
