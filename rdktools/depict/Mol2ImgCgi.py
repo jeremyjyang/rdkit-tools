@@ -88,10 +88,9 @@ def Mol2Img(form):
 
     DrawingOptions.elemDict = collections.defaultdict(lambda : (0,0,0))
 
-  #img = rdkit.Chem.Draw.MolToImage(mol, size=(width,height), kekulize=kekule, highlightAtoms=hitatoms, wedgeBonds=True, legend=molname)
-
   # PIL.Image.Image
-  img = depict.Utils.Mol2Image(mol, width=width, height=height, highlightAtoms=hitatoms, kekulize=True, wedgeBonds=True)
+  #img = depict.Utils.Mol2Image(mol, width=width, height=height, highlightAtoms=hitatoms, kekulize=True, wedgeBonds=True)
+  img = rdkit.Chem.Draw.MolToImage(mol, size=(width,height), kekulize=kekule, highlightAtoms=hitatoms, wedgeBonds=True, legend=molname)
 
   sys.stdout.buffer.write(b'Content-type: image/png\n\n')
   img.save(sys.stdout.buffer, format='PNG')
