@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="rdktools",
-    version="0.9.4",
+    version="0.9.5",
     author="Jeremy Yang",
     author_email="jeremyjyang@gmail.com",
     description="Tools and helpers for RDKit.",

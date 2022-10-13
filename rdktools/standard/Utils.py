@@ -64,16 +64,20 @@ def Standardize(stdzr, sanitize, isomeric, molReader, molWriter):
       n_empty_in+=1
       mol_out = mol
     else:
-      logging.debug(f"[N={n_mol}] {util.MolName(mol)}: {MolToSmiles(mol, isomericSmiles=isomeric)}")
       try:
+        logging.debug(f"[N={n_mol}] {util.MolName(mol)}: {MolToSmiles(mol, isomericSmiles=isomeric)}")
         mol_out = StdMol(stdzr, mol, sanitize, isomeric)
       except Exception as e:
         logging.error(f"[N={n_mol}]: standardize failed: {e}")
         n_err+=1
         mol_out = mol
     if mol_out.GetNumAtoms()==0: n_empty_out+=1
-    molWriter.write(mol_out)
-    n_out+=1
+    try:
+      molWriter.write(mol_out)
+      n_out+=1
+    except Exception as e:
+      logging.error(f"[N={n_mol}]: standardize failed: {e}")
+      n_err+=1
   logging.info(f"Mols in: {n_mol}; empty mols in: {n_empty_in}; mols out: {n_out}; empty mols out: {n_empty_out}; errors: {n_err}")
 
 #############################################################################
