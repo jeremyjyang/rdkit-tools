@@ -163,31 +163,36 @@ python3 -m rdktools.scaffold.App bmscaf --i drugs.smiles --o_vis drugs_bmscaf.pn
 ## Standardization
 
 ```
-(rdktools) $ python3 -m rdktools.standard.App
-usage: App.py [-h] [--i IFILE] [--o OFILE] [--norms {default,unm}]
-              [--i_norms IFILE_NORMS] [--remove_isomerism] [-v]
-              {standardize,list_norms,show_params,demo}
-App.py: error: the following arguments are required: op
 (rdktools) $ python3 -m rdktools.standard.App -h
-usage: App.py [-h] [--i IFILE] [--o OFILE] [--norms {default,unm}]
-              [--i_norms IFILE_NORMS] [--remove_isomerism] [-v]
-              {standardize,list_norms,show_params,demo}
+usage: App.py [-h] --i IFILE [--o OFILE] [--delim DELIM] [--smilesColumn SMILESCOLUMN]
+              [--nameColumn NAMECOLUMN] [--nameSDField NAMESDFIELD] [--header]
+              [--sanitize] [--kekuleSmiles] [--normset {DEFAULT,UNM}]
+              [--i_normset IFILE_NORMSET] [--isomericSmiles] [-v]
+              {standardize,canonicalize,list_norms,show_params,demo}
 
 RDKit chemical standardizer
 
 positional arguments:
-  {standardize,list_norms,show_params,demo}
-                        operation
+  {standardize,canonicalize,list_norms,show_params,demo}
+                        OPERATION
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   --i IFILE             input file, SMI or SDF
   --o OFILE             output file, SMI or SDF
-  --norms {default,unm}
-                        normalizations
-  --i_norms IFILE_NORMS
+  --delim DELIM         SMILES/TSV delimiter
+  --smilesColumn SMILESCOLUMN
+  --nameColumn NAMECOLUMN
+  --nameSDField NAMESDFIELD
+                        SD field to use as name
+  --header              SMILES/TSV has header line
+  --sanitize            Sanitize molecules as read.
+  --kekuleSmiles        Kekule SMILES output.
+  --normset {DEFAULT,UNM}
+                        normalization sets
+  --i_normset IFILE_NORMSET
                         input normalizations file, format: SMIRKS<space>NAME
-  --remove_isomerism    if true, output SMILES isomerism removed
+  --isomericSmiles      If false, output SMILES isomerism removed
   -v, --verbose
 ```
 

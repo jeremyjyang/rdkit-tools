@@ -25,11 +25,12 @@ if __name__ == "__main__":
   NORMSETS = ["DEFAULT", "UNM"]
   OPS = ["standardize", "canonicalize", "list_norms", "show_params", "demo"]
   parser.add_argument("op", choices=OPS, help="OPERATION")
-  parser.add_argument("--i", dest="ifile", required=True, help="input file, SMI or SDF")
-  parser.add_argument("--o", dest="ofile", default="-", help="output file, SMI or SDF")
+  parser.add_argument("--i", dest="ifile", help="input file, SMI or SDF")
+  parser.add_argument("--o", dest="ofile", help="output file, SMI or SDF")
   parser.add_argument("--delim", default="\t", help="SMILES/TSV delimiter")
   parser.add_argument("--smilesColumn", type=int, default=0, help="")
   parser.add_argument("--nameColumn", type=int, default=1, help="")
+  parser.add_argument("--nameSDField", help="SD field to use as name")
   parser.add_argument("--header", action="store_true", help="SMILES/TSV has header line")
   parser.add_argument("--sanitize", action="store_true", help="Sanitize molecules as read.")
   parser.add_argument("--kekuleSmiles", action="store_true", help="Kekule SMILES output.")
@@ -54,16 +55,18 @@ if __name__ == "__main__":
     standard_utils.ListNormalizations(norms, fout)
 
   elif args.op=="standardize":
+    if args.ifile is None: parser.error(f"--i required for operation: {args.op}")
     molReader = util.File2Molreader(args.ifile, args.delim, args.smilesColumn, args.nameColumn, args.header, False) #Sanitize separately.
     molWriter = util.File2Molwriter(args.ofile, args.delim, args.header, isomericSmiles=args.isomericSmiles, kekuleSmiles=args.kekuleSmiles)
     norms = GetNorms(args)
     stdzr = standard_utils.MyStandardizer(norms)
-    standard_utils.Standardize(stdzr, args.sanitize, args.isomericSmiles, molReader, molWriter)
+    standard_utils.Standardize(stdzr, args.sanitize, args.isomericSmiles, args.nameSDField, molReader, molWriter)
 
   elif args.op=="canonicalize":
+    if args.ifile is None: parser.error(f"--i required for operation: {args.op}")
     molReader = util.File2Molreader(args.ifile, args.delim, args.smilesColumn, args.nameColumn, args.header, False) #Sanitize separately.
     molWriter = util.File2Molwriter(args.ofile, args.delim, args.header, isomericSmiles=args.isomericSmiles, kekuleSmiles=args.kekuleSmiles)
-    standard_utils.Canonicalize(args.isomericSmiles, args.kekuleSmiles, molReader, molWriter)
+    standard_utils.Canonicalize(args.isomericSmiles, args.kekuleSmiles, args.nameSDField, molReader, molWriter)
 
   elif args.op=="demo":
     standard_utils.Demo()

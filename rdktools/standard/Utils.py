@@ -10,7 +10,7 @@ from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter,
 from .. import util
 
 #############################################################################
-def StdMol(stdzr, mol, sanitize, isomeric=True):
+def StdMol(stdzr, mol, sanitize, isomeric=True, nameSDField=None):
   if not mol: return None
   if isomeric:
     Set_Chiral_Flags(mol)
@@ -20,13 +20,15 @@ def StdMol(stdzr, mol, sanitize, isomeric=True):
     flag = Chem.SanitizeMol(mol, Chem.rdmolops.SanitizeFlags.SANITIZE_ALL)
     logging.debug(f"Sanitize_flag: {flag}")
   mol_std = stdzr.standardize(mol)
-  if mol_std: mol_std.SetProp("_Name", util.MolName(mol)) #Sometimes name is lost?
+  if mol_std:
+    if nameSDField is not None: mol_std.SetProp("_Name", mol.GetProp(nameSDField))
+    else: mol_std.SetProp("_Name", util.MolName(mol))
   smi_std = MolToSmiles(mol_std, isomericSmiles=isomeric)
   logging.debug(f"{smi:>28s} >> {smi_std}")
   return mol_std
 
 #############################################################################
-def Canonicalize(isomeric, kekulize, molReader, molWriter):
+def Canonicalize(isomeric, kekulize, nameSDField, molReader, molWriter):
   """Canonicalize only."""
   n_mol=0; n_out=0; n_empty_in=0; n_empty_out=0; n_err=0;
   for mol in molReader:
@@ -40,17 +42,23 @@ def Canonicalize(isomeric, kekulize, molReader, molWriter):
       n_empty_in+=1
       n_empty_out+=1
     else:
-      if kekulize:
-        Chem.Kekulize(mol, clearAromaticFlags=True)
-      else:
-        Chem.SanitizeMol(mol) # setAromaticity=True (default)
+      try:
+        if kekulize:
+          Chem.Kekulize(mol, clearAromaticFlags=True)
+        else:
+          Chem.SanitizeMol(mol) # setAromaticity=True (default)
+      except Exception as e:
+        logging.error(f"[N={n_mol}]: canonicalize failed: {e}")
+        n_err+=1
       logging.debug(f"[N={n_mol}] {util.MolName(mol)}: {MolToSmiles(mol, isomericSmiles=isomeric)}")
+      if nameSDField is not None: mol.SetProp("_Name", mol.GetProp(nameSDField))
+      else: mol.SetProp("_Name", util.MolName(mol))
     molWriter.write(mol)
     n_out+=1
   logging.info(f"Mols in: {n_mol}; empty mols in: {n_empty_in}; mols out: {n_out}; empty mols out: {n_empty_out}; errors: {n_err}")
 
 #############################################################################
-def Standardize(stdzr, sanitize, isomeric, molReader, molWriter):
+def Standardize(stdzr, sanitize, isomeric, nameSDField, molReader, molWriter):
   """Sanitize, standardize, and canonicalize."""
   n_mol=0; n_out=0; n_empty_in=0; n_empty_out=0; n_err=0;
   for mol in molReader:
@@ -66,7 +74,7 @@ def Standardize(stdzr, sanitize, isomeric, molReader, molWriter):
     else:
       try:
         logging.debug(f"[N={n_mol}] {util.MolName(mol)}: {MolToSmiles(mol, isomericSmiles=isomeric)}")
-        mol_out = StdMol(stdzr, mol, sanitize, isomeric)
+        mol_out = StdMol(stdzr, mol, sanitize, isomeric, nameSDField)
       except Exception as e:
         logging.error(f"[N={n_mol}]: standardize failed: {e}")
         n_err+=1
@@ -129,7 +137,7 @@ def MyStandardizer(norms):
 #############################################################################
 def ListNormalizations(norms, fout):
   df = pd.DataFrame([[norm.name, norm.transform_str] for norm in norms])
-  if fout is not None: df.to_csv(fout, "\t", index=True)
+  if fout is not None: df.to_csv(fout, "\t", index=False)
   logging.info(f"Normalizations: {len(norms)}")
   return df
 
