@@ -5,7 +5,7 @@ import pandas as pd
 
 import rdkit
 from rdkit import Chem
-from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolStandardize, MolToSmiles, MolFromSmiles
+from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolStandardize, MolToSmiles, MolFromSmiles, SaltRemover
 
 from .. import util
 
@@ -56,6 +56,57 @@ def Canonicalize(isomeric, kekulize, nameSDField, molReader, molWriter):
     molWriter.write(mol)
     n_out+=1
   logging.info(f"Mols in: {n_mol}; empty mols in: {n_empty_in}; mols out: {n_out}; empty mols out: {n_empty_out}; errors: {n_err}")
+
+#############################################################################
+def NeutralizeAtoms(mol):
+  """From https://www.rdkit.org/docs/Cookbook.html"""
+  pattern = Chem.MolFromSmarts("[+1!h0!$([*]~[-1,-2,-3,-4]),-1!$([*]~[+1,+2,+3,+4])]")
+  at_matches = mol.GetSubstructMatches(pattern)
+  at_matches_list = [y[0] for y in at_matches]
+  for at_idx in at_matches_list:
+    atom = mol.GetAtomWithIdx(at_idx)
+    chg = atom.GetFormalCharge()
+    hcount = atom.GetTotalNumHs()
+    atom.SetFormalCharge(0)
+    atom.SetNumExplicitHs(hcount - chg)
+    logging.debug(f"NeutralizeAtoms pattern matched: [{atom.GetSymbol()}{chg}H{hcount}] >> [{atom.GetSymbol()}{atom.GetFormalCharge()}H{atom.GetTotalNumHs()}]")
+    atom.UpdatePropertyCache()
+  return mol
+
+#############################################################################
+def SaltRemove(metalRemove, largestFragment, neutralize, nameSDField, molReader, molWriter):
+  """Salt-remove plus optionally, metals and non-largest fragments."""
+  salt_smarts = "[Cl,Br,Fe,Cu,Ni,Zn]" if metalRemove else "[Cl,Br]"
+  saltRemover = SaltRemover.SaltRemover(defnData=salt_smarts)
+  LargestFragmentChooser = MolStandardize.rdMolStandardize.LargestFragmentChooser()
+  n_mol=0; n_out=0; n_mod=0; n_empty_in=0; n_empty_out=0; n_err=0;
+  for mol in molReader:
+    n_mol+=1
+    if mol is None:
+      n_err+=1
+      logging.error(f"[N={n_mol}] Failed to read mol.")
+      mol_out = Chem.Mol() #empty mol
+    elif mol.GetNumAtoms()==0:
+      logging.info(f"[N={n_mol}] {util.MolName(mol)}: Empty molecule -- no atoms.")
+      n_empty_in+=1
+      n_empty_out+=1
+    else:
+      try:
+        mol_out = saltRemover.StripMol(mol)
+        if largestFragment: mol_out = LargestFragmentChooser.choose(mol_out)
+        if neutralize: mol_out = NeutralizeAtoms(mol_out)
+      except Exception as e:
+        logging.error(f"[N={n_mol}]: salt-remove failed: {e}")
+        n_err+=1
+      if mol.GetNumAtoms()==0:
+        logging.warning(f"[N={n_mol}]: salt-remove removed all atoms!")
+      logging.debug(f"[N={n_mol}] {util.MolName(mol)}: {MolToSmiles(mol)}")
+      if nameSDField is not None: mol_out.SetProp("_Name", mol.GetProp(nameSDField))
+      else: mol_out.SetProp("_Name", util.MolName(mol_out))
+      if mol_out.GetNumAtoms() < mol.GetNumAtoms(): n_mod+=1
+    molWriter.write(mol_out)
+    n_out+=1
+  logging.info(f"Mols in: {n_mol}; empty mols in: {n_empty_in}; mols out: {n_out}; empty mols out: {n_empty_out}; mols modified: {n_mod}; errors: {n_err}")
 
 #############################################################################
 def Standardize(stdzr, sanitize, isomeric, nameSDField, molReader, molWriter):

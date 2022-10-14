@@ -23,7 +23,7 @@ def GetNorms(args):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="RDKit chemical standardizer", epilog="")
   NORMSETS = ["DEFAULT", "UNM"]
-  OPS = ["standardize", "canonicalize", "list_norms", "show_params", "demo"]
+  OPS = ["standardize", "canonicalize", "saltremove", "list_norms", "show_params", "demo"]
   parser.add_argument("op", choices=OPS, help="OPERATION")
   parser.add_argument("--i", dest="ifile", help="input file, SMI or SDF")
   parser.add_argument("--o", dest="ofile", help="output file, SMI or SDF")
@@ -37,6 +37,9 @@ if __name__ == "__main__":
   parser.add_argument("--normset", choices=NORMSETS, default="DEFAULT", help="normalization sets")
   parser.add_argument("--i_normset", dest="ifile_normset", help="input normalizations file, format: SMIRKS<space>NAME")
   parser.add_argument("--isomericSmiles", action="store_true", help="If false, output SMILES isomerism removed")
+  parser.add_argument("--metalRemove", action="store_true", help="Remove disconnected metals like salts charges (use with saltremove).")
+  parser.add_argument("--largestFragment", action="store_true", help="Remove non-largest fragments (use with saltremove).")
+  parser.add_argument("--neutralize", action="store_true", help="Neutralize charges (use with saltremove).")
   parser.add_argument("-v", "--verbose", action="count", default=0)
   args = parser.parse_args()
 
@@ -67,6 +70,12 @@ if __name__ == "__main__":
     molReader = util.File2Molreader(args.ifile, args.delim, args.smilesColumn, args.nameColumn, args.header, False) #Sanitize separately.
     molWriter = util.File2Molwriter(args.ofile, args.delim, args.header, isomericSmiles=args.isomericSmiles, kekuleSmiles=args.kekuleSmiles)
     standard_utils.Canonicalize(args.isomericSmiles, args.kekuleSmiles, args.nameSDField, molReader, molWriter)
+
+  elif args.op=="saltremove":
+    if args.ifile is None: parser.error(f"--i required for operation: {args.op}")
+    molReader = util.File2Molreader(args.ifile, args.delim, args.smilesColumn, args.nameColumn, args.header, False)
+    molWriter = util.File2Molwriter(args.ofile, args.delim, args.header, isomericSmiles=args.isomericSmiles, kekuleSmiles=args.kekuleSmiles)
+    standard_utils.SaltRemove(args.metalRemove, args.largestFragment, args.neutralize, args.nameSDField, molReader, molWriter)
 
   elif args.op=="demo":
     standard_utils.Demo()

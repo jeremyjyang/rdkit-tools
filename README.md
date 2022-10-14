@@ -164,16 +164,17 @@ python3 -m rdktools.scaffold.App bmscaf --i drugs.smiles --o_vis drugs_bmscaf.pn
 
 ```
 (rdktools) $ python3 -m rdktools.standard.App -h
-usage: App.py [-h] --i IFILE [--o OFILE] [--delim DELIM] [--smilesColumn SMILESCOLUMN]
+usage: App.py [-h] [--i IFILE] [--o OFILE] [--delim DELIM] [--smilesColumn SMILESCOLUMN]
               [--nameColumn NAMECOLUMN] [--nameSDField NAMESDFIELD] [--header]
               [--sanitize] [--kekuleSmiles] [--normset {DEFAULT,UNM}]
-              [--i_normset IFILE_NORMSET] [--isomericSmiles] [-v]
-              {standardize,canonicalize,list_norms,show_params,demo}
+              [--i_normset IFILE_NORMSET] [--isomericSmiles] [--metalRemove]
+              [--largestFragment] [--neutralize] [-v]
+              {standardize,canonicalize,saltremove,list_norms,show_params,demo}
 
 RDKit chemical standardizer
 
 positional arguments:
-  {standardize,canonicalize,list_norms,show_params,demo}
+  {standardize,canonicalize,saltremove,list_norms,show_params,demo}
                         OPERATION
 
 options:
@@ -193,7 +194,12 @@ options:
   --i_normset IFILE_NORMSET
                         input normalizations file, format: SMIRKS<space>NAME
   --isomericSmiles      If false, output SMILES isomerism removed
+  --metalRemove         Remove disconnected metals like salts charges (use with
+                        saltremove).
+  --largestFragment     Remove non-largest fragments (use with saltremove).
+  --neutralize          Neutralize charges (use with saltremove).
   -v, --verbose
+
 ```
 
 ## Conformations
