@@ -44,32 +44,37 @@ def Smi2Mdl(molReader, molWriter):
 
 #############################################################################
 def Mol2Inchi(molReader, fout=None):
-  if not rdkit.Chem.inchi.INCHI_AVAILABLE:
-    logging.error(f"INCHI_AVAILABLE={rdkit.Chem.inchi.INCHI_AVAILABLE}")
-    exit(1)
-  n_mol=0;
+  n_mol=0; n_out=0; n_err=0;
   for mol in molReader:
-    logging.debug(f"{n_mol+1}. {mol.GetProp('_Name')}")
-    #inchi,auxinfo = rdkit.Chem.inchi.MolToInchiAndAuxInfo(mol, options='', logLevel= None, treatWarningAsError=False)
-    inchi = rdkit.Chem.inchi.MolToInchi(mol, options='', logLevel=None, treatWarningAsError=False)
-    inchikey = rdkit.Chem.inchi.MolToInchiKey(mol, options='')
-    fout.write(f"{inchi}\n")
     n_mol+=1
-  logging.info(f"n_out: {n_mol}")
+    try:
+      molId = mol.GetProp('_Name')
+      logging.debug(f"{n_mol}. {molId}")
+      inchi = rdkit.Chem.inchi.MolToInchi(mol, options='', logLevel=None, treatWarningAsError=False)
+      fout.write(f"{molId}\t{inchi}\n")
+      n_out+=1
+    except Exception as e:
+      fout.write("\n")
+      logging.error(f"{e}")
+      n_err+=1
+  logging.info(f"n_mol: {n_mol}; n_out: {n_out}; n_err: {n_err} (blank lines output on errors)")
 
 #############################################################################
 def Mol2Inchikey(molReader, fout=None):
-  if not rdkit.Chem.inchi.INCHI_AVAILABLE:
-    logging.error(f"INCHI_AVAILABLE={rdkit.Chem.inchi.INCHI_AVAILABLE}")
-    exit(1)
-  n_mol=0;
+  n_mol=0; n_out=0; n_err=0;
   for mol in molReader:
-    logging.debug(f"{n_mol+1}. {mol.GetProp('_Name')}")
-    inchi = rdkit.Chem.inchi.MolToInchi(mol, options='', logLevel=None, treatWarningAsError=False)
-    inchikey = rdkit.Chem.inchi.MolToInchiKey(mol, options='')
-    fout.write(f"{inchikey}\n")
     n_mol+=1
-  logging.info(f"n_out: {n_mol}")
+    try:
+      molId = mol.GetProp('_Name')
+      logging.debug(f"{n_mol}. {molId}")
+      inchikey = rdkit.Chem.inchi.MolToInchiKey(mol, options='')
+      fout.write(f"{molId}\t{inchikey}\n")
+      n_out+=1
+    except Exception as e:
+      fout.write("\n")
+      logging.error(f"{e}")
+      n_err+=1
+  logging.info(f"n_mol: {n_mol}; n_out: {n_out}; n_err: {n_err} (blank lines output on errors)")
 
 #############################################################################
 if __name__=='__main__':

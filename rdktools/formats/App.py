@@ -4,6 +4,7 @@ import sys,os,re,argparse,logging
 
 import rdkit
 from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolToSmiles, MolFromSmiles
+import rdkit.Chem.inchi
 from rdkit.Chem import AllChem
 
 from .. import formats
@@ -59,10 +60,16 @@ if __name__=='__main__':
     formats.Smi2Mdl(molReader, molWriter)
 
   elif args.op == "mol2inchi":
-    formats.Mol2Inchi(molReader, fout)
+    if rdkit.Chem.inchi.INCHI_AVAILABLE:
+      formats.Mol2Inchi(molReader, fout)
+    else:
+      logging.error(f"INCHI_AVAILABLE={rdkit.Chem.inchi.INCHI_AVAILABLE}")
 
   elif args.op == "mol2inchikey":
-    formats.Mol2Inchikey(molReader, fout)
+    if rdkit.Chem.inchi.INCHI_AVAILABLE:
+      formats.Mol2Inchikey(molReader, fout)
+    else:
+      logging.error(f"INCHI_AVAILABLE={rdkit.Chem.inchi.INCHI_AVAILABLE}")
 
   else:
     parser.error(f"Unsupported operation: {args.op}")

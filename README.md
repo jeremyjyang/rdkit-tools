@@ -202,6 +202,14 @@ options:
 
 ```
 
+For documentation on RDKit Molecular Sanitization,
+see [The RDKit Book](https://www.rdkit.org/docs/RDKit_Book.html). Briefly:
+
+  The idea is to generate useful computed properties (like hybridization, ring
+  membership, etc.) for the rest of the code and to ensure that the molecules are
+  "reasonable": that they can be represented with octet-complete Lewis dot
+  structures.
+
 ## Conformations
 
 ```
