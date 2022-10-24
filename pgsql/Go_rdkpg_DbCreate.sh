@@ -69,6 +69,13 @@ psql -d $DBNAME -c "CREATE INDEX fps_ecfp_idx ON mols USING gist(ecfp)"
 # Updated by postprocess script.
 psql -d $DBNAME -c "INSERT INTO meta (field, value, description) VALUES ('timestamp', CURRENT_DATE::VARCHAR, 'Date of build.')"
 ###
+# Create user:
+psql -d $DBNAME -c "CREATE ROLE www WITH LOGIN PASSWORD 'foobar'"
+psql -d $DBNAME -c "GRANT SELECT ON ALL TABLES IN SCHEMA ${DBSCHEMA} TO www"
+psql -d $DBNAME -c "GRANT SELECT ON ALL SEQUENCES IN SCHEMA ${DBSCHEMA} TO www"
+psql -d $DBNAME -c "GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA ${DBSCHEMA} TO www"
+psql -d $DBNAME -c "GRANT USAGE ON SCHEMA ${DBSCHEMA} TO www"
+###
 #
 printf "Elapsed time: %ds\n" "$[$(date +%s) - ${T0}]"
 #
