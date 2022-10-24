@@ -41,12 +41,12 @@ __EOF__
 ###
 # Load mols table from TSV file.
 cat $DBDIR/REPLACE_WITH_FILE_NAME.tsv \
-	|awk -F '\t' '{print INSERT INTO mols (id, name, smiles) VALUES (\'$1\', \'$2\', \'$3\');' \
+	awk -F '\t' "{print \"INSERT INTO mols (smiles, name) VALUES ('\" \$1 \"', '\" \$2 \"') ;\"}" \
 	|psql -q $DBNAME
 ###
 #
-psql -d $DBNAME -c "UPDATE mols SET mol = mol_from_smiles(smiles::cstring)"
-psql -d $DBNAME -c "UPDATE mols SET cansmi = mol_to_smiles(mol)"
+psql -d $DBNAME -c "UPDATE mols SET molecule = mol_from_smiles(smiles::cstring)"
+psql -d $DBNAME -c "UPDATE mols SET cansmi = mol_to_smiles(molecule)"
 psql -d $DBNAME -c "CREATE INDEX molidx ON mols USING gist(molecule)"
 #
 ### Add FPs to mols table.
