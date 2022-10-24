@@ -6,13 +6,7 @@
 #	https://rdkit.readthedocs.org/en/latest/Cartridge.html#reference-guide
 #	https://github.com/rdkit/rdkit/issues/1762
 #############################################################################
-# Old way; build from source:
-# cd $RDBASE/Code/PgSQL/rdkit
-# make
-# make install
-# make installcheck
-#############################################################################
-# New way; Ubuntu 20.04
+# Ubuntu 20.04:
 # apt install postgresql-12
 # apt-cache policy postgresql-12
 # apt install postgresql-server-dev-12
@@ -43,11 +37,7 @@ __EOF__
 #
 psql -d $DBNAME -c "CREATE INDEX molidx ON ${DBSCHEMA}.mols USING gist(mol)"
 #
-#
-### One way is to create separate table for FPs.
-#psql -d $DBNAME -c "SELECT id,torsionbv_fp(mol) AS torsionbv,morganbv_fp(mol) AS mfp,featmorganbv_fp(mol) AS ffp INTO ${DBSCHEMA}.fps FROM ${DBSCHEMA}.mols"
-#
-### Another way is to add FPs to mols table.
+### Add FPs to mols table.
 psql -d $DBNAME -c "ALTER TABLE ${DBSCHEMA}.mols ADD COLUMN torsionbv BFP"
 psql -d $DBNAME -c "ALTER TABLE ${DBSCHEMA}.mols ADD COLUMN mfp BFP"
 psql -d $DBNAME -c "ALTER TABLE ${DBSCHEMA}.mols ADD COLUMN ffp BFP"
