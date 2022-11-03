@@ -1,10 +1,14 @@
 #!/bin/bash
 ###
 # https://rdkit.readthedocs.org/en/latest/Cartridge.html#reference-guide
+# This script inputs a SMILES file and for each SMILES, runs a similarity
+# search on a PostgreSQL Db with the RDKit Cartridge, as built with
+# the accompanying script Go_rdkpg_DbCreate.sh.
 ###
 #
+set -e
+#
 function SimilaritySearch {
-	#QSMILES="c1ccc(-c2nsc(N3CCNCC3)n2)cc1"
 	DBNAME=$1
 	QSMILES=$2
 	OUTPUT_FILE=$3
@@ -23,7 +27,7 @@ WHERE
 ORDER BY
 	morganbv_fp(mol_from_smiles('${QSMILES}'), 2)<%>ecfp,
 	LENGTH(smiles)
-LIMIT 100
+LIMIT 1000
 	;
 __EOF__
 		) |sed -e '$d' \
