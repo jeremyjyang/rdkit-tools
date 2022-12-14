@@ -37,11 +37,12 @@ CN1c2ccc(cc2C(=NCC1=O)c3ccccc3)Cl	Valium
 #############################################################################
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="RDKit SMARTS utility", epilog="")
-  OPS = ["matchCounts", "matchFilter", "demo"]
+  OPS = [ "matchCounts", "matchFilter", "matchCountsMulti", "matchFilterMulti", "demo"]
   parser.add_argument("op", choices=OPS, help="OPERATION")
   parser.add_argument("--i", dest="ifile", help="input file, SMI or SDF")
   parser.add_argument("--o", dest="ofile", help="output file, TSV")
   parser.add_argument("--smarts", help="query SMARTS")
+  parser.add_argument("--smartsfile", help="input SMARTS file (for multi-ops)")
   parser.add_argument("--usa", action="store_true", help="unique set-of-atoms match counts")
   parser.add_argument("--delim", default=" \t", help="delimiter for SMILES/TSV")
   parser.add_argument("--smilesColumn", type=int, default=0, help="")
@@ -71,18 +72,19 @@ if __name__ == "__main__":
     molWriter = SmilesWriter("-", delimiter=args.delim, nameHeader='Name', includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
   elif re.sub(r'.*\.', '', args.ofile).lower() in ('sdf','sd','mdl','mol'):
     molWriter = SDWriter(args.ofile)
-  elif re.sub(r'.*\.', '', args.ofile).lower()in ('smi', 'smiles'):
+  elif re.sub(r'.*\.', '', args.ofile).lower()in ('smi', 'smiles', 'tsv'):
     molWriter = SmilesWriter(args.ofile, delimiter=args.delim, nameHeader='Name', includeHeader=True, isomericSmiles=True, kekuleSmiles=False)
   else:
-      logging.error(f'Invalid file extension: {args.ofile}')
+    logging.error(f'Invalid file extension: {args.ofile}')
 
   if args.op=="matchCounts":
-    pat = rdkit.Chem.MolFromSmarts(args.smarts)
-    smarts.MatchCounts(pat, molReader, molWriter)
+    smarts.MatchCounts(args.smarts, args.usa, molReader, molWriter)
 
   elif args.op=="matchFilter":
-    pat = rdkit.Chem.MolFromSmarts(args.smarts)
-    smarts.MatchFilter(pat, molReader, molWriter)
+    smarts.MatchFilter(args.smarts, molReader, molWriter)
+
+  elif args.op=="matchCountsMulti":
+    smarts.MatchCountsMulti(args.smartsfile, args.usa, molReader, molWriter)
 
   else:
     parser.error(f"Unsupported operation: {args.op}")

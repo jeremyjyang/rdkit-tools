@@ -23,7 +23,7 @@ def GetNorms(args):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="RDKit chemical standardizer", epilog="")
   NORMSETS = ["DEFAULT", "UNM"]
-  OPS = ["standardize", "canonicalize", "saltremove", "list_norms", "show_params", "demo"]
+  OPS = ["standardize", "canonicalize", "saltremove", "validate", "list_norms", "show_params", "demo"]
   parser.add_argument("op", choices=OPS, help="OPERATION")
   parser.add_argument("--i", dest="ifile", help="input file, SMI or SDF")
   parser.add_argument("--o", dest="ofile", help="output file, SMI or SDF")
@@ -76,6 +76,11 @@ if __name__ == "__main__":
     molReader = util.File2Molreader(args.ifile, args.delim, args.smilesColumn, args.nameColumn, args.header, False)
     molWriter = util.File2Molwriter(args.ofile, args.delim, args.header, isomericSmiles=args.isomericSmiles, kekuleSmiles=args.kekuleSmiles)
     standard_utils.SaltRemove(args.metalRemove, args.largestFragment, args.neutralize, args.nameSDField, molReader, molWriter)
+
+  elif args.op=="validate":
+    if args.ifile is None: parser.error(f"--i required for operation: {args.op}")
+    molReader = util.File2Molreader(args.ifile, args.delim, args.smilesColumn, args.nameColumn, args.header, False)
+    standard_utils.ValidateMolecules(molReader)
 
   elif args.op=="demo":
     standard_utils.Demo()

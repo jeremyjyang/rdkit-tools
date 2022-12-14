@@ -140,6 +140,38 @@ def Standardize(stdzr, sanitize, isomeric, nameSDField, molReader, molWriter):
   logging.info(f"Mols in: {n_mol}; empty mols in: {n_empty_in}; mols out: {n_out}; empty mols out: {n_empty_out}; errors: {n_err}")
 
 #############################################################################
+def ValidateMolecules(molReader):
+  """Validate and report any problems."""
+  n_mol=0; n_empty_in=0; n_invalid=0; n_err=0;
+  for mol in molReader:
+    n_mol+=1
+    if mol is None:
+      n_err+=1
+      logging.error(f"[N={n_mol}] Failed to read mol.")
+    elif mol.GetNumAtoms()==0:
+      logging.info(f"[N={n_mol}] {util.MolName(mol)}: Empty molecule -- no atoms.")
+      n_empty_in+=1
+    else:
+      try:
+        smi = MolToSmiles(mol)
+        logging.debug(f"[N={n_mol}] {util.MolName(mol)}: {smi}")
+      except Exception as e:
+        logging.error(f"[N={n_mol}]: validation failed: {e}")
+        n_err+=1
+        n_invalid+=1
+  logging.info(f"Mols in: {n_mol}; empty mols in: {n_empty_in}; errors: {n_err}; invalid/non-empty: {n_invalid}")
+
+#############################################################################
+def MyNorms():
+  norms = list(MolStandardize.normalize.NORMALIZATIONS)
+  for i in range(len(norms)-1, 0, -1):
+   norm = norms[i]
+   if norm.name == "Sulfoxide to -S+(O-)-":
+     del(norms[i])
+  norms.append(MolStandardize.normalize.Normalization("[S+]-[O-] to S=O", "[S+:1]([O-:2])>>[S+0:1](=[O-0:2])"))
+  logging.info(f"Normalizations: {len(norms)}")
+  return(norms)
+#############################################################################
 def MyNorms():
   norms = list(MolStandardize.normalize.NORMALIZATIONS)
   for i in range(len(norms)-1, 0, -1):
