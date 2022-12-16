@@ -125,7 +125,7 @@ fingerprint-based analytics."""
 	"reportFreq":100
 	}
   parser = argparse.ArgumentParser(description="RDKit fingerprint-based analytics", epilog=EPILOG)
-  OPS=[ "FingerprintMols", "MolSimilarity", "ClusterMols" ]
+  OPS=["FingerprintMols", "AtomPairFingerprintMols", "MolSimilarity", "ClusterMols" ]
   parser.add_argument("op", choices=OPS, help="OPERATION")
   #FingerprintMols, MolSimilarity
   parser.add_argument("--i", dest="ifile", help="input file; if provided and no tableName is specified, data will be read from the input file.  Text files delimited with either commas (extension .csv) or tabs (extension .txt) are supported.")
@@ -177,11 +177,36 @@ fingerprint-based analytics."""
 
   t0=time.time()
 
-  if args.op=="FingerprintMols": 
+  if args.op=="FingerprintMols":
     logging.info("FingerprintMols ({0})".format(f"{args.fpAlgo}({args.morgan_radius},{args.morgan_nbits})" if args.fpAlgo=="MORGAN" else args.fpAlgo))
     details = ParseArgs(args)
     Utils.ShowDetails(details)
     FingerprintMols.FingerprintsFromDetails(details, reportFreq=args.reportFreq)
+    if args.ofile is not None and (args.output_as_dataframe or args.output_as_tsv):
+      X=[]; ids=[];
+      with open(args.ofile, "rb") as fin:
+        while True:
+          try:
+            id_this,fp = pickle.load(fin)
+            x = [fp.GetBit(j) for j in range(fp.GetNumBits())]
+            X.append(x)
+            ids.append(id_this)
+          except Exception as e:
+            break
+        df = pd.DataFrame(X, index=ids)
+      os.remove(args.ofile) #Overwrite
+      if args.output_as_dataframe:
+        df.to_pickle(args.ofile, compression="gzip")
+      else:
+        #Convert boolean to 1|0 reducing file size.
+        df.fillna(False).astype(int).to_csv(args.ofile, "\t", index=True)
+      logging.info(f"FPs written {'(DATAFRAME, pickled)' if args.output_as_dataframe else 'TSV'}: {args.ofile}")
+    else:
+      logging.info(f"FPs written (pickled): {args.ofile}")
+
+  elif args.op=="AtomPairFingerprintMols":
+    details = ParseArgs(args)
+    Utils.AtomPairFingerprints(details, args.reportFreq)
     if args.ofile is not None and (args.output_as_dataframe or args.output_as_tsv):
       X=[]; ids=[];
       with open(args.ofile, "rb") as fin:
