@@ -19,6 +19,7 @@ Lipinski:
 	NumAromaticRings,NumHAcceptors,NumHDonors,NumHeteroatoms,NumRotatableBonds,
 	NumSaturatedCarbocycles,NumSaturatedHeterocycles,NumSaturatedRings,RingCount
 	https://www.rdkit.org/docs/source/rdkit.Chem.Lipinski.html
+QED:
 """
 #
 import sys,os,logging,tempfile
@@ -31,6 +32,7 @@ from rdkit.Chem.Lipinski import *
 from rdkit.Chem.Descriptors import *
 from rdkit.Chem.Descriptors3D import *
 from rdkit.Chem.rdFreeSASA import *
+from rdkit.Chem import QED
 
 #############################################################################
 def CalcCrippenLogP(mol):
@@ -120,6 +122,37 @@ def Run_CalcLipinski(molReader, molWriter):
     name = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
     logging.debug(f"{i_mol}. {name}")
     CalcLipinski(mol)
+    if i_mol==1:
+      molWriter.SetProps(mol.GetPropNames())
+    molWriter.write(mol)
+  logging.info(f"n_out: {i_mol}")
+
+#############################################################################
+def CalcQED(mol):
+  qed = QED.default(mol)
+  qedprops = QED.properties(mol)
+  mw, alogp, hba, hbd, psa, rotb, arom, alerts = qedprops
+  logging.debug(f"QED Properties: mw:{mw}, alogp:{alogp}, hba:{hba}, hbd:{hbd}, psa:{psa}, rotb={rotb}, alerts:{alerts}")
+  qed = QED.qed(mol, qedProperties=qedprops)
+  mol.SetProp('QED_MW', f"{mw:.3f}")
+  mol.SetProp('QED_ALOGP', f"{alogp:.3f}")
+  mol.SetProp('QED_HBA', f"{hba}")
+  mol.SetProp('QED_HBD', f"{hbd}")
+  mol.SetProp('QED_PSA', f"{psa:.3f}")
+  mol.SetProp('QED_ROTB', f"{rotb}")
+  mol.SetProp('QED_ALERTS', f"{alerts}")
+  mol.SetProp('QED_VALUE', f"{qed:.3f}")
+  return qed
+
+#############################################################################
+def Run_CalcQED(molReader, molWriter):
+  i_mol=0
+  for mol in molReader:
+    if mol is None: continue
+    i_mol+=1
+    name = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
+    logging.debug(f"{i_mol}. {name}")
+    CalcQED(mol)
     if i_mol==1:
       molWriter.SetProps(mol.GetPropNames())
     molWriter.write(mol)

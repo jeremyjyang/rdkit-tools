@@ -30,7 +30,7 @@ descriptors: Chem.Descriptors (various); descriptors3d: Chem.Descriptors3D (vari
 freesasa: Accessible Surface Area (SASA) and related descriptors (requires 3D coordinates)
 """
   parser = argparse.ArgumentParser(description='RDKit molecular properties utility')
-  OPS = [ "descriptors", "descriptors3d", "lipinski", "logp", "estate", "freesasa", "demo"]
+  OPS = [ "descriptors", "descriptors3d", "lipinski", "qed", "logp", "estate", "freesasa", "demo"]
   parser.add_argument("op", choices=OPS, help="OPERATION")
   parser.add_argument("--i", dest="ifile", help="input molecule file")
   parser.add_argument("--o", dest="ofile", help="output file with data (TSV)")
@@ -65,6 +65,9 @@ freesasa: Accessible Surface Area (SASA) and related descriptors (requires 3D co
 
   elif args.op == "lipinski":
     properties.Run_CalcLipinski(molReader, molWriter)
+
+  elif args.op == "qed":
+    properties.Run_CalcQED(molReader, molWriter)
 
   elif args.op == "freesasa":
     properties.Run_CalcFreeSASA(molReader, molWriter)
