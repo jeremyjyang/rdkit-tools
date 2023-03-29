@@ -23,7 +23,7 @@ SCRATCHDIR = f"{os.environ['HOME']}/tmp/rdktools"
 #############################################################################
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="RDKit scaffold analysis", epilog="")
-  OPS = ["bmscaf", "scafnet", "demobm", "demonet_img", "demonet_html"]
+  OPS = ["bmscaf", "scafnet", "scafnet_rings", "demobm", "demonet_img", "demonet_html"]
   parser.add_argument("op", choices=OPS, default="mol2scaf", help="OPERATION")
   parser.add_argument("--i", dest="ifile", help="input file, TSV or SDF")
   parser.add_argument("--o", dest="ofile", help="output file, TSV|SDF")
@@ -83,6 +83,15 @@ if __name__ == "__main__":
       scaffold.Scafnet2Img(scafnet, args.ofile_png)
     if args.ofile_html:
       scaffold.Scafnet2Html(scafnet, args.scafname, args.scratchdir, args.ofile_html)
+
+  elif args.op=="scafnet_rings":
+    molReader = util.File2Molreader(args.ifile, args.idelim, args.smilesColumn, args.nameColumn, args.iheader)
+    molWriter = util.File2Molwriter(args.ofile, args.odelim, args.oheader)
+    mols = util.ReadMols(molReader)
+    for mol in mols:
+      molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
+      scafnet = scaffold.Mols2ScafNet([mol], args.brics)
+      rings = scaffold.ScafNet2Rings(scafnet, molname, molWriter)
 
   else:
     parser.error(f"Unsupported operation: {args.op}")

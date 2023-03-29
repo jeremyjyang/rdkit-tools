@@ -37,7 +37,8 @@ CN1c2ccc(cc2C(=NCC1=O)c3ccccc3)Cl	Valium
 #############################################################################
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="RDKit SMARTS utility", epilog="")
-  OPS = [ "matchCounts", "matchFilter", "matchCountsMulti", "matchFilterMulti", "demo"]
+  OPS = [ "matchCounts", "matchFilter", "matchCountsMulti", "matchFilterMulti", 
+	"filterPAINS", "demo"]
   parser.add_argument("op", choices=OPS, help="OPERATION")
   parser.add_argument("--i", dest="ifile", help="input file, SMI or SDF")
   parser.add_argument("--o", dest="ofile", help="output file, TSV")
@@ -85,6 +86,12 @@ if __name__ == "__main__":
 
   elif args.op=="matchCountsMulti":
     smarts.MatchCountsMulti(args.smartsfile, args.usa, molReader, molWriter)
+
+  elif args.op=="matchFilterMulti":
+    smarts.MatchFilterMulti(args.smartsfile, molReader, molWriter)
+
+  elif args.op=="filterPAINS":
+    smarts.FilterPAINS(molReader, molWriter)
 
   else:
     parser.error(f"Unsupported operation: {args.op}")

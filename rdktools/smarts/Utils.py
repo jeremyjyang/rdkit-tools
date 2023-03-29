@@ -2,7 +2,7 @@
 #############################################################################
 import sys,os,argparse,re,logging
 import rdkit.Chem
-from rdkit.Chem import MolToSmiles, MolFromSmiles
+from rdkit.Chem import MolToSmiles, MolFromSmiles, FilterCatalog
 import rdkit.Chem.AllChem
 import rdkit.rdBase
 
@@ -45,6 +45,7 @@ def MatchFilter(smarts, molReader, molWriter):
 
 #############################################################################
 def MatchFilterMulti(smartsfile, molReader, molWriter):
+  """All SMARTS must match, or mol is filtered."""
   smartses=[];
   with open(smartsfile, "r") as fin:
     while True:
@@ -54,7 +55,6 @@ def MatchFilterMulti(smartsfile, molReader, molWriter):
   logging.info(f"SMARTS read from file {smartsfile}: {len(smartses)}")
   querys = [{'smarts':smarts, 'pat':rdkit.Chem.MolFromSmarts(smarts), 'n_mol_matched':0
 	} for smarts in smartses]
-
   n_mol=0; n_mol_matched=0;
   for mol in molReader:
     for j,query in enumerate(querys):
@@ -107,5 +107,32 @@ def MatchCountsMulti(smartsfile, usa, molReader, molWriter):
     molWriter.write(mol)
     n_mol+=1
   logging.info(f"n_mol: {n_mol}; mols matched: "+(','.join([f"query_{j+1:02d}:{q['n_mol_matched']}" for j,q in enumerate(querys)])))
+
+#############################################################################
+# https://github.com/rdkit/rdkit/tree/master/Code/GraphMol/FilterCatalog
+def FilterPAINS(molReader, molWriter):
+  params = FilterCatalog.FilterCatalogParams()
+  params.AddCatalog(FilterCatalog.FilterCatalogParams.FilterCatalogs.PAINS_A)
+  params.AddCatalog(FilterCatalog.FilterCatalogParams.FilterCatalogs.PAINS_B)
+  params.AddCatalog(FilterCatalog.FilterCatalogParams.FilterCatalogs.PAINS_C)
+  catalog = FilterCatalog.FilterCatalog(params)
+  n_mol=0; n_filtered=0; n_out=0;
+  for mol in molReader:
+    name = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
+    if catalog.HasMatch(mol):
+      entry = catalog.GetFirstMatch(mol)
+      #logging.debug(f"{n_mol}. matched filter; first match: {entry.GetDescription() if entry else ''}")
+      for filterMatch in entry.GetFilterMatches(mol):
+        logging.debug(f"{n_mol}. \"{name}\": PAINS filter matched: {filterMatch.filterMatch}")
+        mol.SetProp(f"{filterMatch.filterMatch}", "TRUE")
+      mol.SetProp(f"PAINS", "FAIL")
+      n_filtered+=1
+    else:
+      mol.SetProp(f"PAINS", "PASS")
+      if n_mol==0: molWriter.SetProps(mol.GetPropNames())
+      molWriter.write(mol)
+      n_out+=1
+    n_mol+=1
+  logging.info(f"n_mol: {n_mol}; n_out: {n_out}; n_filtered: {n_filtered}")
 
 #############################################################################
