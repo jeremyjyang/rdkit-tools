@@ -38,7 +38,7 @@ freesasa: Accessible Surface Area (SASA) and related descriptors (requires 3D co
   parser.add_argument("--oheader", action="store_true", help="include TSV header line with smiles output")
   parser.add_argument("--kekulize", action="store_true", help="Kekulize")
   parser.add_argument("--sanitize", action="store_true", help="Sanitize")
-  parser.add_argument("--delim", default=" \t", help="SMILES/TSV delimiter")
+  parser.add_argument("--delim", default="\t", help="SMILES/TSV delimiter")
   parser.add_argument("--smilesColumn", type=int, default=0, help="input SMILES column")
   parser.add_argument("--nameColumn", type=int, default=1, help="input name column")
 
