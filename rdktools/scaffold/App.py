@@ -77,8 +77,9 @@ if __name__ == "__main__":
 
   elif args.op=="scafnet":
     molReader = util.File2Molreader(args.ifile, args.idelim, args.smilesColumn, args.nameColumn, args.iheader)
+    fout = open(args.ofile, "w") if ofile else sys.stdout
     mols = util.ReadMols(molReader)
-    scafnet = scaffold.Mols2ScafNet(mols, args.brics, args.ofile)
+    scafnet = scaffold.Mols2ScafNet(mols, args.brics, fout)
     if args.ofile_png:
       scaffold.Scafnet2Img(scafnet, args.ofile_png)
     if args.ofile_html:
@@ -87,11 +88,13 @@ if __name__ == "__main__":
   elif args.op=="scafnet_rings":
     molReader = util.File2Molreader(args.ifile, args.idelim, args.smilesColumn, args.nameColumn, args.iheader)
     molWriter = util.File2Molwriter(args.ofile, args.odelim, args.oheader)
-    mols = util.ReadMols(molReader)
-    for mol in mols:
-      molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-      scafnet = scaffold.Mols2ScafNet([mol], args.brics)
+    n_mol=0;
+    for mol in molReader:
+      n_mol+=1
+      molname = mol.GetProp('_Name') if mol.HasProp('_Name') else f"Mol_{n_mol:03d}"
+      scafnet = scaffold.Mols2ScafNet([mol], args.brics, None)
       rings = scaffold.ScafNet2Rings(scafnet, molname, molWriter)
+    logging.info(f"Mols processed: {n_mol}")
 
   else:
     parser.error(f"Unsupported operation: {args.op}")
