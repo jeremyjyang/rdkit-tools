@@ -47,7 +47,7 @@ def Mols2BMScaffolds(mols, molWriter):
   return scafmols
 
 #############################################################################
-def Mols2ScafNet(mols, brics=False, ofile=None):
+def Mols2ScafNet(mols, brics=False, fout=None):
   if brics:
     params = rdScaffoldNetwork.BRICSScaffoldParams()
   else:
@@ -64,19 +64,19 @@ def Mols2ScafNet(mols, brics=False, ofile=None):
 
   attrs = [a for a in inspect.getmembers(params) if not(a[0].startswith('__'))]
   for a in attrs:
-    logging.info(f"{a[0]}: {a[1]}")
+    logging.debug(f"{a[0]}: {a[1]}")
 
   for i,mol in enumerate(mols):
     molname = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
     logging.debug(f'{i+1}. {molname}:')
 
   scafnet = rdScaffoldNetwork.CreateScaffoldNetwork(mols, params)
-  fout = open(ofile, "w") if ofile else sys.stdout
-  for i in range(len(scafnet.nodes)):
-    fout.write(f"node\t{i}\t{scafnet.nodes[i]}\t{scafnet.counts[i]}\n")
-  for i in range(len(scafnet.edges)):
-    fout.write(f"edge\t{i}\t{scafnet.edges[i].beginIdx}\t{scafnet.edges[i].endIdx}\t{scafnet.edges[i].type}\n")
-  fout.flush()
+  if fout is not None:
+    for i in range(len(scafnet.nodes)):
+      fout.write(f"node\t{i}\t{scafnet.nodes[i]}\t{scafnet.counts[i]}\n")
+    for i in range(len(scafnet.edges)):
+      fout.write(f"edge\t{i}\t{scafnet.edges[i].beginIdx}\t{scafnet.edges[i].endIdx}\t{scafnet.edges[i].type}\n")
+    fout.flush()
   logging.info(f"nodes: {len(scafnet.nodes)}; edges:{len(scafnet.edges)}")
   return scafnet
 
