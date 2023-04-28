@@ -115,6 +115,7 @@ def DemoNetImg(scratchdir):
   fout = tempfile.NamedTemporaryFile(prefix=scratchdir+"/", suffix=".png", mode="w+b", delete=False)
   ofile = fout.name
   fout.close()
+  brics=True
   logging.debug(f"DemoNetImg({brics}, {fout.name})")
   smi = ('Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 flucloxacillin')
   mols = [MolFromSmiles(re.sub(r'\s.*$', '', smi))]
@@ -126,7 +127,7 @@ def DemoNetImg(scratchdir):
     logging.debug(f"{i+1}. MolFromSmiles({m})...")
     scafmols.append(MolFromSmiles(m))
   logging.info(f"Scafmols: {len(scafmols)}")
-  img = Scafnet2Img(scafnet, scafmols, ofile)
+  img = Scafnet2Img(scafnet, ofile)
   img.show()
 
 #############################################################################
@@ -140,8 +141,10 @@ def Scafnet2Img(scafnet, ofile):
 
 #############################################################################
 def DemoNetHtml(scratchdir):
+  logging.debug(f"scratchdir: {scratchdir}")
   fout = tempfile.NamedTemporaryFile(prefix=scratchdir+"/", suffix=".html", mode="w+", delete=False)
   ofile = fout.name
+  logging.debug(f"ofile: {ofile}")
   fout.close()
   logging.debug(f"DemoNetHtml({scratchdir}, {ofile})")
   demosmi = ('Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 flucloxacillin')

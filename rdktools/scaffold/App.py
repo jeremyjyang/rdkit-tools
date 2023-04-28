@@ -61,6 +61,7 @@ if __name__ == "__main__":
     sys.exit()
 
   elif args.op=="demonet_html":
+    logging.debug(f"scratchdir: {args.scratchdir}")
     scaffold.DemoNetHtml(args.scratchdir)
     sys.exit()
 
