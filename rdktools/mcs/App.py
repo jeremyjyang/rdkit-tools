@@ -9,7 +9,7 @@ import os,sys,stat,re,json,time,inspect,argparse,logging
 
 import rdkit
 from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolStandardize, MolToSmiles, MolFromSmiles, Draw
-from rdkit.Chem.MCS import rdFMCS
+from rdkit.Chem import rdFMCS
 
 from .. import mcs
 from .. import util
@@ -23,6 +23,13 @@ if __name__ == "__main__":
   parser.add_argument("op", choices=OPS, help="OPERATION")
   parser.add_argument("--i", dest="ifile", help="input file, TSV or SDF")
   parser.add_argument("--o", dest="ofile", help="output file, TSV|SDF")
+  parser.add_argument("--atom_compare", choices=rdFMCS.AtomCompare.names.keys(), default="CompareElements", help="atom-compare criterion")
+  parser.add_argument("--bond_compare", choices=rdFMCS.BondCompare.names.keys(), default="CompareOrder", help="bond-compare criterion")
+  parser.add_argument("--mces", action="store_true", help="maximize common edges/bonds")
+  parser.add_argument("--complete_rings_only", action="store_true", help="complete rings only in MCS")
+  parser.add_argument("--atom_ringmatch", action="store_true", help="ring atoms only match ring atoms")
+  parser.add_argument("--bond_ringmatch", action="store_true", help="ring bonds only match ring bonds")
+  parser.add_argument("--bond_match_stereo", action="store_true", help="match bond stereo")
   parser.add_argument("--scratchdir", default=SCRATCHDIR)
   parser.add_argument("--smilesColumn", type=int, default=0, help="SMILES column from TSV (counting from 0)")
   parser.add_argument("--nameColumn", type=int, default=1, help="name column from TSV (counting from 0)")
@@ -36,8 +43,6 @@ if __name__ == "__main__":
   logging.basicConfig(format='%(levelname)s:%(message)s', level=(logging.DEBUG if args.verbose>1 else logging.INFO))
 
   logging.info(f"RDKit version: {rdkit.rdBase.rdkitVersion}")
-  logging.info(f"MatplotLib version: {mpl.__version__}")
-  logging.info(f"Pyvis version: {pyvis.__version__}")
 
   t0=time.time()
 
@@ -54,8 +59,10 @@ if __name__ == "__main__":
   if args.op=="fmcs":
     molReader = util.File2Molreader(args.ifile, args.idelim, args.smilesColumn, args.nameColumn, args.iheader)
     mols = util.ReadMols(molReader)
-    fmcsmols = mcs.Mols2FMCS(mols, fout)
-
+    fmcsmols = mcs.Mols2FMCS(mols,
+	rdFMCS.AtomCompare.names[args.atom_compare],
+	rdFMCS.BondCompare.names[args.bond_compare],
+	fout)
   else:
     parser.error(f"Unsupported operation: {args.op}")
 
