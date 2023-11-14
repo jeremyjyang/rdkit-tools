@@ -22,6 +22,7 @@ if __name__=='__main__':
   parser.add_argument("--delim", default="\t", help="delimiter for SMILES/TSV")
   parser.add_argument("--smilesColumn", type=int, default=0, help="input SMILES column")
   parser.add_argument("--nameColumn", type=int, default=1, help="input name column")
+  parser.add_argument("--nameField", help="input SDF field for use as name/ID")
   parser.add_argument("-v", "--verbose", action="count", default=0)
   args = parser.parse_args()
 
@@ -51,7 +52,7 @@ if __name__=='__main__':
     molWriter = SmilesWriter("-", delimiter='\t', nameHeader='Name', includeHeader=True, isomericSmiles=True, kekuleSmiles=True)
 
   if args.op == "mdl2smi":
-    formats.Mdl2Smi(molReader, molWriter)
+    formats.Mdl2Smi(molReader, molWriter, args.nameField)
 
   elif args.op == "mdl2tsv":
     formats.Mdl2Tsv(molReader, molWriter)
@@ -73,5 +74,4 @@ if __name__=='__main__':
 
   else:
     parser.error(f"Unsupported operation: {args.op}")
-
 

@@ -7,16 +7,22 @@ import rdkit.Chem.AllChem
 import rdkit.Chem.inchi
 
 #############################################################################
-def Mdl2Smi(molReader, molWriter):
-  n_mol=0;
+def Mdl2Smi(molReader, molWriter, nameField):
+  n_mol=0; n_err=0; n_out=0;
   for mol in molReader:
-    logging.debug(f"{n_mol+1}. {mol.GetProp('_Name')}")
-    mol_out = rdkit.Chem.RemoveHs(mol, implicitOnly=False)
-    rdkit.Chem.SanitizeMol(mol_out)
-    rdkit.Chem.AllChem.Kekulize(mol_out, clearAromaticFlags=True)
-    molWriter.write(mol_out)
     n_mol+=1
-  logging.info(f"n_out: {n_mol}")
+    try:
+      if nameField is not None: mol.SetProp('_Name', mol.GetProp(nameField))
+      logging.debug(f"{n_mol}. {mol.GetProp('_Name')}")
+      mol_out = rdkit.Chem.RemoveHs(mol, implicitOnly=False)
+      rdkit.Chem.SanitizeMol(mol_out)
+      rdkit.Chem.AllChem.Kekulize(mol_out, clearAromaticFlags=True)
+      molWriter.write(mol_out)
+      n_out+=1
+    except Exception as e:
+      logging.error(f"{n_mol}. {e}")
+      n_err+=1
+  logging.info(f"n_mol: {n_mol}; n_out: {n_out}; n_err: {n_err}")
 
 #############################################################################
 def Mdl2Tsv(molReader, molWriter):
