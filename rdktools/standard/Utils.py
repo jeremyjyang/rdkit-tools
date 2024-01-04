@@ -113,6 +113,7 @@ def Standardize(stdzr, sanitize, isomeric, nameSDField, molReader, molWriter):
   """Sanitize, standardize, and canonicalize."""
   n_mol=0; n_out=0; n_empty_in=0; n_empty_out=0; n_err=0;
   for mol in molReader:
+    mol_in = Chem.Mol(mol)
     n_mol+=1
     if mol is None:
       n_err+=1
@@ -127,15 +128,15 @@ def Standardize(stdzr, sanitize, isomeric, nameSDField, molReader, molWriter):
         logging.debug(f"[N={n_mol}] {util.MolName(mol)}: {MolToSmiles(mol, isomericSmiles=isomeric)}")
         mol_out = StdMol(stdzr, mol, sanitize, isomeric, nameSDField)
       except Exception as e:
-        logging.error(f"[N={n_mol}]: standardize failed: {e}")
+        logging.error(f"[N={n_mol}]: standardize (StdMol) failed: {e}")
         n_err+=1
-        mol_out = mol
+        mol_out = Chem.Mol(mol_in)
     if mol_out.GetNumAtoms()==0: n_empty_out+=1
     try:
       molWriter.write(mol_out)
       n_out+=1
     except Exception as e:
-      logging.error(f"[N={n_mol}]: standardize failed: {e}")
+      logging.error(f"[N={n_mol}]: standardize (write) failed: {e}")
       n_err+=1
   logging.info(f"Mols in: {n_mol}; empty mols in: {n_empty_in}; mols out: {n_out}; empty mols out: {n_empty_out}; errors: {n_err}")
 
