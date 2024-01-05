@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 #############################################################################
 import logging
+
 import rdkit.Chem
-from rdkit.Chem import FilterCatalog
 import rdkit.Chem.AllChem
 import rdkit.rdBase
+from rdkit.Chem import FilterCatalog
 
 
 #############################################################################
