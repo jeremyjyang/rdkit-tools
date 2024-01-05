@@ -82,7 +82,7 @@ def MatchFilterMulti(smartsfile, molReader, molWriter):
 
 
 #############################################################################
-def MatchCounts(smarts, usa, molReader, molWriter):
+def MatchCounts(smarts: str, usa: bool, molReader, molWriter):
     pat = rdkit.Chem.MolFromSmarts(smarts)
     n_mol = 0
     n_mol_matched = 0

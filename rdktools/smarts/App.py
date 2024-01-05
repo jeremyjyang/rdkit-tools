@@ -41,7 +41,6 @@ CN1c2ccc(cc2C(=NCC1=O)c3ccccc3)Cl	Valium
         titleLine=True,
     )
     sma = "[$([N;!H0]-[#6]);!$(N-C=[O,N,S])]"  # amine
-    pat = rdkit.Chem.MolFromSmarts(sma)
     molWriter = SmilesWriter(
         "-",
         delimiter="\t",
@@ -50,7 +49,8 @@ CN1c2ccc(cc2C(=NCC1=O)c3ccccc3)Cl	Valium
         isomericSmiles=True,
         kekuleSmiles=False,
     )
-    smarts.MatchCounts(pat, molReader, molWriter)
+    usa = False
+    smarts.MatchCounts(sma, usa, molReader, molWriter)
 
 
 #############################################################################
