@@ -107,6 +107,7 @@ class SmartsFile:
                         self.failed_smarts.append(resolved_smarts_str)
                         self.failed_smarts_raw.append(raw_smarts_str)
                         continue
+                smarts_mol.SetProp("Name", smarts_name)  # will just be "" if not given
                 self.smarts_strs.append(resolved_smarts_str)
                 self.smarts_mols.append(smarts_mol)
                 self.smarts_names.append(smarts_name)
