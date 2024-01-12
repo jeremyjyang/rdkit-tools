@@ -38,11 +38,22 @@ class Options(object):
 
 
 #############################################################################
-def MatchFilter(smarts, molReader, molWriter):
+def clearMolProps(mol):
+    for prop in mol.GetPropNames():
+        if prop != "_Name":
+            mol.ClearProp(prop)
+
+
+#############################################################################
+def MatchFilter(smarts, molReader, molWriter, exclude_mol_props: bool):
     pat = rdkit.Chem.MolFromSmarts(smarts)
     n_mol = 0
     n_mol_matched = 0
     for mol in molReader:
+        if exclude_mol_props:
+            clearMolProps(mol)
+        if not mol.HasProp("_Name") or mol.GetProp("_Name") == "":
+            mol.SetProp("_Name", f"mol_{n_mol+1}")
         matches = mol.GetSubstructMatches(pat, uniquify=True, useChirality=False)
         if len(matches) > 0:
             n_mol_matched += 1
@@ -52,7 +63,7 @@ def MatchFilter(smarts, molReader, molWriter):
 
 
 #############################################################################
-def MatchFilterMulti(smarts_file_path, molReader, molWriter):
+def MatchFilterMulti(smarts_file_path, molReader, molWriter, exclude_mol_props: bool):
     """All SMARTS must match, or mol is filtered."""
     sf = SmartsFile(smarts_file_path)
     logging.info(f"SMARTS read from file {smarts_file_path}: {len(sf.smarts_strs)}")
@@ -63,6 +74,10 @@ def MatchFilterMulti(smarts_file_path, molReader, molWriter):
     n_mol = 0
     n_mol_matched = 0
     for mol in molReader:
+        if exclude_mol_props:
+            clearMolProps(mol)
+        if not mol.HasProp("_Name") or mol.GetProp("_Name") == "":
+            mol.SetProp("_Name", f"mol_{n_mol+1}")
         for j, query in enumerate(querys):
             matches = mol.GetSubstructMatches(
                 query["pat"], uniquify=True, useChirality=False
@@ -78,11 +93,15 @@ def MatchFilterMulti(smarts_file_path, molReader, molWriter):
 
 
 #############################################################################
-def MatchCounts(smarts: str, usa: bool, molReader, molWriter):
+def MatchCounts(smarts: str, usa: bool, molReader, molWriter, exclude_mol_props: bool):
     pat = rdkit.Chem.MolFromSmarts(smarts)
     n_mol = 0
     n_mol_matched = 0
     for mol in molReader:
+        if exclude_mol_props:
+            clearMolProps(mol)
+        if not mol.HasProp("_Name") or mol.GetProp("_Name") == "":
+            mol.SetProp("_Name", f"mol_{n_mol+1}")
         # name = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
         # smi = MolToSmiles(mol, isomericSmiles=True)
         matches = mol.GetSubstructMatches(pat, uniquify=True, useChirality=False)
@@ -99,7 +118,9 @@ def MatchCounts(smarts: str, usa: bool, molReader, molWriter):
 
 
 #############################################################################
-def MatchCountsMulti(smarts_file_path, usa, molReader, molWriter):
+def MatchCountsMulti(
+    smarts_file_path, usa, molReader, molWriter, exclude_mol_props: bool
+):
     sf = SmartsFile(smarts_file_path)
     logging.info(f"SMARTS read from file {smarts_file_path}: {len(sf.smarts_strs)}")
     querys = [
@@ -108,6 +129,11 @@ def MatchCountsMulti(smarts_file_path, usa, molReader, molWriter):
     ]
     n_mol = 0
     for mol in molReader:
+        if exclude_mol_props:
+            clearMolProps(mol)
+        if not mol.HasProp("_Name") or mol.GetProp("_Name") == "":
+            mol.SetProp("_Name", f"mol_{n_mol+1}")
+        print("NAME:", mol.GetProp("_Name"))
         for j, query in enumerate(querys):
             matches = mol.GetSubstructMatches(
                 query["pat"], uniquify=True, useChirality=False
@@ -136,7 +162,7 @@ def MatchCountsMulti(smarts_file_path, usa, molReader, molWriter):
 
 #############################################################################
 # https://github.com/rdkit/rdkit/tree/master/Code/GraphMol/FilterCatalog
-def FilterPAINS(molReader, molWriter):
+def FilterPAINS(molReader, molWriter, exclude_mol_props: bool):
     params = FilterCatalog.FilterCatalogParams()
     params.AddCatalog(FilterCatalog.FilterCatalogParams.FilterCatalogs.PAINS_A)
     params.AddCatalog(FilterCatalog.FilterCatalogParams.FilterCatalogs.PAINS_B)
@@ -146,7 +172,11 @@ def FilterPAINS(molReader, molWriter):
     n_filtered = 0
     n_out = 0
     for mol in molReader:
-        name = mol.GetProp("_Name") if mol.HasProp("_Name") else ""
+        if exclude_mol_props:
+            clearMolProps(mol)
+        if not mol.HasProp("_Name") or mol.GetProp("_Name") == "":
+            mol.SetProp("_Name", f"mol_{n_mol+1}")
+        name = mol.GetProp("_Name")
         if catalog.HasMatch(mol):
             entry = catalog.GetFirstMatch(mol)
             # logging.debug(f"{n_mol}. matched filter; first match: {entry.GetDescription() if entry else ''}")

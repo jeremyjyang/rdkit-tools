@@ -81,6 +81,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--oheader", action="store_true", help="output SMILES/TSV has header line"
     )
+    parser.add_argument(
+        "--exclude_mol_props",
+        action="store_true",
+        help="exclude molecular properties present in input SMILES/SDF in output (i.e., only include SMILES & Name properties)",
+        default=False,
+    )
     parser.add_argument("-v", "--verbose", action="count", default=0)
     args = parser.parse_args()
 
@@ -135,19 +141,25 @@ if __name__ == "__main__":
         logging.error(f"Invalid file extension: {args.ofile}")
 
     if args.op == "matchCounts":
-        smarts.MatchCounts(args.smarts, args.usa, molReader, molWriter)
+        smarts.MatchCounts(
+            args.smarts, args.usa, molReader, molWriter, args.exclude_mol_props
+        )
 
     elif args.op == "matchFilter":
-        smarts.MatchFilter(args.smarts, molReader, molWriter)
+        smarts.MatchFilter(args.smarts, molReader, molWriter, args.exclude_mol_props)
 
     elif args.op == "matchCountsMulti":
-        smarts.MatchCountsMulti(args.smartsfile, args.usa, molReader, molWriter)
+        smarts.MatchCountsMulti(
+            args.smartsfile, args.usa, molReader, molWriter, args.exclude_mol_props
+        )
 
     elif args.op == "matchFilterMulti":
-        smarts.MatchFilterMulti(args.smartsfile, molReader, molWriter)
+        smarts.MatchFilterMulti(
+            args.smartsfile, molReader, molWriter, args.exclude_mol_props
+        )
 
     elif args.op == "filterPAINS":
-        smarts.FilterPAINS(molReader, molWriter)
+        smarts.FilterPAINS(molReader, molWriter, args.exclude_mol_props)
 
     else:
         parser.error(f"Unsupported operation: {args.op}")
