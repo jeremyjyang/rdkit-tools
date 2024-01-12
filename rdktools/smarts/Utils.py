@@ -7,6 +7,8 @@ import rdkit.Chem.AllChem
 import rdkit.rdBase
 from rdkit.Chem import FilterCatalog
 
+from rdktools.smarts.SmartsFile import SmartsFile
+
 
 #############################################################################
 ### DeduplicateMatches() - remove matches not USA (Unique Sets of Atoms)
@@ -50,19 +52,13 @@ def MatchFilter(smarts, molReader, molWriter):
 
 
 #############################################################################
-def MatchFilterMulti(smartsfile, molReader, molWriter):
+def MatchFilterMulti(smarts_file_path, molReader, molWriter):
     """All SMARTS must match, or mol is filtered."""
-    smartses = []
-    with open(smartsfile, "r") as fin:
-        while True:
-            line = fin.readline()
-            if not line:
-                break
-            smartses.append(line.rstrip())
-    logging.info(f"SMARTS read from file {smartsfile}: {len(smartses)}")
+    sf = SmartsFile(smarts_file_path)
+    logging.info(f"SMARTS read from file {smarts_file_path}: {len(sf.smarts_strs)}")
     querys = [
-        {"smarts": smarts, "pat": rdkit.Chem.MolFromSmarts(smarts), "n_mol_matched": 0}
-        for smarts in smartses
+        {"smarts": smarts, "pat": mol, "n_mol_matched": 0}
+        for smarts, mol in zip(sf.smarts_strs, sf.smarts_mols)
     ]
     n_mol = 0
     n_mol_matched = 0
@@ -103,18 +99,12 @@ def MatchCounts(smarts: str, usa: bool, molReader, molWriter):
 
 
 #############################################################################
-def MatchCountsMulti(smartsfile, usa, molReader, molWriter):
-    smartses = []
-    with open(smartsfile, "r") as fin:
-        while True:
-            line = fin.readline()
-            if not line:
-                break
-            smartses.append(line.rstrip())
-    logging.info(f"SMARTS read from file {smartsfile}: {len(smartses)}")
+def MatchCountsMulti(smarts_file_path, usa, molReader, molWriter):
+    sf = SmartsFile(smarts_file_path)
+    logging.info(f"SMARTS read from file {smarts_file_path}: {len(sf.smarts_strs)}")
     querys = [
-        {"smarts": smarts, "pat": rdkit.Chem.MolFromSmarts(smarts), "n_mol_matched": 0}
-        for smarts in smartses
+        {"smarts": smarts, "pat": mol, "n_mol_matched": 0}
+        for smarts, mol in zip(sf.smarts_strs, sf.smarts_mols)
     ]
     n_mol = 0
     for mol in molReader:
