@@ -125,7 +125,7 @@ if __name__ == "__main__":
     elif re.sub(r".*\.", "", args.ofile).lower() in ("smi", "smiles", "tsv"):
         molWriter = SmilesWriter(
             args.ofile,
-            delimiter=args.delim,
+            delimiter="\t",
             nameHeader="Name",
             includeHeader=args.oheader,
             isomericSmiles=True,
