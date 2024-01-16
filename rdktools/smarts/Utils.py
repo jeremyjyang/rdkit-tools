@@ -18,7 +18,9 @@ def get_smarts_queries(smarts_file_path: str):
         failed_smarts = [
             (fs, fsr) for fs, fsr in zip(sf.failed_smarts, sf.failed_smarts_raw)
         ]
-        logging.error("The following SMARTS could not be parsed and will be ignored:")
+        logging.error(
+            "The following SMARTS could not be interpreted and will be ignored:"
+        )
         logging.error(f"(parsed string, raw string): {failed_smarts}")
     queries = [
         {"smarts": smarts, "pat": mol, "n_mol_matched": 0}
