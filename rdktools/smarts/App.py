@@ -146,6 +146,7 @@ def parse_args(parser: argparse.ArgumentParser):
     return args
 
 
+# TODO: fix verbose, log to file option
 #############################################################################
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -153,11 +154,12 @@ if __name__ == "__main__":
         epilog="",
     )
     args = parse_args(parser)
-
-    logging.basicConfig(
-        format="%(levelname)s:%(message)s",
-        level=(logging.DEBUG if args.verbose > 1 else logging.INFO),
-    )
+    if args.verbose == 0:
+        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.WARNING)
+    elif args.verbose == 1:
+        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
+    elif args.verbose >= 2:
+        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
 
     logging.info(f"RDKit version: {rdkit.__version__}")
 
