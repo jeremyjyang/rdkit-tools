@@ -79,6 +79,11 @@ def parse_args(parser: argparse.ArgumentParser):
         )
     for sub_parser in parsers:
         sub_parser.add_argument(
+            "--log_fname",
+            help="File to save logs to. If not given will log to stdout.",
+            default=None,
+        )
+        sub_parser.add_argument(
             "-v", "--verbose", action="count", default=0, help="verbosity of logging"
         )
         if sub_parser.prog.endswith("demo"):
@@ -146,7 +151,6 @@ def parse_args(parser: argparse.ArgumentParser):
     return args
 
 
-# TODO: fix verbose, log to file option
 #############################################################################
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -154,13 +158,18 @@ if __name__ == "__main__":
         epilog="",
     )
     args = parse_args(parser)
-    if args.verbose == 0:
-        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.WARNING)
-    elif args.verbose == 1:
-        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
+    level = logging.WARNING  # default
+    if args.verbose == 1:
+        level = logging.INFO
     elif args.verbose >= 2:
-        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
+        level = logging.DEBUG
 
+    logging.basicConfig(
+        filename=args.log_fname,
+        filemode="a",
+        format="%(levelname)s:%(message)s",
+        level=level,
+    )
     logging.info(f"RDKit version: {rdkit.__version__}")
 
     t0 = time.time()
