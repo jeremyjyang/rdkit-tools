@@ -28,16 +28,6 @@ def DeduplicateMatches(matches):
 
 
 #############################################################################
-class Options(object):
-    def __init__(self):
-        self.ifile = None
-        self.smarts = None
-        self.ofile = None
-        self.usa = False
-        self.verbose = 0
-
-
-#############################################################################
 def clearMolProps(mol):
     for prop in mol.GetPropNames():
         if prop != "_Name":
