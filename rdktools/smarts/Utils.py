@@ -10,9 +10,9 @@ from rdkit.Chem import FilterCatalog
 from rdktools.smarts.SmartsFile import SmartsFile
 
 
-def get_smarts_queries(smarts_file_path: str):
+def get_smarts_queries(smarts_file_path: str, strict_smarts: bool):
     # get SMARTS queries from file
-    sf = SmartsFile(smarts_file_path)
+    sf = SmartsFile(smarts_file_path, strict_smarts)
     logging.info(f"SMARTS read from file {smarts_file_path}: {len(sf.smarts_strs)}")
     if len(sf.failed_smarts) > 0:
         failed_smarts = [
@@ -73,10 +73,14 @@ def MatchFilter(smarts: str, molReader, molWriter, exclude_mol_props: bool):
 
 #############################################################################
 def MatchFilterMulti(
-    smarts_file_path: str, molReader, molWriter, exclude_mol_props: bool
+    smarts_file_path: str,
+    strict_smarts: bool,
+    molReader,
+    molWriter,
+    exclude_mol_props: bool,
 ):
     """All SMARTS must match, or mol is filtered."""
-    queries = get_smarts_queries(smarts_file_path)
+    queries = get_smarts_queries(smarts_file_path, strict_smarts)
     n_mol = 0
     n_mol_matched = 0
     for mol in molReader:
@@ -123,9 +127,14 @@ def MatchCounts(smarts: str, usa: bool, molReader, molWriter, exclude_mol_props:
 
 #############################################################################
 def MatchCountsMulti(
-    smarts_file_path: str, usa: bool, molReader, molWriter, exclude_mol_props: bool
+    smarts_file_path: str,
+    strict_smarts: bool,
+    usa: bool,
+    molReader,
+    molWriter,
+    exclude_mol_props: bool,
 ):
-    queries = get_smarts_queries(smarts_file_path)
+    queries = get_smarts_queries(smarts_file_path, strict_smarts)
     n_mol = 0
     for mol in molReader:
         if exclude_mol_props:

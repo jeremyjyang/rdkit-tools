@@ -90,6 +90,11 @@ def parse_args(parser: argparse.ArgumentParser):
                 default=argparse.SUPPRESS,
                 required=True,
             )
+            sub_parser.add_argument(
+                "--strict",
+                action="store_true",
+                help="raise error if any SMARTS cannot be parsed. If not set, will ignore invalid SMARTS.",
+            )
         elif "PAINS" not in sub_parser.prog:
             sub_parser.add_argument(
                 "--smarts",
@@ -205,11 +210,18 @@ if __name__ == "__main__":
         )
 
     elif args.op == "matchFilter":
-        smarts.MatchFilter(args.smarts, molReader, molWriter, args.exclude_mol_props)
+        smarts.MatchFilter(
+            args.smarts, args.strict, molReader, molWriter, args.exclude_mol_props
+        )
 
     elif args.op == "matchCountsMulti":
         smarts.MatchCountsMulti(
-            args.smartsfile, args.usa, molReader, molWriter, args.exclude_mol_props
+            args.smartsfile,
+            args.strict,
+            args.usa,
+            molReader,
+            molWriter,
+            args.exclude_mol_props,
         )
 
     elif args.op == "matchFilterMulti":
