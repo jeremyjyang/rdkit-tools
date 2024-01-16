@@ -10,6 +10,23 @@ from rdkit.Chem import FilterCatalog
 from rdktools.smarts.SmartsFile import SmartsFile
 
 
+def get_smarts_queries(smarts_file_path: str):
+    # get SMARTS queries from file
+    sf = SmartsFile(smarts_file_path)
+    logging.info(f"SMARTS read from file {smarts_file_path}: {len(sf.smarts_strs)}")
+    if len(sf.failed_smarts) > 0:
+        failed_smarts = [
+            (fs, fsr) for fs, fsr in zip(sf.failed_smarts, sf.failed_smarts_raw)
+        ]
+        logging.error("The following SMARTS could not be parsed and will be ignored:")
+        logging.error(f"(parsed string, raw string): {failed_smarts}")
+    queries = [
+        {"smarts": smarts, "pat": mol, "n_mol_matched": 0}
+        for smarts, mol in zip(sf.smarts_strs, sf.smarts_mols)
+    ]
+    return queries
+
+
 #############################################################################
 ### DeduplicateMatches() - remove matches not USA (Unique Sets of Atoms)
 ### uumatches - unique set of matches, sorted atom order
@@ -35,7 +52,7 @@ def clearMolProps(mol):
 
 
 #############################################################################
-def MatchFilter(smarts, molReader, molWriter, exclude_mol_props: bool):
+def MatchFilter(smarts: str, molReader, molWriter, exclude_mol_props: bool):
     pat = rdkit.Chem.MolFromSmarts(smarts)
     n_mol = 0
     n_mol_matched = 0
@@ -53,14 +70,11 @@ def MatchFilter(smarts, molReader, molWriter, exclude_mol_props: bool):
 
 
 #############################################################################
-def MatchFilterMulti(smarts_file_path, molReader, molWriter, exclude_mol_props: bool):
+def MatchFilterMulti(
+    smarts_file_path: str, molReader, molWriter, exclude_mol_props: bool
+):
     """All SMARTS must match, or mol is filtered."""
-    sf = SmartsFile(smarts_file_path)
-    logging.info(f"SMARTS read from file {smarts_file_path}: {len(sf.smarts_strs)}")
-    querys = [
-        {"smarts": smarts, "pat": mol, "n_mol_matched": 0}
-        for smarts, mol in zip(sf.smarts_strs, sf.smarts_mols)
-    ]
+    queries = get_smarts_queries(smarts_file_path)
     n_mol = 0
     n_mol_matched = 0
     for mol in molReader:
@@ -68,13 +82,13 @@ def MatchFilterMulti(smarts_file_path, molReader, molWriter, exclude_mol_props: 
             clearMolProps(mol)
         if not mol.HasProp("_Name") or mol.GetProp("_Name") == "":
             mol.SetProp("_Name", f"mol_{n_mol+1}")
-        for j, query in enumerate(querys):
+        for j, query in enumerate(queries):
             matches = mol.GetSubstructMatches(
                 query["pat"], uniquify=True, useChirality=False
             )
             if len(matches) > 0:
                 query["n_mol_matched"] += 1
-        matchcounts = [q["n_mol_matched"] for q in querys]
+        matchcounts = [q["n_mol_matched"] for q in queries]
         if min(matchcounts) > 0:
             molWriter.write(mol)
             n_mol_matched += 1
@@ -92,8 +106,6 @@ def MatchCounts(smarts: str, usa: bool, molReader, molWriter, exclude_mol_props:
             clearMolProps(mol)
         if not mol.HasProp("_Name") or mol.GetProp("_Name") == "":
             mol.SetProp("_Name", f"mol_{n_mol+1}")
-        # name = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-        # smi = MolToSmiles(mol, isomericSmiles=True)
         matches = mol.GetSubstructMatches(pat, uniquify=True, useChirality=False)
         if usa:
             matches = DeduplicateMatches(matches)
@@ -109,22 +121,16 @@ def MatchCounts(smarts: str, usa: bool, molReader, molWriter, exclude_mol_props:
 
 #############################################################################
 def MatchCountsMulti(
-    smarts_file_path, usa, molReader, molWriter, exclude_mol_props: bool
+    smarts_file_path: str, usa: bool, molReader, molWriter, exclude_mol_props: bool
 ):
-    sf = SmartsFile(smarts_file_path)
-    logging.info(f"SMARTS read from file {smarts_file_path}: {len(sf.smarts_strs)}")
-    querys = [
-        {"smarts": smarts, "pat": mol, "n_mol_matched": 0}
-        for smarts, mol in zip(sf.smarts_strs, sf.smarts_mols)
-    ]
+    queries = get_smarts_queries(smarts_file_path)
     n_mol = 0
     for mol in molReader:
         if exclude_mol_props:
             clearMolProps(mol)
         if not mol.HasProp("_Name") or mol.GetProp("_Name") == "":
             mol.SetProp("_Name", f"mol_{n_mol+1}")
-        print("NAME:", mol.GetProp("_Name"))
-        for j, query in enumerate(querys):
+        for j, query in enumerate(queries):
             matches = mol.GetSubstructMatches(
                 query["pat"], uniquify=True, useChirality=False
             )
@@ -144,7 +150,7 @@ def MatchCountsMulti(
         f"n_mol: {n_mol}; mols matched: "
         + (
             ",".join(
-                [f"query_{j+1:02d}:{q['n_mol_matched']}" for j, q in enumerate(querys)]
+                [f"query_{j+1:02d}:{q['n_mol_matched']}" for j, q in enumerate(queries)]
             )
         )
     )
@@ -169,7 +175,6 @@ def FilterPAINS(molReader, molWriter, exclude_mol_props: bool):
         name = mol.GetProp("_Name")
         if catalog.HasMatch(mol):
             entry = catalog.GetFirstMatch(mol)
-            # logging.debug(f"{n_mol}. matched filter; first match: {entry.GetDescription() if entry else ''}")
             for filterMatch in entry.GetFilterMatches(mol):
                 logging.debug(
                     f'{n_mol}. "{name}": PAINS filter matched: {filterMatch.filterMatch}'
