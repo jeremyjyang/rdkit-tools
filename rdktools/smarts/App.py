@@ -16,7 +16,7 @@ from .. import smarts
 
 
 #############################################################################
-def Demo():
+def demo():
     molReader = SmilesMolSupplierFromText(
         """\
 SMILES	Name
@@ -41,6 +41,7 @@ CN1c2ccc(cc2C(=NCC1=O)c3ccccc3)Cl	Valium
         titleLine=True,
     )
     sma = "[$([N;!H0]-[#6]);!$(N-C=[O,N,S])]"  # amine
+    logging.info(f"Counting occurrences of SMARTS: {sma}")
     molWriter = SmilesWriter(
         "-",
         delimiter="\t",
@@ -50,45 +51,103 @@ CN1c2ccc(cc2C(=NCC1=O)c3ccccc3)Cl	Valium
         kekuleSmiles=False,
     )
     usa = False
-    smarts.MatchCounts(sma, usa, molReader, molWriter)
+    smarts.MatchCounts(sma, usa, molReader, molWriter, False)
+
+
+def parse_args(parser: argparse.ArgumentParser):
+    """
+    Get user-provided arguments from the command line.
+    """
+    # mapping of operation to help string
+    OPS = {
+        "matchCounts": "Count matches of a single SMARTS in each molecule",
+        "matchFilter": "Filter molecules that match a single SMARTS",
+        "matchCountsMulti": "Count matches of multiple SMARTS (from file) in each molecule",
+        "matchFilterMulti": "Filter molecules that match multiple SMARTS (from file)",
+        "filterPAINS": "Filter molecules that match PAINS",
+        "demo": "Demo of matchCounts",
+    }
+    subparsers = parser.add_subparsers(dest="op", help="operation")
+
+    # create a subparser for each operation
+    parsers = []
+    for op, op_help in OPS.items():
+        parsers.append(
+            subparsers.add_parser(
+                op, help=op_help, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+            )
+        )
+    for sub_parser in parsers:
+        sub_parser.add_argument(
+            "-v", "--verbose", action="count", default=0, help="verbosity of logging"
+        )
+        if sub_parser.prog.endswith("demo"):
+            continue
+        elif sub_parser.prog.endswith("Multi"):
+            sub_parser.add_argument(
+                "--smartsfile",
+                help="input SMARTS file (for multi-ops)",
+                default=argparse.SUPPRESS,
+                required=True,
+            )
+        elif "PAINS" not in sub_parser.prog:
+            sub_parser.add_argument(
+                "--smarts",
+                help="single query SMARTS",
+                default=argparse.SUPPRESS,
+                required=True,
+            )
+        if "counts" in sub_parser.prog.lower():
+            sub_parser.add_argument(
+                "--usa", action="store_true", help="unique set-of-atoms match counts"
+            )
+        sub_parser.add_argument(
+            "--i",
+            dest="ifile",
+            help="input file, SMI or SDF",
+            default=argparse.SUPPRESS,
+            required=True,
+        )
+        sub_parser.add_argument(
+            "--o",
+            dest="ofile",
+            help="output file, TSV. Will use stdout if not specified.",
+        )
+        sub_parser.add_argument(
+            "--delim", default="\t", help="delimiter for SMILES/TSV"
+        )
+        sub_parser.add_argument(
+            "--smiles_column",
+            type=int,
+            default=0,
+            help="(integer) column where SMILES are located (for SMI file)",
+        )
+        sub_parser.add_argument(
+            "--name_column",
+            type=int,
+            default=1,
+            help="(integer) column where molecule names are located (for SMI file)",
+        )
+        sub_parser.add_argument(
+            "--iheader", action="store_true", help="input SMILES/TSV has header line"
+        )
+        sub_parser.add_argument(
+            "--exclude_mol_props",
+            action="store_true",
+            help="exclude molecular properties present in input SMILES/SDF in output (i.e., only include SMILES & Name properties)",
+        )
+
+    args = parser.parse_args()
+    return args
 
 
 #############################################################################
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="RDKit SMARTS utility", epilog="")
-    OPS = [
-        "matchCounts",
-        "matchFilter",
-        "matchCountsMulti",
-        "matchFilterMulti",
-        "filterPAINS",
-        "demo",
-    ]
-    parser.add_argument("op", choices=OPS, help="OPERATION")
-    parser.add_argument("--i", dest="ifile", help="input file, SMI or SDF")
-    parser.add_argument("--o", dest="ofile", help="output file, TSV")
-    parser.add_argument("--smarts", help="query SMARTS")
-    parser.add_argument("--smartsfile", help="input SMARTS file (for multi-ops)")
-    parser.add_argument(
-        "--usa", action="store_true", help="unique set-of-atoms match counts"
+    parser = argparse.ArgumentParser(
+        description="RDKit SMARTS utility",
+        epilog="",
     )
-    parser.add_argument("--delim", default="\t", help="delimiter for SMILES/TSV")
-    parser.add_argument("--smilesColumn", type=int, default=0, help="")
-    parser.add_argument("--nameColumn", type=int, default=1, help="")
-    parser.add_argument(
-        "--iheader", action="store_true", help="input SMILES/TSV has header line"
-    )
-    parser.add_argument(
-        "--oheader", action="store_true", help="output SMILES/TSV has header line"
-    )
-    parser.add_argument(
-        "--exclude_mol_props",
-        action="store_true",
-        help="exclude molecular properties present in input SMILES/SDF in output (i.e., only include SMILES & Name properties)",
-        default=False,
-    )
-    parser.add_argument("-v", "--verbose", action="count", default=0)
-    args = parser.parse_args()
+    args = parse_args(parser)
 
     logging.basicConfig(
         format="%(levelname)s:%(message)s",
@@ -100,15 +159,15 @@ if __name__ == "__main__":
     t0 = time.time()
 
     if args.op == "demo":
-        Demo()
+        demo()
         sys.exit()
 
     if re.sub(r".*\.", "", args.ifile).lower() in ("smi", "smiles"):
         molReader = SmilesMolSupplier(
             args.ifile,
             delimiter=args.delim,
-            smilesColumn=args.smilesColumn,
-            nameColumn=args.nameColumn,
+            smilesColumn=args.smiles_column,
+            nameColumn=args.name_column,
             titleLine=args.iheader,
             sanitize=True,
         )
@@ -133,7 +192,7 @@ if __name__ == "__main__":
             args.ofile,
             delimiter="\t",
             nameHeader="Name",
-            includeHeader=args.oheader,
+            includeHeader=True,
             isomericSmiles=True,
             kekuleSmiles=False,
         )
