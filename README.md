@@ -385,29 +385,57 @@ Examples:
 
 ```
 (rdktools) $ python3 -m rdktools.smarts.App -h
-usage: App.py [-h] [--i IFILE] [--o OFILE] [--smarts SMARTS] [--usa] [--delim DELIM]
-              [--smilesColumn SMILESCOLUMN] [--nameColumn NAMECOLUMN] [--header] [-v]
-              {matchCounts,matchFilter,demo}
+usage: App.py [-h]
+              {matchCounts,matchFilter,matchCountsMulti,matchFilterMulti,filterPAINS,demo}
+              ...
 
 RDKit SMARTS utility
 
 positional arguments:
-  {matchCounts,matchFilter,demo}
-                        OPERATION
+  {matchCounts,matchFilter,matchCountsMulti,matchFilterMulti,filterPAINS,demo}
+                        operation
+    matchCounts         Count matches of a single SMARTS in each molecule
+    matchFilter         Filter molecules that match a single SMARTS
+    matchCountsMulti    Count matches of multiple SMARTS (from file) in each molecule
+    matchFilterMulti    Filter molecules that match multiple SMARTS (from file)
+    filterPAINS         Filter molecules that match PAINS
+    demo                Demo of matchCounts
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
-  --i IFILE             input file, SMI or SDF
-  --o OFILE             output file, TSV
-  --smarts SMARTS       query SMARTS
-  --usa                 unique set-of-atoms match counts
-  --delim DELIM         delimiter for SMILES/TSV
-  --smilesColumn SMILESCOLUMN
-  --nameColumn NAMECOLUMN
-  --header              SMILES/TSV has header line
-  -v, --verbose
 ```
+Additional information for a specific operation can be found by using the `-h` flag after providing the operation. For example:
+```
+(rdktools) $ python3 -m rdktools.smarts.App matchCountsMulti -h
 
+usage: App.py matchCountsMulti [-h] [--log_fname LOG_FNAME] [-v] --smartsfile SMARTSFILE
+                               [--strict] [--usa] --i IFILE [--o OFILE] [--delim DELIM]
+                               [--smiles_column SMILES_COLUMN] [--name_column NAME_COLUMN]
+                               [--iheader] [--exclude_mol_props]
+
+options:
+  -h, --help            show this help message and exit
+  --log_fname LOG_FNAME
+                        File to save logs to. If not given will log to stdout. (default:
+                        None)
+  -v, --verbose         verbosity of logging (default: 0)
+  --smartsfile SMARTSFILE
+                        input SMARTS file (for multi-ops)
+  --strict              raise error if any SMARTS cannot be parsed. If not set, will ignore
+                        invalid SMARTS. (default: False)
+  --usa                 unique set-of-atoms match counts (default: False)
+  --i IFILE             input file, SMI or SDF
+  --o OFILE             output file, TSV. Will use stdout if not specified. (default: None)
+  --delim DELIM         delimiter for SMILES/TSV (default: )
+  --smiles_column SMILES_COLUMN
+                        (integer) column where SMILES are located (for SMI file) (default: 0)
+  --name_column NAME_COLUMN
+                        (integer) column where molecule names are located (for SMI file)
+                        (default: 1)
+  --iheader             input SMILES/TSV has header line (default: False)
+  --exclude_mol_props   exclude molecular properties present in input SMILES/SDF in output
+                        (i.e., only include SMILES & Name properties) (default: False)
+```
 ## Reactions
 
 ```
