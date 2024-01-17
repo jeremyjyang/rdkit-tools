@@ -115,17 +115,21 @@ def CalcLipinski(mol):
   
 #############################################################################
 def Run_CalcLipinski(molReader, molWriter):
-  i_mol=0
+  n_mol=0; n_out=0; n_empty=0; n_err=0;
   for mol in molReader:
-    if mol is None: continue
-    i_mol+=1
+    if mol is None:
+      n_empty+=1
+      n_err+=1
+      continue
+    n_mol+=1
     name = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-    logging.debug(f"{i_mol}. {name}")
+    logging.debug(f"{n_mol}. {name}")
     CalcLipinski(mol)
-    if i_mol==1:
+    if n_mol==1:
       molWriter.SetProps(mol.GetPropNames())
     molWriter.write(mol)
-  logging.info(f"n_out: {i_mol}")
+    n_out+=1
+  logging.info(f"n_mol: {n_mol}; n_out: {n_out}; n_empty: {n_empty}; n_err: {n_err}")
 
 #############################################################################
 def CalcQED(mol):
@@ -146,17 +150,21 @@ def CalcQED(mol):
 
 #############################################################################
 def Run_CalcQED(molReader, molWriter):
-  i_mol=0
+  n_mol=0; n_out=0; n_empty=0; n_err=0;
   for mol in molReader:
-    if mol is None: continue
-    i_mol+=1
+    if mol is None:
+      n_empty+=1
+      n_err+=1
+      continue
+    n_mol+=1
     name = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-    logging.debug(f"{i_mol}. {name}")
+    logging.debug(f"{n_mol}. {name}")
     CalcQED(mol)
-    if i_mol==1:
+    if n_mol==1:
       molWriter.SetProps(mol.GetPropNames())
     molWriter.write(mol)
-  logging.info(f"n_out: {i_mol}")
+    n_out+=1
+  logging.info(f"n_mol: {n_mol}; n_out: {n_out}; n_empty: {n_empty}; n_err: {n_err}")
 
 #############################################################################
 def CalcDescriptors(mol):
@@ -177,17 +185,21 @@ def CalcDescriptors(mol):
 
 #############################################################################
 def Run_CalcDescriptors(molReader, molWriter):
-  i_mol=0
+  n_mol=0; n_out=0; n_empty=0; n_err=0;
   for mol in molReader:
-    if mol is None: continue
-    i_mol+=1
+    if mol is None:
+      n_empty+=1
+      n_err+=1
+      continue
+    n_mol+=1
     name = mol.GetProp('_Name') if mol.HasProp('_Name') else ''
-    logging.debug(f"{i_mol}. {name}")
+    logging.debug(f"{n_mol}. {name}")
     CalcDescriptors(mol)
-    if i_mol==1:
+    if n_mol==1:
       molWriter.SetProps(mol.GetPropNames())
     molWriter.write(mol)
-  logging.info(f"n_out: {i_mol}")
+    n_out+=1
+  logging.info(f"n_mol: {n_mol}; n_out: {n_out}; n_empty: {n_empty}; n_err: {n_err}")
 
 #############################################################################
 def CalcDescriptors3D(mol):

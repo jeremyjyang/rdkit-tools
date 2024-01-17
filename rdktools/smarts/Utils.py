@@ -176,9 +176,15 @@ def FilterPAINS(molReader, molWriter, exclude_mol_props: bool):
     params.AddCatalog(FilterCatalog.FilterCatalogParams.FilterCatalogs.PAINS_C)
     catalog = FilterCatalog.FilterCatalog(params)
     n_mol = 0
-    n_filtered = 0
-    n_out = 0
+    n_fail = 0
+    n_empty = 0
+    n_pass = 0
+    n_err = 0
     for mol in molReader:
+        if mol is None:
+            n_empty += 1
+            n_err += 1
+            continue
         if exclude_mol_props:
             clearMolProps(mol)
         if not mol.HasProp("_Name") or mol.GetProp("_Name") == "":
@@ -192,15 +198,14 @@ def FilterPAINS(molReader, molWriter, exclude_mol_props: bool):
                 )
                 mol.SetProp(f"{filterMatch.filterMatch}", "TRUE")
             mol.SetProp(f"PAINS", "FAIL")
-            n_filtered += 1
+            n_fail += 1
         else:
             mol.SetProp(f"PAINS", "PASS")
             if n_mol == 0:
                 molWriter.SetProps(mol.GetPropNames())
             molWriter.write(mol)
-            n_out += 1
+            n_pass += 1
         n_mol += 1
-    logging.info(f"n_mol: {n_mol}; n_out: {n_out}; n_filtered: {n_filtered}")
-
+    logging.info(f"n_mol: {n_mol}; n_pass: {n_pass}; n_fail: {n_fail}; n_empty: {n_empty}; n_err: {n_err}")
 
 #############################################################################
