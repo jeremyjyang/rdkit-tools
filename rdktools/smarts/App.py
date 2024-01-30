@@ -237,7 +237,7 @@ if __name__ == "__main__":
 
     elif args.op == "matchFilterMulti":
         smarts.MatchFilterMulti(
-            args.smartsfile, molReader, molWriter, args.exclude_mol_props
+            args.smartsfile, args.strict, molReader, molWriter, args.exclude_mol_props
         )
 
     elif args.op == "filterPAINS":
