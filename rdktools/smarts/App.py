@@ -221,9 +221,7 @@ if __name__ == "__main__":
         )
 
     elif args.op == "matchFilter":
-        smarts.MatchFilter(
-            args.smarts, args.strict, molReader, molWriter, args.exclude_mol_props
-        )
+        smarts.MatchFilter(args.smarts, molReader, molWriter, args.exclude_mol_props)
 
     elif args.op == "matchCountsMulti":
         smarts.MatchCountsMulti(
