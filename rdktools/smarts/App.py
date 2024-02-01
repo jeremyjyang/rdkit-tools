@@ -51,7 +51,7 @@ CN1c2ccc(cc2C(=NCC1=O)c3ccccc3)Cl	Valium
         kekuleSmiles=False,
     )
     usa = False
-    smarts.MatchCounts(sma, usa, molReader, molWriter, False)
+    smarts.MatchCounts(sma, usa, molReader, molWriter, False, False)
 
 
 def parse_args(parser: argparse.ArgumentParser):
@@ -111,6 +111,11 @@ def parse_args(parser: argparse.ArgumentParser):
             sub_parser.add_argument(
                 "--usa", action="store_true", help="unique set-of-atoms match counts"
             )
+            sub_parser.add_argument(
+                "--nonzero_rows",
+                action="store_true",
+                help="only include rows (ie molecules) with at least one match in output",
+            )
         sub_parser.add_argument(
             "--i",
             dest="ifile",
@@ -124,7 +129,7 @@ def parse_args(parser: argparse.ArgumentParser):
             help="output file, TSV. Will use stdout if not specified.",
         )
         sub_parser.add_argument(
-            "--delim", default="\t", help="delimiter for SMILES/TSV"
+            "--delim", default="\t", help="delimiter for SMILES/TSV (default is tab)"
         )
         sub_parser.add_argument(
             "--smiles_column",
@@ -178,7 +183,13 @@ if __name__ == "__main__":
         demo()
         sys.exit()
 
-    if re.sub(r".*\.", "", args.ifile).lower() in ("smi", "smiles", "txt", "tsv", "csv"):
+    if re.sub(r".*\.", "", args.ifile).lower() in (
+        "smi",
+        "smiles",
+        "txt",
+        "tsv",
+        "csv",
+    ):
         molReader = SmilesMolSupplier(
             args.ifile,
             delimiter=args.delim,
@@ -217,7 +228,12 @@ if __name__ == "__main__":
 
     if args.op == "matchCounts":
         smarts.MatchCounts(
-            args.smarts, args.usa, molReader, molWriter, args.exclude_mol_props
+            args.smarts,
+            args.usa,
+            molReader,
+            molWriter,
+            args.exclude_mol_props,
+            args.nonzero_rows,
         )
 
     elif args.op == "matchFilter":
@@ -231,6 +247,7 @@ if __name__ == "__main__":
             molReader,
             molWriter,
             args.exclude_mol_props,
+            args.nonzero_rows,
         )
 
     elif args.op == "matchFilterMulti":
