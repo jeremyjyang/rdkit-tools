@@ -450,6 +450,11 @@ options:
 3) Testing if the molecule from `example.sdf` passes the PAINS filtering. The `--exclude_mol_props` flag is passed to exclude molecular properties that are present in `example.sdf` (e.g., IR.FREQUENCIES) from the output. 
 
 `python3 -m rdktools.smarts.App filterPAINS --i rdktools/smarts/data/example.sdf --o sdf_out.tsv -vvv --log_fname out3.log --exclude_mol_props`
+
+4) Filtering molecules from `mcs_demo2.csv` that match a given SMARTS query. Note that the SMARTS string is captured with single quotes (''). This is important because "!" can cause conflicts with the command line due to history expansion (see [here](https://stackoverflow.com/questions/33685239/in-a-string-makes-it-unusable-in-a-command-line-error-message-event-not-fou)).
+
+`python3 -m rdktools.smarts.App matchFilter --i rdktools/smarts/data/mcs_demo2.csv --smarts '[$([N;!H0]-[#6]);!$(N-C=[O,N,S])]' --delim "," --smiles_column 1 --name_column 0 --iheader -vv`
+
 ## Reactions
 
 ```
