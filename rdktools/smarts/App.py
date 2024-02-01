@@ -178,7 +178,7 @@ if __name__ == "__main__":
         demo()
         sys.exit()
 
-    if re.sub(r".*\.", "", args.ifile).lower() in ("smi", "smiles"):
+    if re.sub(r".*\.", "", args.ifile).lower() in ("smi", "smiles", "txt", "tsv", "csv"):
         molReader = SmilesMolSupplier(
             args.ifile,
             delimiter=args.delim,
