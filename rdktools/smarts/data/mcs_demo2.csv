@@ -1,0 +1,13 @@
+Name,SMILES
+NSC-2066,c1(=O)c2c(n(c(=O)n1C)C)nc[nH]2
+0326-0519,O=C1NC(=O)C(=Cc2ccc(Cl)cc2)C(=O)N1
+0327-0360,O=C1NC(=S)NC(=O)C1=Cc1ccc(Cl)cc1
+0365-0123,O=C1NC(=O)C(=Cc2ccc(C=C3C(=O)NC(=O)NC3=O)cc2)C(=O)N1
+NSC-4624,[nH]1c(nc(c1C(=O)O)C(=O)O)N=Nc2ccc(cc2)S(=O)(=O)O
+0606-5831,CCCCCCCCOc1ccc(C=C2C(=O)NC(=O)NC2=O)cc1
+NSC-4410,[nH]1c2ccccc2nc1SC(=S)Sc3nc4c([nH]3)cccc4
+1013-0303,CN1C(=O)/C(=C\c2ccc(Br)cc2)SC1=S
+1013-0304,CN1C(=O)/C(=C\c2ccc(Cl)cc2)SC1=S
+1588-0085,CCN1C(=O)/C(=C\c2cccc(Cl)c2)SC1=S
+NSC-3975,O=c1[nH]c(=O)c2[nH]c(=O)[nH]c2[nH]1
+NSC-4623,[nH]1c(nc(c1C(=O)O)C(=O)O)c2ccccc2

@@ -13,6 +13,7 @@ from rdktools.smarts.SmartsFile import SmartsFile
 def get_smarts_queries(smarts_file_path: str, strict_smarts: bool):
     # get SMARTS queries from file
     sf = SmartsFile(smarts_file_path, strict_smarts)
+    assert len(sf.smarts_strs) == len(sf.smarts_mols)
     logging.info(f"SMARTS read from file {smarts_file_path}: {len(sf.smarts_strs)}")
     if len(sf.failed_smarts) > 0:
         failed_smarts = [
@@ -103,7 +104,14 @@ def MatchFilterMulti(
 
 
 #############################################################################
-def MatchCounts(smarts: str, usa: bool, molReader, molWriter, exclude_mol_props: bool):
+def MatchCounts(
+    smarts: str,
+    usa: bool,
+    molReader,
+    molWriter,
+    exclude_mol_props: bool,
+    nonzero_rows: bool,
+):
     pat = rdkit.Chem.MolFromSmarts(smarts)
     n_mol = 0
     n_mol_matched = 0
@@ -120,7 +128,8 @@ def MatchCounts(smarts: str, usa: bool, molReader, molWriter, exclude_mol_props:
         mol.SetProp("n_matches", f"{n_matches}")
         if n_mol == 0:
             molWriter.SetProps(mol.GetPropNames())
-        molWriter.write(mol)
+        if n_matches > 0 or not (nonzero_rows):
+            molWriter.write(mol)
         n_mol += 1
     logging.info(f"n_mol: {n_mol}; n_mol_matched: {n_mol_matched}")
 
@@ -133,10 +142,12 @@ def MatchCountsMulti(
     molReader,
     molWriter,
     exclude_mol_props: bool,
+    nonzero_rows: bool,
 ):
     queries = get_smarts_queries(smarts_file_path, strict_smarts)
     n_mol = 0
     for mol in molReader:
+        has_match = False  # if the molecule matched a single query
         if exclude_mol_props:
             clearMolProps(mol)
         if not mol.HasProp("_Name") or mol.GetProp("_Name") == "":
@@ -149,13 +160,15 @@ def MatchCountsMulti(
                 matches = DeduplicateMatches(matches)
             n_matches = len(matches)
             if n_matches > 0:
+                has_match = True
                 query["n_mol_matched"] += 1
             mol.SetProp(
                 f"""n_matches(query_{j+1:02d} = "{query['smarts']}")""", f"{n_matches}"
             )
         if n_mol == 0:
             molWriter.SetProps(mol.GetPropNames())
-        molWriter.write(mol)
+        if has_match or not (nonzero_rows):
+            molWriter.write(mol)
         n_mol += 1
     logging.info(
         f"n_mol: {n_mol}; mols matched: "
@@ -206,6 +219,9 @@ def FilterPAINS(molReader, molWriter, exclude_mol_props: bool):
             molWriter.write(mol)
             n_pass += 1
         n_mol += 1
-    logging.info(f"n_mol: {n_mol}; n_pass: {n_pass}; n_fail: {n_fail}; n_empty: {n_empty}; n_err: {n_err}")
+    logging.info(
+        f"n_mol: {n_mol}; n_pass: {n_pass}; n_fail: {n_fail}; n_empty: {n_empty}; n_err: {n_err}"
+    )
+
 
 #############################################################################
