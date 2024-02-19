@@ -6,8 +6,6 @@ rdScaffoldNetwork available RDKit 2020.03.1+.
 """
 import argparse
 import logging
-
-#############################################################################
 import os
 import sys
 import time
@@ -18,68 +16,108 @@ import rdkit
 
 from .. import scaffold, util
 
-SCRATCHDIR = os.path.join(os.environ["HOME"], "tmp", "rdktools")
 
-#############################################################################
+def parse_args(parser: argparse.ArgumentParser):
+    # mapping of operation to help string
+    OPS = {
+        "bmscaf": "",
+        "scafnet": "",
+        "scafnet_rings": "",
+        "demobm": "",
+        "demonet_img": "",
+        "demonet_html": "",
+    }
+    subparsers = parser.add_subparsers(dest="op", help="operation")
+    # create a subparser for each operation
+    parsers = []
+    for op, op_help in OPS.items():
+        parsers.append(
+            subparsers.add_parser(
+                op, help=op_help, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+            )
+        )
+    for sub_parser in parsers:
+        # sub_parser.prog == "App.py <PROG_NAME>"
+        prog_name = sub_parser.prog.split()[1]
+        sub_parser.add_argument(
+            "--log_fname",
+            help="File to save logs to. If not given will log to stdout.",
+            default=None,
+        )
+        sub_parser.add_argument(
+            "-v", "--verbose", action="count", default=0, help="verbosity of logging"
+        )
+        if prog_name in ["demonet_img", "demonet_html", "scafnet"]:
+            sub_parser.add_argument(
+                "--scratchdir",
+                default=os.path.join(os.environ["HOME"], "tmp", "rdktools"),
+            )
+        if prog_name in ["bmscaf", "scafnet", "scafnet_rings"]:
+            sub_parser.add_argument("--i", dest="ifile", help="input file, TSV or SDF")
+            sub_parser.add_argument("--o", dest="ofile", help="output file, TSV or SDF")
+        if prog_name in ["bmscaf", "scafnet"]:
+            sub_parser.add_argument(
+                "--o_png",
+                dest="ofile_png",
+                default="--",
+                help="visualization output file, PNG",
+            )
+        if prog_name == "scafnet":
+            sub_parser.add_argument(
+                "--o_html",
+                dest="ofile_html",
+                default="--",
+                help="visualization output file, HTML",
+            )
+            sub_parser.add_argument(
+                "--scafname", default="RDKit Scaffold Analysis", help="title for output"
+            )
+        if prog_name in ["bmscaf", "scafnet", "scafnet_rings"]:
+            sub_parser.add_argument(
+                "--smilesColumn",
+                type=int,
+                default=0,
+                help="SMILES column from TSV (counting from 0)",
+            )
+            sub_parser.add_argument(
+                "--nameColumn",
+                type=int,
+                default=1,
+                help="name column from TSV (counting from 0)",
+            )
+            sub_parser.add_argument(
+                "--idelim", default="\t", help="delim for input TSV"
+            )
+            sub_parser.add_argument(
+                "--odelim", default="\t", help="delim for output TSV"
+            )
+            sub_parser.add_argument(
+                "--iheader", action="store_true", help="input TSV has header"
+            )
+            sub_parser.add_argument(
+                "--oheader", action="store_true", help="output TSV has header"
+            )
+        if sub_parser.prog in ["scafnet", "scafnet_rings"]:
+            sub_parser.add_argument(
+                "--brics",
+                action="store_true",
+                help="BRICS fragmentation rules (Degen, 2008)",
+            )
+        sub_parser.add_argument(
+            "--display", action="store_true", help="Display scafnet interactively."
+        )
+    args = parser.parse_args()
+    # use given scratchdir as default for o_png and o_html
+    if hasattr(args, "ofile_png") and not args.ofile_png:
+        args.ofile_png = os.path.join(args.scratchdir, "rdktools_scafnet.png")
+    if hasattr(args, "ofile_html") and not args.ofile_html:
+        args.ofile_html = os.path.join(args.scratchdir, "rdktools_scafnet.html")
+    return args
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="RDKit scaffold analysis", epilog="")
-    OPS = [
-        "bmscaf",
-        "scafnet",
-        "scafnet_rings",
-        "demobm",
-        "demonet_img",
-        "demonet_html",
-    ]
-    parser.add_argument("op", choices=OPS, default="mol2scaf", help="OPERATION")
-    parser.add_argument("--i", dest="ifile", help="input file, TSV or SDF")
-    parser.add_argument("--o", dest="ofile", help="output file, TSV|SDF")
-    parser.add_argument("--scratchdir", default=SCRATCHDIR)
-    parser.add_argument(
-        "--o_png",
-        dest="ofile_png",
-        default="--",
-        help="visualization output file, PNG",
-    )
-    parser.add_argument(
-        "--o_html",
-        dest="ofile_html",
-        default="--",
-        help="visualization output file, HTML",
-    )
-    parser.add_argument(
-        "--smilesColumn",
-        type=int,
-        default=0,
-        help="SMILES column from TSV (counting from 0)",
-    )
-    parser.add_argument(
-        "--nameColumn",
-        type=int,
-        default=1,
-        help="name column from TSV (counting from 0)",
-    )
-    parser.add_argument("--idelim", default="\t", help="delim for input TSV")
-    parser.add_argument("--odelim", default="\t", help="delim for output TSV")
-    parser.add_argument("--iheader", action="store_true", help="input TSV has header")
-    parser.add_argument("--oheader", action="store_true", help="output TSV has header")
-    parser.add_argument(
-        "--brics", action="store_true", help="BRICS fragmentation rules (Degen, 2008)"
-    )
-    parser.add_argument(
-        "--scafname", default="RDKit Scaffold Analysis", help="title for output"
-    )
-    parser.add_argument(
-        "--display", action="store_true", help="Display scafnet interactively."
-    )
-    parser.add_argument("-v", "--verbose", action="count", default=0)
-    args = parser.parse_args()
-
-    # use given scratchdir as default for o_png and o_html
-    if not args.ofile_png:
-        args.ofile_png = os.path.join(args.scratchdir, "rdktools_scafnet.png")
-    if not args.ofile_html:
-        args.ofile_html = os.path.join(args.scratchdir, "rdktools_scafnet.html")
+    args = parse_args(parser)
 
     logging.basicConfig(
         format="%(levelname)s:%(message)s",
@@ -92,7 +130,8 @@ if __name__ == "__main__":
 
     t0 = time.time()
 
-    os.makedirs(args.scratchdir, exist_ok=True)
+    if hasattr(args, "scratchdir"):
+        os.makedirs(args.scratchdir, exist_ok=True)
 
     if args.op == "demobm":
         scaffold.DemoBM()
