@@ -20,12 +20,12 @@ from .. import scaffold, util
 def parse_args(parser: argparse.ArgumentParser):
     # mapping of operation to help string
     OPS = {
-        "bmscaf": "",
-        "scafnet": "",
-        "scafnet_rings": "",
-        "demobm": "",
-        "demonet_img": "",
-        "demonet_html": "",
+        "bmscaf": "Generate scaffolds using Bemis-Murcko clustering",
+        "scafnet": "Generate a scaffold network using the given SMILES",
+        "scafnet_rings": "Generate a scaffold network using the given SMILES, with output containing unique ringsystems only",
+        "demobm": "Demo scaffold generated using Bemis-Murcko clustering",
+        "demonet_img": "Demo generating scaffold network image",
+        "demonet_html": "Demo generating interactive scaffold network using pyvis",
     }
     subparsers = parser.add_subparsers(dest="op", help="operation")
     # create a subparser for each operation
