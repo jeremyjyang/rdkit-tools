@@ -186,11 +186,15 @@ def DemoNetHtml(scratchdir):
     mols = [MolFromSmiles(re.sub(r"\s.*$", "", demosmi))]
     scafnet = Mols2ScafNet(mols, False)
     logging.info(f"Scafnet nodes: {len(scafnet.nodes)}; edges: {len(scafnet.edges)}")
+    # have to change working directory because pyvis only handles local files (for some reason)
+    current_dir = os.getcwd()
+    ofile_dir, ofile_name = os.path.dirname(ofile), os.path.basename(ofile)
+    os.chdir(ofile_dir)
     g = Scafnet2Html(
         scafnet,
         "RDKit_ScafNet: " + re.sub(r"^[^\s]*\s+(.*)$", r"\1", demosmi),
         scratchdir,
-        ofile,
+        ofile_name,
     )
     os.chmod(
         ofile,
@@ -201,7 +205,9 @@ def DemoNetHtml(scratchdir):
         | stat.S_IROTH
         | stat.S_IWOTH,
     )
-    g.show(ofile)
+    g.show(ofile_name)
+    # go back to original dir
+    os.chdir(current_dir)
 
 
 #############################################################################
