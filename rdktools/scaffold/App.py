@@ -18,7 +18,7 @@ import rdkit
 
 from .. import scaffold, util
 
-SCRATCHDIR = f"{os.environ['HOME']}/tmp/rdktools"
+SCRATCHDIR = os.path.join(os.environ["HOME"], "tmp", "rdktools")
 
 #############################################################################
 if __name__ == "__main__":
@@ -38,13 +38,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--o_png",
         dest="ofile_png",
-        default=f"{SCRATCHDIR}/rdktools_scafnet.png",
+        default="--",
         help="visualization output file, PNG",
     )
     parser.add_argument(
         "--o_html",
         dest="ofile_html",
-        default=f"{SCRATCHDIR}/rdktools_scafnet.html",
+        default="--",
         help="visualization output file, HTML",
     )
     parser.add_argument(
@@ -75,6 +75,12 @@ if __name__ == "__main__":
     parser.add_argument("-v", "--verbose", action="count", default=0)
     args = parser.parse_args()
 
+    # use given scratchdir as default for o_png and o_html
+    if not args.ofile_png:
+        args.ofile_png = os.path.join(args.scratchdir, "rdktools_scafnet.png")
+    if not args.ofile_html:
+        args.ofile_html = os.path.join(args.scratchdir, "rdktools_scafnet.html")
+
     logging.basicConfig(
         format="%(levelname)s:%(message)s",
         level=(logging.DEBUG if args.verbose > 1 else logging.INFO),
@@ -86,8 +92,7 @@ if __name__ == "__main__":
 
     t0 = time.time()
 
-    if not os.path.isdir(args.scratchdir):
-        os.mkdir(args.scratchdir)
+    os.makedirs(args.scratchdir, exist_ok=True)
 
     if args.op == "demobm":
         scaffold.DemoBM()
@@ -120,7 +125,7 @@ if __name__ == "__main__":
         molReader = util.File2Molreader(
             args.ifile, args.idelim, args.smilesColumn, args.nameColumn, args.iheader
         )
-        fout = open(args.ofile, "w") if ofile else sys.stdout
+        fout = open(args.ofile, "w") if args.ofile else sys.stdout
         mols = util.ReadMols(molReader)
         scafnet = scaffold.Mols2ScafNet(mols, args.brics, fout)
         if args.ofile_png:

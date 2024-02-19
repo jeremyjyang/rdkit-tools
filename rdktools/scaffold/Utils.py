@@ -31,7 +31,17 @@ from rdkit.Chem.Scaffolds import MurckoScaffold, rdScaffoldNetwork
 
 from .. import util
 
+
 # from matplotlib import pyplot as plt
+def ensure_path_separator(dir: str):
+    """
+    Ensure that given path is a directory by appending
+    '/' or whatever path separator is appropriate.
+
+    :param str dir: path to directory
+    :return _type_: dir with path separator appended (will be same as dir if separator already present)
+    """
+    return os.path.join(dir, "")
 
 
 #############################################################################
@@ -122,7 +132,10 @@ def DemoBM():
 #############################################################################
 def DemoNetImg(scratchdir):
     fout = tempfile.NamedTemporaryFile(
-        prefix=scratchdir + "/", suffix=".png", mode="w+b", delete=False
+        prefix=ensure_path_separator(scratchdir),
+        suffix=".png",
+        mode="w+b",
+        delete=False,
     )
     ofile = fout.name
     fout.close()
@@ -160,7 +173,10 @@ def Scafnet2Img(scafnet, ofile):
 def DemoNetHtml(scratchdir):
     logging.debug(f"scratchdir: {scratchdir}")
     fout = tempfile.NamedTemporaryFile(
-        prefix=scratchdir + "/", suffix=".html", mode="w+", delete=False
+        prefix=ensure_path_separator(scratchdir),
+        suffix=".html",
+        mode="w+",
+        delete=False,
     )
     ofile = fout.name
     logging.debug(f"ofile: {ofile}")
@@ -199,14 +215,15 @@ def Scafnet2Html(scafnet, scafname, scratchdir, ofile):
     for i, n in enumerate(scafnet.nodes):
         logging.debug(f"{i+1}. util.moltosvg(rdkit.Chem.MolFromSmiles({n})...")
         svg = util.moltosvg(rdkit.Chem.MolFromSmiles(n))
-        with open(f"{scratchdir}/{i}.svg", "w") as outf:
+        image_path = os.path.join(scratchdir, f"{i}.svg")
+        with open(image_path, "w") as outf:
             outf.write(svg)
         logging.debug(f"g.add_node()...")
         g.add_node(
             i,
             shape="image",
             label=" ",
-            image=f"{scratchdir}/{i}.svg",
+            image=image_path,
             title=svg,
             size=60,
         )
