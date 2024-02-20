@@ -58,6 +58,13 @@ def parse_args(parser: argparse.ArgumentParser):
                 dest="ofile_png",
                 help="visualization output file, PNG",
             )
+            default_per_row = 8 if prog_name == "bmscaf" else 4
+            sub_parser.add_argument(
+                "--mols_per_row",
+                type=int,
+                default=default_per_row,
+                help="Mols per row in output PNG",
+            )
         if prog_name in ["bmscaf", "scafnet", "scafnet_rings"]:
             sub_parser.add_argument(
                 "--i", dest="ifile", required=True, help="input file, TSV or SDF"
@@ -101,10 +108,6 @@ def parse_args(parser: argparse.ArgumentParser):
             )
             sub_parser.add_argument(
                 "--scafname", default="RDKit Scaffold Analysis", help="title for output"
-            )
-        if prog_name == "bmscaf":
-            sub_parser.add_argument(
-                "--mols_per_row", type=int, default=8, help="Mols per row in grid image"
             )
         sub_parser.add_argument(
             "--display", action="store_true", help="Display scafnet interactively."
@@ -180,7 +183,7 @@ if __name__ == "__main__":
         mols = util.ReadMols(molReader)
         scafnet = scaffold.Mols2ScafNet(mols, args.brics, fout)
         if args.ofile_png:
-            scaffold.Scafnet2Img(scafnet, args.ofile_png)
+            scaffold.Scafnet2Img(scafnet, args.ofile_png, args.mols_per_row)
         if args.ofile_html:
             scaffold.Scafnet2Html(
                 scafnet, args.scafname, args.scratchdir, args.ofile_html

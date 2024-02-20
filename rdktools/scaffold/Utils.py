@@ -185,13 +185,13 @@ def DemoNetImg(scratchdir):
 
 
 #############################################################################
-def Scafnet2Img(scafnet, ofile):
+def Scafnet2Img(scafnet, ofile, molsPerRow: int = 4):
     # title="RDKit_ScafNet:"+re.sub(r'^[^\s]*\s+(.*)$', r'\1', smi)) #How to add title?
     scafmols = [MolFromSmiles(m) for m in scafnet.nodes]
     img = rdkit.Chem.Draw.MolsToGridImage(
         scafmols,
         legends=[f"Idx: {i} , Counts: {c}" for i, c in enumerate(scafnet.counts)],
-        molsPerRow=4,
+        molsPerRow=molsPerRow,
     )
     logging.debug(f"Writing scafnet PNG to: {ofile}")
     img.save(ofile, format="PNG")
