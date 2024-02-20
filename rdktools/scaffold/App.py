@@ -118,9 +118,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="RDKit scaffold analysis", epilog="")
     args = parse_args(parser)
 
+    level = logging.WARNING  # default
+    if args.verbose == 1:
+        level = logging.INFO
+    elif args.verbose >= 2:
+        level = logging.DEBUG
+
     logging.basicConfig(
+        filename=args.log_fname,
+        filemode="a",
         format="%(levelname)s:%(message)s",
-        level=(logging.DEBUG if args.verbose > 1 else logging.INFO),
+        level=level,
     )
 
     logging.info(f"RDKit version: {rdkit.rdBase.rdkitVersion}")
