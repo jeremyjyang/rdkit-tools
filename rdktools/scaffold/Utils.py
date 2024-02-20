@@ -7,6 +7,7 @@ rdScaffoldNetwork available RDKit 2020.03.1+.
 https://matplotlib.org/
 https://pyvis.readthedocs.io/en/latest/
 """
+import csv
 import inspect
 import json
 import logging
@@ -15,7 +16,9 @@ import logging
 import os
 import re
 import stat
+import sys
 import tempfile
+from typing import Optional
 
 import pyvis
 import rdkit
@@ -71,6 +74,39 @@ def center_align_pyvis_html(html_file_path: str):
         f.truncate()
 
 
+def write_scaffold_net(
+    scafnet, ofile: str, odelimeter: str = ",", oheader: bool = False
+):
+    if ofile is sys.stdout:
+        f = ofile
+    else:
+        f = open(ofile, "w")
+    net_writer = csv.writer(f, delimiter=odelimeter)
+    if oheader:
+        net_writer.writerow(["element_type", "index", "info"])
+    for i in range(len(scafnet.nodes)):
+        info = {
+            "SMILES": scafnet.nodes[i],
+            "Counts": scafnet.counts[i],
+        }
+        net_writer.writerow(["node", i, json.dumps(info)])
+    for i in range(len(scafnet.edges)):
+        info = {
+            "beginIdx": scafnet.edges[i].beginIdx,
+            "endIdx": scafnet.edges[i].endIdx,
+            "edgeType": str(scafnet.edges[i].type),
+        }
+        net_writer.writerow(
+            [
+                "edge",
+                i,
+                json.dumps(info),
+            ]
+        )
+    if ofile is not sys.stdout:
+        f.close()
+
+
 #############################################################################
 def Mols2BMScaffolds(mols, molWriter):
     scafmols = []
@@ -88,7 +124,13 @@ def Mols2BMScaffolds(mols, molWriter):
 
 
 #############################################################################
-def Mols2ScafNet(mols, brics=False, fout=None):
+def Mols2ScafNet(
+    mols,
+    brics=False,
+    ofile: Optional[str] = None,
+    odelimeter: str = ",",
+    oheader: bool = False,
+):
     if brics:
         params = rdScaffoldNetwork.BRICSScaffoldParams()
     else:
@@ -112,14 +154,8 @@ def Mols2ScafNet(mols, brics=False, fout=None):
         logging.debug(f"{i+1}. {molname}:")
 
     scafnet = rdScaffoldNetwork.CreateScaffoldNetwork(mols, params)
-    if fout is not None:
-        for i in range(len(scafnet.nodes)):
-            fout.write(f"node\t{i}\t{scafnet.nodes[i]}\t{scafnet.counts[i]}\n")
-        for i in range(len(scafnet.edges)):
-            fout.write(
-                f"edge\t{i}\t{scafnet.edges[i].beginIdx}\t{scafnet.edges[i].endIdx}\t{scafnet.edges[i].type}\n"
-            )
-        fout.flush()
+    if ofile is not None:
+        write_scaffold_net(scafnet, ofile, odelimeter, oheader)
     logging.info(f"nodes: {len(scafnet.nodes)}; edges:{len(scafnet.edges)}")
     return scafnet
 

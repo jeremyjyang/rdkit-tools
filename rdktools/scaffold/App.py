@@ -5,6 +5,7 @@ https://www.rdkit.org/docs/source/rdkit.Chem.Scaffolds.rdScaffoldNetwork.html
 rdScaffoldNetwork available RDKit 2020.03.1+.
 """
 import argparse
+import csv
 import logging
 import os
 import sys
@@ -179,9 +180,11 @@ if __name__ == "__main__":
         molReader = util.File2Molreader(
             args.ifile, args.idelim, args.smilesColumn, args.nameColumn, args.iheader
         )
-        fout = open(args.ofile, "w") if args.ofile else sys.stdout
+        ofile = args.ofile if args.ofile else sys.stdout
         mols = util.ReadMols(molReader)
-        scafnet = scaffold.Mols2ScafNet(mols, args.brics, fout)
+        scafnet = scaffold.Mols2ScafNet(
+            mols, args.brics, ofile, args.odelim, args.oheader
+        )
         if args.ofile_png:
             scaffold.Scafnet2Img(scafnet, args.ofile_png, args.mols_per_row)
         if args.ofile_html:
