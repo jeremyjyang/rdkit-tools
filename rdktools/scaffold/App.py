@@ -110,9 +110,6 @@ def parse_args(parser: argparse.ArgumentParser):
             sub_parser.add_argument(
                 "--scafname", default="RDKit Scaffold Analysis", help="title for output"
             )
-        sub_parser.add_argument(
-            "--display", action="store_true", help="Display scafnet interactively."
-        )
     args = parser.parse_args()
     return args
 
