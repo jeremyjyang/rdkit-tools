@@ -44,6 +44,33 @@ def ensure_path_separator(dir: str):
     return os.path.join(dir, "")
 
 
+def fix_pyvis_header_html(html_file_path: str):
+    """
+    Fix issue with double-heading in pyvis-generated HTML file.
+    :param str html_file_path: path to HTML file
+    """
+    with open(html_file_path, "r+") as f:
+        html_txt = f.read()
+        html_rev = re.sub(r"<center>.+?<\/h1>\s+<\/center>", "", html_txt, 1, re.DOTALL)
+        f.seek(0)
+        f.write(html_rev)
+        f.truncate()
+
+
+def center_align_pyvis_html(html_file_path: str):
+    """
+    Center pyvis-generated graph in HTML file (rather than left-align).
+    :param str html_file_path: path to HTML file
+    """
+    # Open the HTML file, add a CSS rule to center the graph, and save the changes.
+    with open(html_file_path, "r+") as f:
+        html_txt = f.read()
+        html_txt = html_txt.replace("float: left;", "margin: auto;")
+        f.seek(0)
+        f.write(html_txt)
+        f.truncate()
+
+
 #############################################################################
 def Mols2BMScaffolds(mols, molWriter):
     scafmols = []
@@ -163,7 +190,7 @@ def Scafnet2Img(scafnet, ofile):
     scafmols = [MolFromSmiles(m) for m in scafnet.nodes]
     img = rdkit.Chem.Draw.MolsToGridImage(
         scafmols,
-        legends=[f"{i}, counts: {c}" for i, c in enumerate(scafnet.counts)],
+        legends=[f"Idx: {i} , Counts: {c}" for i, c in enumerate(scafnet.counts)],
         molsPerRow=4,
     )
     logging.debug(f"Writing scafnet PNG to: {ofile}")
@@ -188,15 +215,11 @@ def DemoNetHtml(scratchdir):
     mols = [MolFromSmiles(re.sub(r"\s.*$", "", demosmi))]
     scafnet = Mols2ScafNet(mols, False)
     logging.info(f"Scafnet nodes: {len(scafnet.nodes)}; edges: {len(scafnet.edges)}")
-    # have to change working directory because pyvis only handles local files (for some reason)
-    current_dir = os.getcwd()
-    ofile_dir, ofile_name = os.path.dirname(ofile), os.path.basename(ofile)
-    os.chdir(ofile_dir)
     g = Scafnet2Html(
         scafnet,
         "RDKit_ScafNet: " + re.sub(r"^[^\s]*\s+(.*)$", r"\1", demosmi),
         scratchdir,
-        ofile_name,
+        ofile,
     )
     os.chmod(
         ofile,
@@ -207,9 +230,7 @@ def DemoNetHtml(scratchdir):
         | stat.S_IROTH
         | stat.S_IWOTH,
     )
-    g.show(ofile_name)
-    # go back to original dir
-    os.chdir(current_dir)
+    g.show(ofile, local=False)
 
 
 #############################################################################
@@ -220,9 +241,9 @@ def Scafnet2Html(scafnet, scafname, scratchdir, ofile):
     )
     logging.debug(f"pyvis.network.Network()... Done.")
 
-    for i, n in enumerate(scafnet.nodes):
-        logging.debug(f"{i+1}. util.moltosvg(rdkit.Chem.MolFromSmiles({n})...")
-        svg = util.moltosvg(rdkit.Chem.MolFromSmiles(n))
+    for i, smiles in enumerate(scafnet.nodes):
+        logging.debug(f"{i+1}. util.moltosvg(rdkit.Chem.MolFromSmiles({smiles})...")
+        svg = util.moltosvg(rdkit.Chem.MolFromSmiles(smiles))
         image_path = os.path.join(scratchdir, f"{i}.svg")
         with open(image_path, "w") as outf:
             outf.write(svg)
@@ -232,7 +253,7 @@ def Scafnet2Html(scafnet, scafname, scratchdir, ofile):
             shape="image",
             label=" ",
             image=image_path,
-            title=svg,
+            title=f"SMILES: {smiles}\nIndex: {i}\nCounts: {scafnet.counts[i]}",
             size=60,
         )
         # Segmentation fault after last node.
@@ -257,10 +278,18 @@ def Scafnet2Html(scafnet, scafname, scratchdir, ofile):
     }
     logging.debug(f"g.set_options()...")
     g.set_options(options=json.dumps(VisJS_options))
-    # g.show_buttons()
     if ofile:
         logging.info(f"Writing SCAFNET HTML to: {ofile}")
-        g.save_graph(ofile)
+        # have to change working directory g.save_graph() only handles local files (for some reason)
+        current_dir = os.getcwd()
+        ofile_dir, ofile_name = os.path.dirname(ofile), os.path.basename(ofile)
+        if ofile_dir != "":
+            os.chdir(ofile_dir)
+        g.save_graph(ofile_name)
+        fix_pyvis_header_html(ofile)
+        center_align_pyvis_html(ofile)
+        # go back to original dir
+        os.chdir(current_dir)
     return g
 
 

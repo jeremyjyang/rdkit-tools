@@ -87,7 +87,7 @@ def parse_args(parser: argparse.ArgumentParser):
             sub_parser.add_argument(
                 "--oheader", action="store_true", help="output TSV has header"
             )
-        if sub_parser.prog in ["scafnet", "scafnet_rings"]:
+        if prog_name in ["scafnet", "scafnet_rings"]:
             sub_parser.add_argument(
                 "--brics",
                 action="store_true",
@@ -97,7 +97,6 @@ def parse_args(parser: argparse.ArgumentParser):
             sub_parser.add_argument(
                 "--o_html",
                 dest="ofile_html",
-                default="--",
                 help="visualization output file, HTML",
             )
             sub_parser.add_argument(
