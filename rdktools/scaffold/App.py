@@ -184,9 +184,7 @@ if __name__ == "__main__":
         n_mol = 0
         for mol in molReader:
             n_mol += 1
-            molname = (
-                mol.GetProp("_Name") if mol.HasProp("_Name") else f"Mol_{n_mol:03d}"
-            )
+            molname = mol.GetProp("_Name") if mol.HasProp("_Name") else f"Mol_{n_mol:d}"
             scafnet = scaffold.Mols2ScafNet([mol], args.brics, None)
             rings = scaffold.ScafNet2Rings(scafnet, molname, molWriter)
         logging.info(f"Mols processed: {n_mol}")

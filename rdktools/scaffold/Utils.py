@@ -170,10 +170,11 @@ def ScafNet2Rings(scafnet, name, molWriter):
         logging.debug(f"node: {smi}")
         if smi not in ringsmis:
             ring = MolFromSmiles(smi)  # Ring-maybe.
-            if len(ring.GetSubstructMatches(pat)) > 0:
+            if len(smi) == 0 or len(ring.GetSubstructMatches(pat)) > 0:
                 continue
-            ringsmis.add(smi)
-            rings.append(ring)
+            else:
+                ringsmis.add(smi)
+                rings.append(ring)
     rings_mol = MolFromSmiles(".".join(sorted(list(ringsmis))))
     rings_mol.SetProp("_Name", f"{name}_RINGS")
     molWriter.write(rings_mol)
