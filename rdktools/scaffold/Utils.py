@@ -15,7 +15,6 @@ import logging
 #############################################################################
 import os
 import re
-import stat
 import sys
 import tempfile
 from typing import Optional
@@ -246,7 +245,6 @@ def DemoNetHtml(scratchdir):
     )
     ofile = fout.name
     logging.debug(f"ofile: {ofile}")
-    fout.close()
     logging.debug(f"DemoNetHtml({scratchdir}, {ofile})")
     demosmi = "Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 flucloxacillin"
     mols = [MolFromSmiles(re.sub(r"\s.*$", "", demosmi))]
@@ -258,16 +256,7 @@ def DemoNetHtml(scratchdir):
         scratchdir,
         ofile,
     )
-    os.chmod(
-        ofile,
-        stat.S_IRUSR
-        | stat.S_IWUSR
-        | stat.S_IRGRP
-        | stat.S_IWGRP
-        | stat.S_IROTH
-        | stat.S_IWOTH,
-    )
-    g.show(ofile, local=False)
+    fout.close()
 
 
 #############################################################################
