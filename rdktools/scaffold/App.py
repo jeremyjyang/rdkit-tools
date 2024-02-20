@@ -5,7 +5,6 @@ https://www.rdkit.org/docs/source/rdkit.Chem.Scaffolds.rdScaffoldNetwork.html
 rdScaffoldNetwork available RDKit 2020.03.1+.
 """
 import argparse
-import csv
 import logging
 import os
 import sys
