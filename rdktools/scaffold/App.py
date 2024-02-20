@@ -52,27 +52,17 @@ def parse_args(parser: argparse.ArgumentParser):
                 "--scratchdir",
                 default=os.path.join(os.environ["HOME"], "tmp", "rdktools"),
             )
-        if prog_name in ["bmscaf", "scafnet", "scafnet_rings"]:
-            sub_parser.add_argument("--i", dest="ifile", help="input file, TSV or SDF")
-            sub_parser.add_argument("--o", dest="ofile", help="output file, TSV or SDF")
         if prog_name in ["bmscaf", "scafnet"]:
             sub_parser.add_argument(
                 "--o_png",
                 dest="ofile_png",
-                default="--",
                 help="visualization output file, PNG",
             )
-        if prog_name == "scafnet":
-            sub_parser.add_argument(
-                "--o_html",
-                dest="ofile_html",
-                default="--",
-                help="visualization output file, HTML",
-            )
-            sub_parser.add_argument(
-                "--scafname", default="RDKit Scaffold Analysis", help="title for output"
-            )
         if prog_name in ["bmscaf", "scafnet", "scafnet_rings"]:
+            sub_parser.add_argument(
+                "--i", dest="ifile", required=True, help="input file, TSV or SDF"
+            )
+            sub_parser.add_argument("--o", dest="ofile", help="output file, TSV or SDF")
             sub_parser.add_argument(
                 "--smilesColumn",
                 type=int,
@@ -103,14 +93,36 @@ def parse_args(parser: argparse.ArgumentParser):
                 action="store_true",
                 help="BRICS fragmentation rules (Degen, 2008)",
             )
+        if prog_name == "scafnet":
+            sub_parser.add_argument(
+                "--o_html",
+                dest="ofile_html",
+                default="--",
+                help="visualization output file, HTML",
+            )
+            sub_parser.add_argument(
+                "--scafname", default="RDKit Scaffold Analysis", help="title for output"
+            )
+        if prog_name == "bmscaf":
+            sub_parser.add_argument(
+                "--mols_per_row", type=int, default=8, help="Mols per row in grid image"
+            )
         sub_parser.add_argument(
             "--display", action="store_true", help="Display scafnet interactively."
         )
     args = parser.parse_args()
     # use given scratchdir as default for o_png and o_html
-    if hasattr(args, "ofile_png") and not args.ofile_png:
+    if (
+        hasattr(args, "ofile_png")
+        and hasattr(args, "scartchdir")
+        and not args.ofile_png
+    ):
         args.ofile_png = os.path.join(args.scratchdir, "rdktools_scafnet.png")
-    if hasattr(args, "ofile_html") and not args.ofile_html:
+    if (
+        hasattr(args, "ofile_html")
+        and hasattr(args, "scartchdir")
+        and not args.ofile_html
+    ):
         args.ofile_html = os.path.join(args.scratchdir, "rdktools_scafnet.html")
     return args
 
@@ -146,18 +158,19 @@ if __name__ == "__main__":
         scaffold.DemoNetHtml(args.scratchdir)
         sys.exit()
 
-    if not (args.ifile):
-        parser.error("--i required.")
-
     if args.op == "bmscaf":
         molReader = util.File2Molreader(
             args.ifile, args.idelim, args.smilesColumn, args.nameColumn, args.iheader
         )
         molWriter = util.File2Molwriter(args.ofile, args.odelim, args.oheader)
         mols = util.ReadMols(molReader)
-        scafmols = scaffold.Mols2BMScaffolds(mols, molWriter)
+        scafmols, legends = scaffold.Mols2BMScaffolds(mols, molWriter)
         if args.ofile_png:
-            img = rdkit.Chem.Draw.MolsToGridImage(scafmols, molsPerRow=8)
+            img = rdkit.Chem.Draw.MolsToGridImage(
+                scafmols,
+                molsPerRow=args.mols_per_row,
+                legends=legends,
+            )
             img.save(args.ofile_png, format="PNG")
 
     elif args.op == "scafnet":

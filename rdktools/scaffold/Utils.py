@@ -47,15 +47,17 @@ def ensure_path_separator(dir: str):
 #############################################################################
 def Mols2BMScaffolds(mols, molWriter):
     scafmols = []
+    legends = []
     for i, mol in enumerate(mols):
         molname = mol.GetProp("_Name") if mol.HasProp("_Name") else ""
         logging.debug(f"{i+1}. {molname}")
         scafmol = MurckoScaffold.GetScaffoldForMol(mol)
         Compute2DCoords(scafmol, clearConfs=True)
         scafmols.append(scafmol)
+        legends.append(molname)
         molWriter.write(scafmol)
     logging.info(f"{len(mols)} mols written to {molWriter}")
-    return scafmols
+    return scafmols, legends
 
 
 #############################################################################
