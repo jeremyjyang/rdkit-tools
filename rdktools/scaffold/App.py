@@ -117,13 +117,13 @@ def parse_args(parser: argparse.ArgumentParser):
     # use given scratchdir as default for o_png and o_html
     if (
         hasattr(args, "ofile_png")
-        and hasattr(args, "scartchdir")
+        and hasattr(args, "scratchdir")
         and not args.ofile_png
     ):
         args.ofile_png = os.path.join(args.scratchdir, "rdktools_scafnet.png")
     if (
         hasattr(args, "ofile_html")
-        and hasattr(args, "scartchdir")
+        and hasattr(args, "scratchdir")
         and not args.ofile_html
     ):
         args.ofile_html = os.path.join(args.scratchdir, "rdktools_scafnet.html")
