@@ -189,6 +189,7 @@ python3 -m rdktools.scaffold.App bmscaf --i data/drugs.smiles --o_png data/drugs
 python3 -m rdktools.scaffold.App scafnet --i data/mcs_example.smiles --iheader --o mcs_net.tsv --o_html mcs_net.html
 ```
 
+Screenshot of output network (will be interactive if ran locally)
 <img src="data/scafnet_out.png" height="400"><br />  
 
 ## Standardization
