@@ -123,39 +123,62 @@ python3 -m rdktools.depict.App single -height 500 --width 600 --i valium.smiles 
 <img src="data/valium.png" height="400">
 
 ## Scaffolds
-
+Tools for processing SMILES inputs and performing scaffold analysis. 
 ```
 (rdktools) $ python3 -m rdktools.scaffold.App -h
-usage: App.py [-h] [--i IFILE] [--o OFILE] [--o_html OFILE_HTML]
-              [--scratchdir SCRATCHDIR] [--smicol SMICOL] [--namcol NAMCOL]
-              [--idelim IDELIM] [--odelim ODELIM] [--iheader] [--oheader]
-              [--brics] [-v]
-              {bmscaf,scafnet,demobm,demonet,demonetvis}
+usage: App.py [-h] {bmscaf,scafnet,scafnet_rings,demobm,demonet_img,demonet_html} ...
 
 RDKit scaffold analysis
 
 positional arguments:
-  {bmscaf,scafnet,demobm,demonet,demonetvis}
-                        OPERATION
+  {bmscaf,scafnet,scafnet_rings,demobm,demonet_img,demonet_html}
+                        operation
+    bmscaf              Generate scaffolds using Bemis-Murcko clustering
+    scafnet             Generate a scaffold network using the given SMILES
+    scafnet_rings       Generate a scaffold network using the given SMILES, with output
+                        containing unique ringsystems only
+    demobm              Demo scaffold generated using Bemis-Murcko clustering
+    demonet_img         Demo generating scaffold network image
+    demonet_html        Demo generating interactive scaffold network using pyvis
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
-  --i IFILE             input file, TSV or SDF
-  --o OFILE             output file, TSV|SDF
-  --o_html OFILE_HTML   output file, HTML
-  --scratchdir SCRATCHDIR
-  --smicol SMICOL       SMILES column from TSV (counting from 0)
-  --namcol NAMCOL       name column from TSV (counting from 0)
-  --idelim IDELIM       delim for input TSV
-  --odelim ODELIM       delim for output TSV
-  --iheader             input TSV has header
-  --oheader             output TSV has header
-  --brics               BRICS fragmentation rules (Degen, 2008)
-  -v, --verbose
+```
+Additional information for a specific operation can be found by using the `-h` flag after providing the operation. For example:
+```
+(rdktools) $ python3 -m rdktools.scaffold.App bmscaf -h
+usage: App.py bmscaf [-h] [--log_fname LOG_FNAME] [-v] [--o_png OFILE_PNG]
+                     [--mols_per_row MOLS_PER_ROW] --i IFILE [--o OFILE]
+                     [--smiles_column SMILES_COLUMN] [--name_column NAME_COLUMN]
+                     [--idelim IDELIM] [--odelim ODELIM] [--iheader] [--oheader]
+
+options:
+  -h, --help            show this help message and exit
+  --log_fname LOG_FNAME
+                        File to save logs to. If not given will log to stdout. (default:
+                        None)
+  -v, --verbose         verbosity of logging (default: 0)
+  --o_png OFILE_PNG     visualization output file, PNG (default: None)
+  --mols_per_row MOLS_PER_ROW
+                        Mols per row in output PNG (default: 8)
+  --i IFILE             input file, SMI or SDF (default: None)
+  --o OFILE             output file, SMI or SDF. Will use stdout if not specified (default:
+                        None)
+  --smiles_column SMILES_COLUMN
+                        (integer) column where SMILES are located (for SMI file) (default: 0)
+  --name_column NAME_COLUMN
+                        (integer) column where molecule names are located (for SMI file)
+                        (default: 1)
+  --idelim IDELIM       delim for input SMI/TSV file (default is tab) (default: )
+  --odelim ODELIM       delim for output SMI/TSV file (default is tab) (default: )
+  --iheader             input SMILES/TSV has header line (default: False)
+  --oheader             output TSV has header (default: False)
 ```
 
+### Examples
+1) Viewing scaffolds generated from SMILES file using Bemis-Murcko clustering. Labels for each scaffold correspond to the input SMILES.
 ```
-python3 -m rdktools.scaffold.App bmscaf --i drugs.smiles --o_vis drugs_bmscaf.png
+python3 -m rdktools.scaffold.App bmscaf --i data/drugs.smiles --o_png data/drugs_bmscaf.png
 ```
 
 <img src="data/drugs_bmscaf.png" height="400">

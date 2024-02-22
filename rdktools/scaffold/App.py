@@ -96,10 +96,14 @@ def parse_args(parser: argparse.ArgumentParser):
                 help="(integer) column where molecule names are located (for SMI file)",
             )
             sub_parser.add_argument(
-                "--idelim", default="\t", help="delim for input TSV (default is tab)"
+                "--idelim",
+                default="\t",
+                help="delim for input SMI/TSV file (default is tab)",
             )
             sub_parser.add_argument(
-                "--odelim", default="\t", help="delim for output TSV (default is tab)"
+                "--odelim",
+                default="\t",
+                help="delim for output SMI/TSV file (default is tab)",
             )
             sub_parser.add_argument(
                 "--iheader",
