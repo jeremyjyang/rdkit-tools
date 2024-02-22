@@ -4,101 +4,220 @@ https://www.rdkit.org/docs/source/rdkit.Chem.Scaffolds.MurckoScaffold.html
 https://www.rdkit.org/docs/source/rdkit.Chem.Scaffolds.rdScaffoldNetwork.html
 rdScaffoldNetwork available RDKit 2020.03.1+.
 """
-#############################################################################
-import os,sys,stat,re,json,time,inspect,argparse,logging
+import argparse
+import logging
+import os
+import sys
+import time
+
 import matplotlib as mpl
 import pyvis
-from pyvis.network import Network
-
 import rdkit
-from rdkit.Chem import SmilesMolSupplier, SDMolSupplier, SDWriter, SmilesWriter, MolStandardize, MolToSmiles, MolFromSmiles, Draw
-from rdkit.Chem.Scaffolds import MurckoScaffold
-from rdkit.Chem.Scaffolds import rdScaffoldNetwork
 
-from .. import scaffold
-from .. import util
+from .. import scaffold, util
 
-SCRATCHDIR = f"{os.environ['HOME']}/tmp/rdktools"
+# allowable OPS
+BMSCAF = "bmscaf"
+SCAFNET = "scafnet"
+SCAFNET_RINGS = "scafnet_rings"
+DEMOBM = "demobm"
+DEMONET_IMG = "demonet_img"
+DEMONET_HTML = "demonet_html"
 
-#############################################################################
+
+def parse_args(parser: argparse.ArgumentParser):
+    # mapping of operation to help string
+    OPS = {
+        BMSCAF: "Generate scaffolds using Bemis-Murcko clustering",
+        SCAFNET: "Generate a scaffold network using the given SMILES",
+        SCAFNET_RINGS: "Generate a scaffold network using the given SMILES, with output containing unique ringsystems only",
+        DEMOBM: "Demo scaffold generated using Bemis-Murcko clustering",
+        DEMONET_IMG: "Demo generating scaffold network image",
+        DEMONET_HTML: "Demo generating interactive scaffold network using pyvis",
+    }
+    subparsers = parser.add_subparsers(dest="op", help="operation")
+    # create a subparser for each operation
+    parsers = []
+    for op, op_help in OPS.items():
+        parsers.append(
+            subparsers.add_parser(
+                op, help=op_help, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+            )
+        )
+    for sub_parser in parsers:
+        # sub_parser.prog == "App.py <PROG_NAME>"
+        prog_name = sub_parser.prog.split()[1]
+        sub_parser.add_argument(
+            "--log_fname",
+            help="File to save logs to. If not given will log to stdout.",
+            default=None,
+        )
+        sub_parser.add_argument(
+            "-v", "--verbose", action="count", default=0, help="verbosity of logging"
+        )
+        if prog_name in [DEMONET_IMG, DEMONET_HTML, SCAFNET]:
+            sub_parser.add_argument(
+                "--scratchdir",
+                default=os.path.join(os.environ["HOME"], "tmp", "rdktools"),
+                help="Directory where demo and other temporary files will be stored. Note that the dir and its contents will be created but not destroyed",
+            )
+        if prog_name in [BMSCAF, SCAFNET]:
+            sub_parser.add_argument(
+                "--o_png",
+                dest="ofile_png",
+                help="visualization output file, PNG",
+            )
+            default_per_row = 8 if prog_name == BMSCAF else 4
+            sub_parser.add_argument(
+                "--mols_per_row",
+                type=int,
+                default=default_per_row,
+                help="Mols per row in output PNG",
+            )
+        if prog_name in [BMSCAF, SCAFNET, SCAFNET_RINGS]:
+            sub_parser.add_argument(
+                "--i", dest="ifile", required=True, help="input file, SMI or SDF"
+            )
+            sub_parser.add_argument(
+                "--o",
+                dest="ofile",
+                help="output file, SMI or SDF. Will use stdout if not specified",
+            )
+            sub_parser.add_argument(
+                "--smiles_column",
+                type=int,
+                default=0,
+                help="(integer) column where SMILES are located (for SMI file)",
+            )
+            sub_parser.add_argument(
+                "--name_column",
+                type=int,
+                default=1,
+                help="(integer) column where molecule names are located (for SMI file)",
+            )
+            sub_parser.add_argument(
+                "--idelim",
+                default="\t",
+                help="delim for input SMI/TSV file (default is tab)",
+            )
+            sub_parser.add_argument(
+                "--odelim",
+                default="\t",
+                help="delim for output SMI/TSV file (default is tab)",
+            )
+            sub_parser.add_argument(
+                "--iheader",
+                action="store_true",
+                help="input SMILES/TSV has header line",
+            )
+            sub_parser.add_argument(
+                "--oheader", action="store_true", help="output TSV has header"
+            )
+        if prog_name in [SCAFNET, SCAFNET_RINGS]:
+            sub_parser.add_argument(
+                "--brics",
+                action="store_true",
+                help="use BRICS fragmentation rules (Degen, 2008)",
+            )
+        if prog_name == SCAFNET:
+            sub_parser.add_argument(
+                "--o_html",
+                dest="ofile_html",
+                help="location to store HTML visualization output file. Will show in browser once execution is complete",
+            )
+            sub_parser.add_argument(
+                "--scafname", default="RDKit Scaffold Analysis", help="title for output"
+            )
+    args = parser.parse_args()
+    return args
+
+
 if __name__ == "__main__":
-  parser = argparse.ArgumentParser(description="RDKit scaffold analysis", epilog="")
-  OPS = ["bmscaf", "scafnet", "scafnet_rings", "demobm", "demonet_img", "demonet_html"]
-  parser.add_argument("op", choices=OPS, default="mol2scaf", help="OPERATION")
-  parser.add_argument("--i", dest="ifile", help="input file, TSV or SDF")
-  parser.add_argument("--o", dest="ofile", help="output file, TSV|SDF")
-  parser.add_argument("--scratchdir", default=SCRATCHDIR)
-  parser.add_argument("--o_png", dest="ofile_png", default=f"{SCRATCHDIR}/rdktools_scafnet.png", help="visualization output file, PNG")
-  parser.add_argument("--o_html", dest="ofile_html", default=f"{SCRATCHDIR}/rdktools_scafnet.html", help="visualization output file, HTML")
-  parser.add_argument("--smilesColumn", type=int, default=0, help="SMILES column from TSV (counting from 0)")
-  parser.add_argument("--nameColumn", type=int, default=1, help="name column from TSV (counting from 0)")
-  parser.add_argument("--idelim", default="\t", help="delim for input TSV")
-  parser.add_argument("--odelim", default="\t", help="delim for output TSV")
-  parser.add_argument("--iheader", action="store_true", help="input TSV has header")
-  parser.add_argument("--oheader", action="store_true", help="output TSV has header")
-  parser.add_argument("--brics", action="store_true", help="BRICS fragmentation rules (Degen, 2008)")
-  parser.add_argument("--scafname", default="RDKit Scaffold Analysis", help="title for output")
-  parser.add_argument("--display", action="store_true", help="Display scafnet interactively.")
-  parser.add_argument("-v", "--verbose", action="count", default=0)
-  args = parser.parse_args()
+    parser = argparse.ArgumentParser(description="RDKit scaffold analysis", epilog="")
+    args = parse_args(parser)
 
-  logging.basicConfig(format='%(levelname)s:%(message)s', level=(logging.DEBUG if args.verbose>1 else logging.INFO))
+    level = logging.WARNING  # default
+    if args.verbose == 1:
+        level = logging.INFO
+    elif args.verbose >= 2:
+        level = logging.DEBUG
 
-  logging.info(f"RDKit version: {rdkit.rdBase.rdkitVersion}")
-  logging.info(f"MatplotLib version: {mpl.__version__}")
-  logging.info(f"Pyvis version: {pyvis.__version__}")
+    logging.basicConfig(
+        filename=args.log_fname,
+        filemode="a",
+        format="%(levelname)s:%(message)s",
+        level=level,
+    )
 
-  t0=time.time()
+    logging.info(f"RDKit version: {rdkit.rdBase.rdkitVersion}")
+    logging.info(f"MatplotLib version: {mpl.__version__}")
+    logging.info(f"Pyvis version: {pyvis.__version__}")
 
-  if not os.path.isdir(args.scratchdir): os.mkdir(args.scratchdir)
+    t0 = time.time()
 
-  if args.op=="demobm":
-    scaffold.DemoBM()
-    sys.exit()
+    if hasattr(args, "scratchdir"):
+        os.makedirs(args.scratchdir, exist_ok=True)
 
-  elif args.op=="demonet_img":
-    scaffold.DemoNetImg(args.scratchdir)
-    sys.exit()
+    if args.op == DEMOBM:
+        scaffold.DemoBM()
+        sys.exit()
 
-  elif args.op=="demonet_html":
-    logging.debug(f"scratchdir: {args.scratchdir}")
-    scaffold.DemoNetHtml(args.scratchdir)
-    sys.exit()
+    elif args.op == DEMONET_IMG:
+        scaffold.DemoNetImg(args.scratchdir)
+        sys.exit()
 
-  if not (args.ifile): parser.error('--i required.')
+    elif args.op == DEMONET_HTML:
+        logging.debug(f"scratchdir: {args.scratchdir}")
+        scaffold.DemoNetHtml(args.scratchdir)
+        sys.exit()
 
-  if args.op=="bmscaf":
-    molReader = util.File2Molreader(args.ifile, args.idelim, args.smilesColumn, args.nameColumn, args.iheader)
-    molWriter = util.File2Molwriter(args.ofile, args.odelim, args.oheader)
-    mols = util.ReadMols(molReader)
-    scafmols = scaffold.Mols2BMScaffolds(mols, molWriter)
-    if args.ofile_png:
-      img = rdkit.Chem.Draw.MolsToGridImage(scafmols, molsPerRow=8)
-      img.save(args.ofile_png, format="PNG")
+    if args.op == BMSCAF:
+        molReader = util.File2Molreader(
+            args.ifile, args.idelim, args.smiles_column, args.name_column, args.iheader
+        )
+        molWriter = util.File2Molwriter(args.ofile, args.odelim, args.oheader)
+        mols = util.ReadMols(molReader)
+        scafmols, legends = scaffold.Mols2BMScaffolds(mols, molWriter)
+        if args.ofile_png:
+            img = rdkit.Chem.Draw.MolsToGridImage(
+                scafmols,
+                molsPerRow=args.mols_per_row,
+                legends=legends,
+            )
+            img.save(args.ofile_png, format="PNG")
 
-  elif args.op=="scafnet":
-    molReader = util.File2Molreader(args.ifile, args.idelim, args.smilesColumn, args.nameColumn, args.iheader)
-    fout = open(args.ofile, "w") if ofile else sys.stdout
-    mols = util.ReadMols(molReader)
-    scafnet = scaffold.Mols2ScafNet(mols, args.brics, fout)
-    if args.ofile_png:
-      scaffold.Scafnet2Img(scafnet, args.ofile_png)
-    if args.ofile_html:
-      scaffold.Scafnet2Html(scafnet, args.scafname, args.scratchdir, args.ofile_html)
+    elif args.op == SCAFNET:
+        molReader = util.File2Molreader(
+            args.ifile, args.idelim, args.smiles_column, args.name_column, args.iheader
+        )
+        ofile = args.ofile if args.ofile else sys.stdout
+        mols = util.ReadMols(molReader)
+        scafnet = scaffold.Mols2ScafNet(
+            mols, args.brics, ofile, args.odelim, args.oheader
+        )
+        if args.ofile_png:
+            scaffold.Scafnet2Img(scafnet, args.ofile_png, args.mols_per_row)
+        if args.ofile_html:
+            scaffold.Scafnet2Html(
+                scafnet, args.scafname, args.scratchdir, args.ofile_html
+            )
 
-  elif args.op=="scafnet_rings":
-    molReader = util.File2Molreader(args.ifile, args.idelim, args.smilesColumn, args.nameColumn, args.iheader)
-    molWriter = util.File2Molwriter(args.ofile, args.odelim, args.oheader)
-    n_mol=0;
-    for mol in molReader:
-      n_mol+=1
-      molname = mol.GetProp('_Name') if mol.HasProp('_Name') else f"Mol_{n_mol:03d}"
-      scafnet = scaffold.Mols2ScafNet([mol], args.brics, None)
-      rings = scaffold.ScafNet2Rings(scafnet, molname, molWriter)
-    logging.info(f"Mols processed: {n_mol}")
+    elif args.op == SCAFNET_RINGS:
+        molReader = util.File2Molreader(
+            args.ifile, args.idelim, args.smiles_column, args.name_column, args.iheader
+        )
+        molWriter = util.File2Molwriter(args.ofile, args.odelim, args.oheader)
+        n_mol = 0
+        for mol in molReader:
+            n_mol += 1
+            molname = mol.GetProp("_Name") if mol.HasProp("_Name") else f"Mol_{n_mol:d}"
+            scafnet = scaffold.Mols2ScafNet([mol], args.brics, None)
+            rings = scaffold.ScafNet2Rings(scafnet, molname, molWriter)
+        logging.info(f"Mols processed: {n_mol}")
 
-  else:
-    parser.error(f"Unsupported operation: {args.op}")
+    else:
+        parser.error(f"Unsupported operation: {args.op}")
 
-  logging.info(f"""Elapsed: {time.strftime('%Hh:%Mm:%Ss', time.gmtime(time.time()-t0))}""")
-
+    logging.info(
+        f"""Elapsed: {time.strftime('%Hh:%Mm:%Ss', time.gmtime(time.time()-t0))}"""
+    )

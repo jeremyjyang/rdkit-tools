@@ -123,42 +123,74 @@ python3 -m rdktools.depict.App single -height 500 --width 600 --i valium.smiles 
 <img src="data/valium.png" height="400">
 
 ## Scaffolds
-
+Tools for processing SMILES inputs and performing scaffold analysis. 
 ```
 (rdktools) $ python3 -m rdktools.scaffold.App -h
-usage: App.py [-h] [--i IFILE] [--o OFILE] [--o_html OFILE_HTML]
-              [--scratchdir SCRATCHDIR] [--smicol SMICOL] [--namcol NAMCOL]
-              [--idelim IDELIM] [--odelim ODELIM] [--iheader] [--oheader]
-              [--brics] [-v]
-              {bmscaf,scafnet,demobm,demonet,demonetvis}
+usage: App.py [-h] {bmscaf,scafnet,scafnet_rings,demobm,demonet_img,demonet_html} ...
 
 RDKit scaffold analysis
 
 positional arguments:
-  {bmscaf,scafnet,demobm,demonet,demonetvis}
-                        OPERATION
+  {bmscaf,scafnet,scafnet_rings,demobm,demonet_img,demonet_html}
+                        operation
+    bmscaf              Generate scaffolds using Bemis-Murcko clustering
+    scafnet             Generate a scaffold network using the given SMILES
+    scafnet_rings       Generate a scaffold network using the given SMILES, with output
+                        containing unique ringsystems only
+    demobm              Demo scaffold generated using Bemis-Murcko clustering
+    demonet_img         Demo generating scaffold network image
+    demonet_html        Demo generating interactive scaffold network using pyvis
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
-  --i IFILE             input file, TSV or SDF
-  --o OFILE             output file, TSV|SDF
-  --o_html OFILE_HTML   output file, HTML
-  --scratchdir SCRATCHDIR
-  --smicol SMICOL       SMILES column from TSV (counting from 0)
-  --namcol NAMCOL       name column from TSV (counting from 0)
-  --idelim IDELIM       delim for input TSV
-  --odelim ODELIM       delim for output TSV
-  --iheader             input TSV has header
-  --oheader             output TSV has header
-  --brics               BRICS fragmentation rules (Degen, 2008)
-  -v, --verbose
+```
+Additional information for a specific operation can be found by using the `-h` flag after providing the operation. For example:
+```
+(rdktools) $ python3 -m rdktools.scaffold.App bmscaf -h
+usage: App.py bmscaf [-h] [--log_fname LOG_FNAME] [-v] [--o_png OFILE_PNG]
+                     [--mols_per_row MOLS_PER_ROW] --i IFILE [--o OFILE]
+                     [--smiles_column SMILES_COLUMN] [--name_column NAME_COLUMN]
+                     [--idelim IDELIM] [--odelim ODELIM] [--iheader] [--oheader]
+
+options:
+  -h, --help            show this help message and exit
+  --log_fname LOG_FNAME
+                        File to save logs to. If not given will log to stdout. (default:
+                        None)
+  -v, --verbose         verbosity of logging (default: 0)
+  --o_png OFILE_PNG     visualization output file, PNG (default: None)
+  --mols_per_row MOLS_PER_ROW
+                        Mols per row in output PNG (default: 8)
+  --i IFILE             input file, SMI or SDF (default: None)
+  --o OFILE             output file, SMI or SDF. Will use stdout if not specified (default:
+                        None)
+  --smiles_column SMILES_COLUMN
+                        (integer) column where SMILES are located (for SMI file) (default: 0)
+  --name_column NAME_COLUMN
+                        (integer) column where molecule names are located (for SMI file)
+                        (default: 1)
+  --idelim IDELIM       delim for input SMI/TSV file (default is tab) (default: )
+  --odelim ODELIM       delim for output SMI/TSV file (default is tab) (default: )
+  --iheader             input SMILES/TSV has header line (default: False)
+  --oheader             output TSV has header (default: False)
 ```
 
+### Examples
+1) Viewing scaffolds generated from SMILES file using Bemis-Murcko clustering. Labels for each scaffold correspond to the input SMILES.
 ```
-python3 -m rdktools.scaffold.App bmscaf --i drugs.smiles --o_vis drugs_bmscaf.png
+python3 -m rdktools.scaffold.App bmscaf --i data/drugs.smiles --o_png data/drugs_bmscaf.png
 ```
 
-<img src="data/drugs_bmscaf.png" height="400">
+<img src="data/drugs_bmscaf.png" height="400"> <br />
+
+2) Viewing scaffold network generated from SMILES file. In addition to the HTML file, the networks nodes and edges are stored in `mcs_net.tsv`.
+
+```
+python3 -m rdktools.scaffold.App scafnet --i data/mcs_example.smiles --o mcs_net.tsv --o_html mcs_net.html
+```
+
+Screenshot of output network (will be interactive if ran locally)
+<img src="data/scafnet_out.png" height="400"> <br />  
 
 ## Standardization
 
@@ -441,19 +473,27 @@ options:
 ### Examples
 1) Counting matches from `ursu_pains.sma` in SMILES from `hscaf_testset.smi`. Note that `hscaf_testset.smi` uses a seperator of space, hence the choice of `--delim`. The `-vvv` option gives verbose logs which will be saved to `out.log`. Output is saved to `mcs_out.tsv`.
 
-`python3 -m rdktools.smarts.App matchCountsMulti --i rdktools/smarts/data/hscaf_testset.smi --smartsfile rdktools/smarts/data/ursu_pains.sma --o mcs_out.tsv -vvv --log_fname out.log --delim " "`
+```
+python3 -m rdktools.smarts.App matchCountsMulti --i rdktools/smarts/data/hscaf_testset.smi --smartsfile rdktools/smarts/data/ursu_pains.sma --o mcs_out.tsv -vvv --log_fname out.log --delim " "
+```
 
 2) Similar to above, but using a csv SMILES file where the ordering of columns is different than the default and the file includes a header. Note that in this case the `--nonzero_rows` flag is also given, which means that only molecules which had at least one match will be included in the output.
 
-`python3 -m rdktools.smarts.App matchCountsMulti --i rdktools/smarts/data/mcs_demo2.csv --smartsfile rdktools/smarts/data/ursu_pains.sma --o mcs_out2.tsv --nonzero_rows -vvv --log_fname out2.log --delim "," --smiles_column 1 --name_column 0 --iheader`
+```
+python3 -m rdktools.smarts.App matchCountsMulti --i rdktools/smarts/data/mcs_demo2.csv --smartsfile rdktools/smarts/data/ursu_pains.sma --o mcs_out2.tsv --nonzero_rows -vvv --log_fname out2.log --delim "," --smiles_column 1 --name_column 0 --iheader
+```
 
 3) Testing if the molecule from `example.sdf` passes the PAINS filtering. The `--exclude_mol_props` flag is passed to exclude molecular properties that are present in `example.sdf` (e.g., IR.FREQUENCIES) from the output. 
 
-`python3 -m rdktools.smarts.App filterPAINS --i rdktools/smarts/data/example.sdf --o sdf_out.tsv -vvv --log_fname out3.log --exclude_mol_props`
+```
+python3 -m rdktools.smarts.App filterPAINS --i rdktools/smarts/data/example.sdf --o sdf_out.tsv -vvv --log_fname out3.log --exclude_mol_props
+```
 
 4) Filtering molecules from `mcs_demo2.csv` that match a given SMARTS query. Note that the SMARTS string is captured with single quotes (''). This is important because "!" can cause conflicts with the command line due to history expansion (see [here](https://stackoverflow.com/questions/33685239/in-a-string-makes-it-unusable-in-a-command-line-error-message-event-not-fou)).
 
-`python3 -m rdktools.smarts.App matchFilter --i rdktools/smarts/data/mcs_demo2.csv --smarts '[$([N;!H0]-[#6]);!$(N-C=[O,N,S])]' --delim "," --smiles_column 1 --name_column 0 --iheader -vv`
+```
+python3 -m rdktools.smarts.App matchFilter --i rdktools/smarts/data/mcs_demo2.csv --smarts '[$([N;!H0]-[#6]);!$(N-C=[O,N,S])]' --delim "," --smiles_column 1 --name_column 0 --iheader -vv
+```
 
 ## Reactions
 
