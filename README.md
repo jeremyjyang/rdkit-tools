@@ -181,7 +181,15 @@ options:
 python3 -m rdktools.scaffold.App bmscaf --i data/drugs.smiles --o_png data/drugs_bmscaf.png
 ```
 
-<img src="data/drugs_bmscaf.png" height="400">
+<img src="data/drugs_bmscaf.png" height="400"> <br />
+
+2) Viewing scaffold network generated from SMILES file. In addition to the HTML file, the networks nodes and edges are stored in `mcs_out.tsv`.
+
+```
+python3 -m rdktools.scaffold.App scafnet --i data/mcs_example.smiles --iheader --o mcs.tsv --o_html mcs.html
+```
+
+<img src="data/scafnet_out.png" height="400"><br />  
 
 ## Standardization
 
