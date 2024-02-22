@@ -186,11 +186,11 @@ python3 -m rdktools.scaffold.App bmscaf --i data/drugs.smiles --o_png data/drugs
 2) Viewing scaffold network generated from SMILES file. In addition to the HTML file, the networks nodes and edges are stored in `mcs_net.tsv`.
 
 ```
-python3 -m rdktools.scaffold.App scafnet --i data/mcs_example.smiles --iheader --o mcs_net.tsv --o_html mcs_net.html
+python3 -m rdktools.scaffold.App scafnet --i data/mcs_example.smiles --o mcs_net.tsv --o_html mcs_net.html
 ```
 
 Screenshot of output network (will be interactive if ran locally)
-<img src="data/scafnet_out.png" height="400"><br />  
+<img src="data/scafnet_out.png" height="400"> <br />  
 
 ## Standardization
 
@@ -473,19 +473,27 @@ options:
 ### Examples
 1) Counting matches from `ursu_pains.sma` in SMILES from `hscaf_testset.smi`. Note that `hscaf_testset.smi` uses a seperator of space, hence the choice of `--delim`. The `-vvv` option gives verbose logs which will be saved to `out.log`. Output is saved to `mcs_out.tsv`.
 
-`python3 -m rdktools.smarts.App matchCountsMulti --i rdktools/smarts/data/hscaf_testset.smi --smartsfile rdktools/smarts/data/ursu_pains.sma --o mcs_out.tsv -vvv --log_fname out.log --delim " "`
+```
+python3 -m rdktools.smarts.App matchCountsMulti --i rdktools/smarts/data/hscaf_testset.smi --smartsfile rdktools/smarts/data/ursu_pains.sma --o mcs_out.tsv -vvv --log_fname out.log --delim " "
+```
 
 2) Similar to above, but using a csv SMILES file where the ordering of columns is different than the default and the file includes a header. Note that in this case the `--nonzero_rows` flag is also given, which means that only molecules which had at least one match will be included in the output.
 
-`python3 -m rdktools.smarts.App matchCountsMulti --i rdktools/smarts/data/mcs_demo2.csv --smartsfile rdktools/smarts/data/ursu_pains.sma --o mcs_out2.tsv --nonzero_rows -vvv --log_fname out2.log --delim "," --smiles_column 1 --name_column 0 --iheader`
+```
+python3 -m rdktools.smarts.App matchCountsMulti --i rdktools/smarts/data/mcs_demo2.csv --smartsfile rdktools/smarts/data/ursu_pains.sma --o mcs_out2.tsv --nonzero_rows -vvv --log_fname out2.log --delim "," --smiles_column 1 --name_column 0 --iheader
+```
 
 3) Testing if the molecule from `example.sdf` passes the PAINS filtering. The `--exclude_mol_props` flag is passed to exclude molecular properties that are present in `example.sdf` (e.g., IR.FREQUENCIES) from the output. 
 
-`python3 -m rdktools.smarts.App filterPAINS --i rdktools/smarts/data/example.sdf --o sdf_out.tsv -vvv --log_fname out3.log --exclude_mol_props`
+```
+python3 -m rdktools.smarts.App filterPAINS --i rdktools/smarts/data/example.sdf --o sdf_out.tsv -vvv --log_fname out3.log --exclude_mol_props
+```
 
 4) Filtering molecules from `mcs_demo2.csv` that match a given SMARTS query. Note that the SMARTS string is captured with single quotes (''). This is important because "!" can cause conflicts with the command line due to history expansion (see [here](https://stackoverflow.com/questions/33685239/in-a-string-makes-it-unusable-in-a-command-line-error-message-event-not-fou)).
 
-`python3 -m rdktools.smarts.App matchFilter --i rdktools/smarts/data/mcs_demo2.csv --smarts '[$([N;!H0]-[#6]);!$(N-C=[O,N,S])]' --delim "," --smiles_column 1 --name_column 0 --iheader -vv`
+```
+python3 -m rdktools.smarts.App matchFilter --i rdktools/smarts/data/mcs_demo2.csv --smarts '[$([N;!H0]-[#6]);!$(N-C=[O,N,S])]' --delim "," --smiles_column 1 --name_column 0 --iheader -vv
+```
 
 ## Reactions
 
