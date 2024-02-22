@@ -11,8 +11,6 @@ import csv
 import inspect
 import json
 import logging
-
-#############################################################################
 import os
 import re
 import sys
@@ -34,7 +32,6 @@ from rdkit.Chem.Scaffolds import MurckoScaffold, rdScaffoldNetwork
 from .. import util
 
 
-# from matplotlib import pyplot as plt
 def ensure_path_separator(dir: str):
     """
     Ensure that given path is a directory by appending
