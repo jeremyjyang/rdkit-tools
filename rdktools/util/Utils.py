@@ -12,8 +12,6 @@ import re
 import rdkit
 import rdkit.Chem
 import rdkit.Chem.AllChem
-
-# fingerprints:
 from rdkit.Chem import (
     RDKFingerprint,
     SDMolSupplier,
@@ -25,9 +23,6 @@ from rdkit.Chem.AllChem import GetMorganFingerprintAsBitVect
 from rdkit.Chem.Draw import rdMolDraw2D
 from rdkit.Chem.MACCSkeys import GenMACCSKeys
 
-# from matplotlib import pyplot as plt
-
-
 DEMOSMIS = [
     "C[C@H]1CN(CCCN1[S+]([O-])(=O)C2=CC=CC3=C2C(=CN=C3)C)C(=O)CN Rho Kinase Inhibitor IV",
     "N[S+]([O-])(=O)C1=C(Cl)C=C2NC(N[S+]([O-])(=O)C2=C1)C(Cl)Cl trichlormethiazide",
@@ -38,6 +33,8 @@ DEMOSMIS = [
     "CC1(C)SC2C(NC(=O)Cc3ccccc3)C(=O)N2C1C(=O)O.[Na] penicillin",
     "Cc1onc(-c2ccccc2)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 oxacillin",
 ]
+ACCEPTABLE_SMI_FORMATS = ["smi", "smiles", "csv", "tsv", "txt"]
+ACCEPTABLE_MOL_FORMATS = ["sdf", "sd", "mdl", "mol"]
 
 
 #############################################################################
@@ -70,7 +67,7 @@ def ReadMols(molReader):
 def File2Molreader(ifile, idelim, smicol, namcol, header, sanitize=True):
     if ifile is None:
         return None
-    if re.sub(r".*\.", "", ifile).lower() in ("smi", "smiles", "csv", "tsv"):
+    if re.sub(r".*\.", "", ifile).lower() in ACCEPTABLE_SMI_FORMATS:
         molReader = SmilesMolSupplier(
             ifile,
             delimiter=idelim,
@@ -79,7 +76,7 @@ def File2Molreader(ifile, idelim, smicol, namcol, header, sanitize=True):
             titleLine=header,
             sanitize=sanitize,
         )
-    elif re.sub(r".*\.", "", ifile).lower() in ("sdf", "sd", "mdl", "mol"):
+    elif re.sub(r".*\.", "", ifile).lower() in ACCEPTABLE_MOL_FORMATS:
         molReader = SDMolSupplier(ifile, sanitize=sanitize, removeHs=True)
     else:
         molReader = None
@@ -98,9 +95,9 @@ def File2Molwriter(ofile, odelim, header, kekuleSmiles=True, isomericSmiles=True
             isomericSmiles=isomericSmiles,
             kekuleSmiles=kekuleSmiles,
         )
-    elif re.sub(r".*\.", "", ofile).lower() in ("sdf", "sd", "mdl", "mol"):
+    elif re.sub(r".*\.", "", ofile).lower() in ACCEPTABLE_MOL_FORMATS:
         molWriter = SDWriter(ofile)
-    elif re.sub(r".*\.", "", ofile).lower() in ("smi", "smiles", "csv", "tsv"):
+    elif re.sub(r".*\.", "", ofile).lower() in ACCEPTABLE_SMI_FORMATS:
         molWriter = SmilesWriter(
             ofile,
             delimiter=odelim,
