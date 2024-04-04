@@ -21,6 +21,7 @@ import pyvis
 import rdkit
 import rdkit.Chem
 import rdkit.Chem.AllChem
+import rdkit.Chem.rdmolops
 
 # fingerprints:
 from rdkit.Chem import MolFromSmiles, MolToSmiles
@@ -116,6 +117,24 @@ def Mols2BMScaffolds(mols, molWriter):
         legends.append(molname)
         molWriter.write(scafmol)
     logging.info(f"{len(mols)} mols written to {molWriter}")
+    return scafmols, legends
+
+
+#############################################################################
+def ScaffoldMap(mols):
+    # want scaffolds + attachment points
+    scafmols = []
+    legends = []
+    for i, mol in enumerate(mols):
+        molname = mol.GetProp("_Name") if mol.HasProp("_Name") else ""
+        logging.debug(f"{i+1}. {molname}")
+        scafmol = MurckoScaffold.GetScaffoldForMol(mol)
+        pre_at = MurckoScaffold.GetScaffoldForMol(mol)
+        Compute2DCoords(scafmol, clearConfs=True)
+        rdkit.Chem.rdmolops.ExpandAttachmentPoints(scafmol)
+        scafmols.append(scafmol)
+        legends.append(molname)
+        logging.info(f"{i+1}. {MolToSmiles(pre_at)} >> {MolToSmiles(scafmol)}")
     return scafmols, legends
 
 

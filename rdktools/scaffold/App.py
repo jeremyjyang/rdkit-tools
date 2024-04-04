@@ -18,6 +18,7 @@ from .. import scaffold, util
 
 # allowable OPS
 BMSCAF = "bmscaf"
+SCAF_MAP = "scaf_map"
 SCAFNET = "scafnet"
 SCAFNET_RINGS = "scafnet_rings"
 DEMOBM = "demobm"
@@ -29,6 +30,7 @@ def parse_args(parser: argparse.ArgumentParser):
     # mapping of operation to help string
     OPS = {
         BMSCAF: "Generate scaffolds using Bemis-Murcko clustering",
+        SCAF_MAP: "Generate generic scaffolds (including attachments) and map to input molecules",
         SCAFNET: "Generate a scaffold network using the given SMILES",
         SCAFNET_RINGS: "Generate a scaffold network using the given SMILES, with output containing unique ringsystems only",
         DEMOBM: "Demo scaffold generated using Bemis-Murcko clustering",
@@ -55,7 +57,7 @@ def parse_args(parser: argparse.ArgumentParser):
         sub_parser.add_argument(
             "-v", "--verbose", action="count", default=0, help="verbosity of logging"
         )
-        if prog_name in [DEMONET_IMG, DEMONET_HTML, SCAFNET]:
+        if prog_name in [DEMONET_IMG, DEMONET_HTML, SCAFNET, SCAF_MAP]:
             sub_parser.add_argument(
                 "--scratchdir",
                 default=os.path.join(os.environ["HOME"], "tmp", "rdktools"),
@@ -74,15 +76,28 @@ def parse_args(parser: argparse.ArgumentParser):
                 default=default_per_row,
                 help="Mols per row in output PNG",
             )
-        if prog_name in [BMSCAF, SCAFNET, SCAFNET_RINGS]:
+        if prog_name in [BMSCAF, SCAF_MAP, SCAFNET, SCAFNET_RINGS]:
             sub_parser.add_argument(
                 "--i", dest="ifile", required=True, help="input file, SMI or SDF"
             )
-            sub_parser.add_argument(
-                "--o",
-                dest="ofile",
-                help="output file, SMI or SDF. Will use stdout if not specified",
-            )
+            if prog_name != SCAF_MAP:
+                sub_parser.add_argument(
+                    "--o",
+                    dest="ofile",
+                    help="output file, SMI or SDF. Will use stdout if not specified",
+                )
+            else:
+                # two output files
+                sub_parser.add_argument(
+                    "--o_scaf",
+                    dest="ofile",
+                    help="output file with detected scaffolds, SMI or SDF. Will use stdout if not specified",
+                )
+                sub_parser.add_argument(
+                    "--o_mol",
+                    dest="ofile",
+                    help="output file mapping molecules to detected scaffolds, SMI or SDF. Will use stdout if not specified",
+                )
             sub_parser.add_argument(
                 "--smiles_column",
                 type=int,
@@ -171,10 +186,10 @@ if __name__ == "__main__":
         scaffold.DemoNetHtml(args.scratchdir)
         sys.exit()
 
+    molReader = util.File2Molreader(
+        args.ifile, args.idelim, args.smiles_column, args.name_column, args.iheader
+    )
     if args.op == BMSCAF:
-        molReader = util.File2Molreader(
-            args.ifile, args.idelim, args.smiles_column, args.name_column, args.iheader
-        )
         molWriter = util.File2Molwriter(args.ofile, args.odelim, args.oheader)
         mols = util.ReadMols(molReader)
         scafmols, legends = scaffold.Mols2BMScaffolds(mols, molWriter)
@@ -186,10 +201,11 @@ if __name__ == "__main__":
             )
             img.save(args.ofile_png, format="PNG")
 
+    elif args.op == SCAF_MAP:
+        mols = util.ReadMols(molReader)
+        scaffold.ScaffoldMap(mols)
+
     elif args.op == SCAFNET:
-        molReader = util.File2Molreader(
-            args.ifile, args.idelim, args.smiles_column, args.name_column, args.iheader
-        )
         ofile = args.ofile if args.ofile else sys.stdout
         mols = util.ReadMols(molReader)
         scafnet = scaffold.Mols2ScafNet(
@@ -203,9 +219,6 @@ if __name__ == "__main__":
             )
 
     elif args.op == SCAFNET_RINGS:
-        molReader = util.File2Molreader(
-            args.ifile, args.idelim, args.smiles_column, args.name_column, args.iheader
-        )
         molWriter = util.File2Molwriter(args.ofile, args.odelim, args.oheader)
         n_mol = 0
         for mol in molReader:
