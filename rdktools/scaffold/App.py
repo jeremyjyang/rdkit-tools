@@ -90,12 +90,12 @@ def parse_args(parser: argparse.ArgumentParser):
                 # two output files
                 sub_parser.add_argument(
                     "--o_scaf",
-                    dest="ofile",
+                    dest="o_scaf",
                     help="output file with detected scaffolds, SMI or SDF. Will use stdout if not specified",
                 )
                 sub_parser.add_argument(
                     "--o_mol",
-                    dest="ofile",
+                    dest="o_mol",
                     help="output file mapping molecules to detected scaffolds, SMI or SDF. Will use stdout if not specified",
                 )
             sub_parser.add_argument(
@@ -203,7 +203,7 @@ if __name__ == "__main__":
 
     elif args.op == SCAF_MAP:
         mols = util.ReadMols(molReader)
-        scaffold.ScaffoldMap(mols)
+        scaffold.ScaffoldMap(mols, args.o_mol, args.o_scaf, args.odelim, args.oheader)
 
     elif args.op == SCAFNET:
         ofile = args.ofile if args.ofile else sys.stdout

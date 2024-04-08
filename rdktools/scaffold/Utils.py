@@ -17,6 +17,7 @@ import sys
 import tempfile
 from typing import Optional
 
+import pandas as pd
 import pyvis
 import rdkit
 import rdkit.Chem
@@ -24,7 +25,13 @@ import rdkit.Chem.AllChem
 import rdkit.Chem.rdmolops
 
 # fingerprints:
-from rdkit.Chem import MolFromSmiles, MolToSmiles
+from rdkit.Chem import (
+    CanonSmiles,
+    MolFromSmiles,
+    MolToSmiles,
+    PandasTools,
+    rdRGroupDecomposition,
+)
 from rdkit.Chem.AllChem import Compute2DCoords
 
 # scaffolds:
@@ -121,21 +128,31 @@ def Mols2BMScaffolds(mols, molWriter):
 
 
 #############################################################################
-def ScaffoldMap(mols):
+def ScaffoldMap(mols, o_mol, o_scaf, odelim, oheader):
     # want scaffolds + attachment points
-    scafmols = []
-    legends = []
+    group_dfs = []
     for i, mol in enumerate(mols):
         molname = mol.GetProp("_Name") if mol.HasProp("_Name") else ""
         logging.debug(f"{i+1}. {molname}")
         scafmol = MurckoScaffold.GetScaffoldForMol(mol)
-        pre_at = MurckoScaffold.GetScaffoldForMol(mol)
-        Compute2DCoords(scafmol, clearConfs=True)
-        rdkit.Chem.rdmolops.ExpandAttachmentPoints(scafmol)
-        scafmols.append(scafmol)
-        legends.append(molname)
-        logging.info(f"{i+1}. {MolToSmiles(pre_at)} >> {MolToSmiles(scafmol)}")
-    return scafmols, legends
+        # using RGroupDecompose because it provides attachment points for core (scaffold)
+        groups, fails = rdRGroupDecomposition.RGroupDecompose(
+            [scafmol], [mol], asRows=False, asSmiles=True
+        )
+        logging.debug(f"RGroupDecompose Failures: {fails}")
+        group_df = PandasTools.RGroupDecompositionToFrame(
+            groups, [mol], include_core=True
+        )
+        group_dfs.append(group_df)
+    group_df = pd.concat(group_dfs, ignore_index=True)
+    group_df["Name"] = [
+        m.GetProp("_Name") if m.HasProp("_Name") else "" for m in group_df["Mol"]
+    ]
+    group_df["Mol"] = [MolToSmiles(m) for m in group_df["Mol"]]
+    group_df["Mol"].to_csv("smiles_test.tsv", index=False, sep="\t")
+    group_df["Core"].to_csv("cores_test.tsv", index=False, sep="\t")
+    group_df.to_csv("test.tsv", index=False, sep="\t")
+    return groups, fails
 
 
 #############################################################################
