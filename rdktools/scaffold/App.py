@@ -30,7 +30,7 @@ def parse_args(parser: argparse.ArgumentParser):
     # mapping of operation to help string
     OPS = {
         BMSCAF: "Generate scaffolds using Bemis-Murcko clustering",
-        SCAF_MAP: "Generate generic scaffolds (including attachments) and map to input molecules",
+        SCAF_MAP: "Generate Bemis-Murcko scaffolds (including attachments) and provide a mapping from input molecules",
         SCAFNET: "Generate a scaffold network using the given SMILES",
         SCAFNET_RINGS: "Generate a scaffold network using the given SMILES, with output containing unique ringsystems only",
         DEMOBM: "Demo scaffold generated using Bemis-Murcko clustering",
@@ -91,12 +91,16 @@ def parse_args(parser: argparse.ArgumentParser):
                 sub_parser.add_argument(
                     "--o_scaf",
                     dest="o_scaf",
-                    help="output file with detected scaffolds, SMI or SDF. Will use stdout if not specified",
+                    required=True,
+                    default=argparse.SUPPRESS,
+                    help="output file with detected scaffolds",
                 )
                 sub_parser.add_argument(
                     "--o_mol",
                     dest="o_mol",
-                    help="output file mapping molecules to detected scaffolds, SMI or SDF. Will use stdout if not specified",
+                    required=True,
+                    default=argparse.SUPPRESS,
+                    help="output file mapping molecules to detected scaffolds",
                 )
             sub_parser.add_argument(
                 "--smiles_column",
