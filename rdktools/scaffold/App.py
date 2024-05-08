@@ -19,6 +19,7 @@ from .. import scaffold, util
 # allowable OPS
 BMSCAF = "bmscaf"
 SCAF_MAP = "scaf_map"
+HIER_SCAF = "hier_scaf"
 SCAFNET = "scafnet"
 SCAFNET_RINGS = "scafnet_rings"
 DEMOBM = "demobm"
@@ -33,6 +34,7 @@ def parse_args(parser: argparse.ArgumentParser):
         SCAF_MAP: "Generate Bemis-Murcko scaffolds (including attachments) and provide a mapping from input molecules",
         SCAFNET: "Generate a scaffold network using the given SMILES",
         SCAFNET_RINGS: "Generate a scaffold network using the given SMILES, with output containing unique ringsystems only",
+        HIER_SCAF: "Derive hierarchical scaffolds for a given set of compounds",
         DEMOBM: "Demo scaffold generated using Bemis-Murcko clustering",
         DEMONET_IMG: "Demo generating scaffold network image",
         DEMONET_HTML: "Demo generating interactive scaffold network using pyvis",
@@ -57,7 +59,7 @@ def parse_args(parser: argparse.ArgumentParser):
         sub_parser.add_argument(
             "-v", "--verbose", action="count", default=0, help="verbosity of logging"
         )
-        if prog_name in [DEMONET_IMG, DEMONET_HTML, SCAFNET, SCAF_MAP]:
+        if prog_name in [DEMONET_IMG, DEMONET_HTML, SCAFNET, SCAF_MAP, HIER_SCAF]:
             sub_parser.add_argument(
                 "--scratchdir",
                 default=os.path.join(os.environ["HOME"], "tmp", "rdktools"),
@@ -76,7 +78,7 @@ def parse_args(parser: argparse.ArgumentParser):
                 default=default_per_row,
                 help="Mols per row in output PNG",
             )
-        if prog_name in [BMSCAF, SCAF_MAP, SCAFNET, SCAFNET_RINGS]:
+        if prog_name in [BMSCAF, SCAF_MAP, SCAFNET, SCAFNET_RINGS, HIER_SCAF]:
             sub_parser.add_argument(
                 "--i", dest="ifile", required=True, help="input file, SMI or SDF"
             )
@@ -132,7 +134,7 @@ def parse_args(parser: argparse.ArgumentParser):
             sub_parser.add_argument(
                 "--oheader", action="store_true", help="output TSV has header"
             )
-        if prog_name in [SCAFNET, SCAFNET_RINGS]:
+        if prog_name in [SCAFNET, SCAFNET_RINGS, HIER_SCAF]:
             sub_parser.add_argument(
                 "--brics",
                 action="store_true",
@@ -231,7 +233,11 @@ if __name__ == "__main__":
             scafnet = scaffold.Mols2ScafNet([mol], args.brics, None)
             rings = scaffold.ScafNet2Rings(scafnet, molname, molWriter)
         logging.info(f"Mols processed: {n_mol}")
-
+    elif args.op == HIER_SCAF:
+        mols = util.ReadMols(molReader)
+        scaffold.HierarchicalScaffolds(
+            mols, args.brics, args.ofile, args.odelim, args.oheader
+        )
     else:
         parser.error(f"Unsupported operation: {args.op}")
 

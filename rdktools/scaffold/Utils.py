@@ -12,6 +12,7 @@ import inspect
 import json
 import logging
 import os
+import queue
 import re
 import sys
 import tempfile
@@ -30,8 +31,18 @@ from rdkit.Chem.AllChem import Compute2DCoords
 
 # scaffolds:
 from rdkit.Chem.Scaffolds import MurckoScaffold, rdScaffoldNetwork
+from rdkit.Chem.Scaffolds.rdScaffoldNetwork import EdgeType, NetworkEdge
 
 from .. import util
+
+
+def get_csv_writer(file_path: str, delimiter: str):
+    if file_path is sys.stdout:
+        f = file_path
+    else:
+        f = open(file_path, "w")
+    csv_writer = csv.writer(f, delimiter=delimiter)
+    return csv_writer, f
 
 
 def ensure_path_separator(dir: str):
@@ -75,11 +86,7 @@ def center_align_pyvis_html(html_file_path: str):
 def write_scaffold_net(
     scafnet, ofile: str, odelimeter: str = ",", oheader: bool = False
 ):
-    if ofile is sys.stdout:
-        f = ofile
-    else:
-        f = open(ofile, "w")
-    net_writer = csv.writer(f, delimiter=odelimeter)
+    net_writer, f = get_csv_writer(ofile, odelimeter)
     if oheader:
         net_writer.writerow(["element_type", "index", "info"])
     for i in range(len(scafnet.nodes)):
@@ -237,6 +244,103 @@ def Mols2ScafNet(
         write_scaffold_net(scafnet, ofile, odelimeter, oheader)
     logging.info(f"nodes: {len(scafnet.nodes)}; edges:{len(scafnet.edges)}")
     return scafnet
+
+
+#############################################################################
+def _get_node_edges(node_idx: int, edges: list[NetworkEdge]):
+    """
+    Get the edges which originate from a given node.
+    """
+    node_edges = []
+    for e in edges:
+        if e.beginIdx == node_idx:
+            node_edges.append(e)
+    return node_edges
+
+
+def _construct_adjacency_list(scafnet) -> list[list]:
+    n_nodes = len(scafnet.nodes)
+    adjacency_list = list(
+        map(lambda x: _get_node_edges(x, scafnet.edges), range(n_nodes))
+    )
+    return adjacency_list
+
+
+def _get_fragment_map(init_edge: NetworkEdge, adj_list: list[list]) -> dict:
+    """
+    Perform BFS to generate a mapping from all nodes which are connected
+    to init_edge.beginIdx (ie the original molecule) to their depth
+    relative to the first molecule. first molecule has depth of 0.
+    :param NetworkEdge init_edge: initial edge from input molecule.
+    :param list[list] adj_list: adjacency list representation of a ScaffoldNet
+    :return dict: mapping from node indices to their depth relative to
+        init_edge.beginIdx
+    """
+    visited = {}
+    fragment_nodes = {}  # map nodes to depth
+    visited[init_edge] = True
+    fragment_nodes[init_edge.beginIdx] = 0
+    q = queue.Queue()
+    q.put(init_edge)
+    while not (q.empty()):
+        edge = q.get()
+        next_idx = edge.endIdx
+        fragment_nodes[edge.endIdx] = fragment_nodes[edge.beginIdx] + 1
+        next_edges = adj_list[next_idx]
+        for e in next_edges:
+            if e.type == EdgeType.Fragment and e not in visited:
+                visited[e] = True
+                q.put(e)
+    return fragment_nodes
+
+
+def write_hier_scafs(
+    fragment_maps: list[dict],
+    mol_indices: list[int],
+    nodes: list,
+    ofile: str,
+    odelimeter: str,
+    oheader: bool,
+):
+    # idx == id
+    csv_writer, f = get_csv_writer(ofile, odelimeter)
+    if oheader:
+        csv_writer.writerow(
+            ["mol_id", "mol_smiles", "scaffold_id", "scaffold_smiles", "scaffold_depth"]
+        )
+    for frag_map, mol_idx in zip(fragment_maps, mol_indices):
+        mol_smile = nodes[mol_idx]
+        for scaf_idx in frag_map:
+            if scaf_idx == mol_idx:
+                continue
+            scaf_smile = nodes[scaf_idx]
+            scaf_depth = frag_map[scaf_idx]
+            csv_writer.writerow([mol_idx, mol_smile, scaf_idx, scaf_smile, scaf_depth])
+    if ofile is not sys.stdout:
+        f.close()
+
+
+def HierarchicalScaffolds(
+    mols,
+    brics: bool = False,
+    ofile: str = None,
+    odelim: str = None,
+    oheader: bool = False,
+):
+    scafnet = Mols2ScafNet(mols, brics)
+    adjacency_list = _construct_adjacency_list(scafnet)
+    mol_indices = []  # node indices of molecules in scafnet
+    fragment_maps = []
+    for e in scafnet.edges:
+        if e.type == EdgeType.Initialize:
+            fragment_map = _get_fragment_map(e, adjacency_list)
+            fragment_maps.append(fragment_map)
+            mol_indices.append(e.beginIdx)
+    if ofile is not None:
+        write_hier_scafs(
+            fragment_maps, mol_indices, scafnet.nodes, ofile, odelim, oheader
+        )
+    return fragment_maps
 
 
 #############################################################################
