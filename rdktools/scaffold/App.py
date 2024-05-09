@@ -88,7 +88,7 @@ def parse_args(parser: argparse.ArgumentParser):
                     dest="ofile",
                     help="output file, SMI or SDF. Will use stdout if not specified",
                 )
-            else:
+            if prog_name == SCAF_MAP or prog_name == HIER_SCAF:
                 # two output files
                 sub_parser.add_argument(
                     "--o_scaf",
@@ -236,7 +236,7 @@ if __name__ == "__main__":
     elif args.op == HIER_SCAF:
         mols = util.ReadMols(molReader)
         scaffold.HierarchicalScaffolds(
-            mols, args.brics, args.ofile, args.odelim, args.oheader
+            mols, args.brics, args.o_mol, args.o_scaf, args.odelim, args.oheader
         )
     else:
         parser.error(f"Unsupported operation: {args.op}")

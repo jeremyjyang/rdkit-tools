@@ -45,6 +45,11 @@ def get_csv_writer(file_path: str, delimiter: str):
     return csv_writer, f
 
 
+def close_file(f):
+    if f is not sys.stdout:
+        f.close()
+
+
 def ensure_path_separator(dir: str):
     """
     Ensure that given path is a directory by appending
@@ -108,8 +113,7 @@ def write_scaffold_net(
                 json.dumps(info),
             ]
         )
-    if ofile is not sys.stdout:
-        f.close()
+    close_file(f)
 
 
 #############################################################################
@@ -298,16 +302,20 @@ def write_hier_scafs(
     fragment_maps: list[dict],
     mol_indices: list[int],
     nodes: list,
-    ofile: str,
+    o_mol: str,
+    o_scaf: str,
     odelimeter: str,
     oheader: bool,
 ):
-    # idx == id
-    csv_writer, f = get_csv_writer(ofile, odelimeter)
+    # idx == ids
+    mol_writer, f_mol = get_csv_writer(o_mol, odelimeter)
+    scaf_writer, f_scaf = get_csv_writer(o_scaf, odelimeter)
     if oheader:
-        csv_writer.writerow(
-            ["mol_id", "mol_smiles", "scaffold_id", "scaffold_smiles", "scaffold_depth"]
+        mol_writer.writerow(
+            ["molecule_id", "mol_smiles", "scaffold_id", "scaffold_depth"]
         )
+        scaf_writer.writerow(["scaffold_id", "scaffold_smiles"])
+    seen_scafs = [False] * len(nodes)
     for frag_map, mol_idx in zip(fragment_maps, mol_indices):
         mol_smile = nodes[mol_idx]
         for scaf_idx in frag_map:
@@ -315,15 +323,19 @@ def write_hier_scafs(
                 continue
             scaf_smile = nodes[scaf_idx]
             scaf_depth = frag_map[scaf_idx]
-            csv_writer.writerow([mol_idx, mol_smile, scaf_idx, scaf_smile, scaf_depth])
-    if ofile is not sys.stdout:
-        f.close()
+            mol_writer.writerow([mol_idx, mol_smile, scaf_idx, scaf_depth])
+            if not (seen_scafs[scaf_idx]):
+                scaf_writer.writerow([scaf_idx, scaf_smile])
+                seen_scafs[scaf_idx] = True
+    close_file(f_mol)
+    close_file(f_scaf)
 
 
 def HierarchicalScaffolds(
     mols,
     brics: bool = False,
-    ofile: str = None,
+    o_mol: str = None,
+    o_scaf: str = None,
     odelim: str = None,
     oheader: bool = False,
 ):
@@ -336,9 +348,9 @@ def HierarchicalScaffolds(
             fragment_map = _get_fragment_map(e, adjacency_list)
             fragment_maps.append(fragment_map)
             mol_indices.append(e.beginIdx)
-    if ofile is not None:
+    if o_mol is not None:
         write_hier_scafs(
-            fragment_maps, mol_indices, scafnet.nodes, ofile, odelim, oheader
+            fragment_maps, mol_indices, scafnet.nodes, o_mol, o_scaf, odelim, oheader
         )
     return fragment_maps
 
