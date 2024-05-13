@@ -324,7 +324,7 @@ def write_hier_scafs(
             scaf_smile = nodes[scaf_idx]
             scaf_depth = frag_map[scaf_idx]
             # +1 to index from 1 instead of 0
-            mol_writer.writerow([mol_idx + 1, mol_smile, scaf_idx, scaf_depth])
+            mol_writer.writerow([mol_idx + 1, mol_smile, scaf_idx + 1, scaf_depth])
             if not (seen_scafs[scaf_idx]):
                 scaf_writer.writerow([scaf_idx + 1, scaf_smile])
                 seen_scafs[scaf_idx] = True
