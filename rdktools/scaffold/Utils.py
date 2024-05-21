@@ -26,7 +26,13 @@ import rdkit.Chem.AllChem
 import rdkit.Chem.rdmolops
 
 # fingerprints:
-from rdkit.Chem import MolFromSmiles, MolToSmiles, PandasTools, rdRGroupDecomposition
+from rdkit.Chem import (
+    MolFromSmiles,
+    MolToSmiles,
+    PandasTools,
+    rdchem,
+    rdRGroupDecomposition,
+)
 from rdkit.Chem.AllChem import Compute2DCoords
 
 # scaffolds:
@@ -298,6 +304,10 @@ def _get_fragment_map(init_edge: NetworkEdge, adj_list: list[list]) -> dict:
     return fragment_nodes
 
 
+RING_PAT = rdkit.Chem.MolFromSmarts("[r]")  # atom belonging to ring
+def contains_ring(mol: rdchem.Mol):
+    return len(mol.GetSubstructMatches(RING_PAT)) > 0
+
 def write_hier_scafs(
     fragment_maps: list[dict],
     mol_indices: list[int],
@@ -316,18 +326,20 @@ def write_hier_scafs(
         )
         scaf_writer.writerow(["scaffold_id", "scaffold_smiles"])
     seen_scafs = [False] * len(nodes)
-    for frag_map, mol_idx in zip(fragment_maps, mol_indices):
+    for fragment_map, mol_idx in zip(fragment_maps, mol_indices):
         mol_smile = nodes[mol_idx]
-        for scaf_idx in frag_map:
-            if scaf_idx == mol_idx:
+        for fragment_idx in fragment_map:
+            fragment_smile = nodes[fragment_idx]
+            if fragment_idx == mol_idx or not(contains_ring(MolFromSmiles(fragment_smile))):
+                # don't need to include the molecule itself (redundant)
+                # or fragments which are not scaffolds (ie, fragments with no ring)
                 continue
-            scaf_smile = nodes[scaf_idx]
-            scaf_depth = frag_map[scaf_idx]
+            scaf_depth = fragment_map[fragment_idx]
             # +1 to index from 1 instead of 0
-            mol_writer.writerow([mol_idx + 1, mol_smile, scaf_idx + 1, scaf_depth])
-            if not (seen_scafs[scaf_idx]):
-                scaf_writer.writerow([scaf_idx + 1, scaf_smile])
-                seen_scafs[scaf_idx] = True
+            mol_writer.writerow([mol_idx + 1, mol_smile, fragment_idx + 1, scaf_depth])
+            if not (seen_scafs[fragment_idx]):
+                scaf_writer.writerow([fragment_idx + 1, fragment_smile])
+                seen_scafs[fragment_idx] = True
     close_file(f_mol)
     close_file(f_scaf)
 
@@ -356,7 +368,7 @@ def HierarchicalScaffolds(
     return fragment_maps
 
 
-#############################################################################
+############################################################################
 def ScafNet2Rings(scafnet, name, molWriter):
     """Output unique ringsystems only."""
     ringsmis = set()
