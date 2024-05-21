@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="rdktools",
-    version="0.9.8",
+    version="0.9.9",
     author="Jeremy Yang",
     author_email="jeremyjyang@gmail.com",
     description="Tools and helpers for RDKit.",
@@ -18,5 +18,5 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.8',
+    python_requires=">=3.8",
 )
