@@ -250,10 +250,9 @@ def write_hier_scafs(
                 # or fragments which are not scaffolds (ie, fragments with no ring)
                 continue
             scaf_depth = fragment_map[fragment_idx]
-            # +1 to index from 1 instead of 0
-            mol_writer.writerow([mol_idx + 1, mol_smile, fragment_idx + 1, scaf_depth])
+            mol_writer.writerow([mol_idx, mol_smile, fragment_idx, scaf_depth])
             if not (seen_scafs[fragment_idx]):
-                scaf_writer.writerow([fragment_idx + 1, fragment_smile])
+                scaf_writer.writerow([fragment_idx, fragment_smile])
                 seen_scafs[fragment_idx] = True
     close_file(f_mol)
     close_file(f_scaf)
