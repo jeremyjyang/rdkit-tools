@@ -18,8 +18,7 @@ from .. import scaffold, util
 
 # allowable OPS
 BMSCAF = "bmscaf"
-SCAF_MAP = "scaf_map"
-HIER_SCAF = "hier_scaf"
+HIERARCHICAL_SCAFFOLDS = "hier_scaf"
 SCAFNET = "scafnet"
 SCAFNET_RINGS = "scafnet_rings"
 DEMOBM = "demobm"
@@ -31,10 +30,9 @@ def parse_args(parser: argparse.ArgumentParser):
     # mapping of operation to help string
     OPS = {
         BMSCAF: "Generate scaffolds using Bemis-Murcko clustering",
-        SCAF_MAP: "Generate Bemis-Murcko scaffolds (including attachments) and provide a mapping from input molecules",
         SCAFNET: "Generate a scaffold network using the given SMILES",
         SCAFNET_RINGS: "Generate a scaffold network using the given SMILES, with output containing unique ringsystems only",
-        HIER_SCAF: "Derive hierarchical scaffolds for a given set of compounds",
+        HIERARCHICAL_SCAFFOLDS: "Derive hierarchical scaffolds for the given SMILES",
         DEMOBM: "Demo scaffold generated using Bemis-Murcko clustering",
         DEMONET_IMG: "Demo generating scaffold network image",
         DEMONET_HTML: "Demo generating interactive scaffold network using pyvis",
@@ -59,7 +57,7 @@ def parse_args(parser: argparse.ArgumentParser):
         sub_parser.add_argument(
             "-v", "--verbose", action="count", default=0, help="verbosity of logging"
         )
-        if prog_name in [DEMONET_IMG, DEMONET_HTML, SCAFNET, SCAF_MAP, HIER_SCAF]:
+        if prog_name in [DEMONET_IMG, DEMONET_HTML, SCAFNET, HIERARCHICAL_SCAFFOLDS]:
             sub_parser.add_argument(
                 "--scratchdir",
                 default=os.path.join(os.environ["HOME"], "tmp", "rdktools"),
@@ -78,17 +76,11 @@ def parse_args(parser: argparse.ArgumentParser):
                 default=default_per_row,
                 help="Mols per row in output PNG",
             )
-        if prog_name in [BMSCAF, SCAF_MAP, SCAFNET, SCAFNET_RINGS, HIER_SCAF]:
+        if prog_name in [BMSCAF, SCAFNET, SCAFNET_RINGS, HIERARCHICAL_SCAFFOLDS]:
             sub_parser.add_argument(
                 "--i", dest="ifile", required=True, help="input file, SMI or SDF"
             )
-            if prog_name != SCAF_MAP:
-                sub_parser.add_argument(
-                    "--o",
-                    dest="ofile",
-                    help="output file, SMI or SDF. Will use stdout if not specified",
-                )
-            if prog_name == SCAF_MAP or prog_name == HIER_SCAF:
+            if prog_name == HIERARCHICAL_SCAFFOLDS:
                 # two output files
                 sub_parser.add_argument(
                     "--o_scaf",
@@ -104,17 +96,23 @@ def parse_args(parser: argparse.ArgumentParser):
                     default=argparse.SUPPRESS,
                     help="output file mapping molecules to detected scaffolds",
                 )
+            else:
+                sub_parser.add_argument(
+                    "--o",
+                    dest="ofile",
+                    help="output file, SMI or SDF. Will use stdout if not specified",
+                )
             sub_parser.add_argument(
                 "--smiles_column",
                 type=int,
                 default=0,
-                help="(integer) column where SMILES are located (for SMI file)",
+                help="(integer) column where SMILES are located (for input SMI file)",
             )
             sub_parser.add_argument(
                 "--name_column",
                 type=int,
                 default=1,
-                help="(integer) column where molecule names are located (for SMI file)",
+                help="(integer) column where molecule names are located (for input SMI file)",
             )
             sub_parser.add_argument(
                 "--idelim",
@@ -134,7 +132,7 @@ def parse_args(parser: argparse.ArgumentParser):
             sub_parser.add_argument(
                 "--oheader", action="store_true", help="output TSV has header"
             )
-        if prog_name in [SCAFNET, SCAFNET_RINGS, HIER_SCAF]:
+        if prog_name in [SCAFNET, SCAFNET_RINGS, HIERARCHICAL_SCAFFOLDS]:
             sub_parser.add_argument(
                 "--brics",
                 action="store_true",
@@ -206,11 +204,6 @@ if __name__ == "__main__":
                 legends=legends,
             )
             img.save(args.ofile_png, format="PNG")
-
-    elif args.op == SCAF_MAP:
-        mols = util.ReadMols(molReader)
-        scaffold.ScaffoldMap(mols, args.o_mol, args.o_scaf, args.odelim, args.oheader)
-
     elif args.op == SCAFNET:
         ofile = args.ofile if args.ofile else sys.stdout
         mols = util.ReadMols(molReader)
@@ -223,7 +216,6 @@ if __name__ == "__main__":
             scaffold.Scafnet2Html(
                 scafnet, args.scafname, args.scratchdir, args.ofile_html
             )
-
     elif args.op == SCAFNET_RINGS:
         molWriter = util.File2Molwriter(args.ofile, args.odelim, args.oheader)
         n_mol = 0
@@ -233,7 +225,7 @@ if __name__ == "__main__":
             scafnet = scaffold.Mols2ScafNet([mol], args.brics, None)
             rings = scaffold.ScafNet2Rings(scafnet, molname, molWriter)
         logging.info(f"Mols processed: {n_mol}")
-    elif args.op == HIER_SCAF:
+    elif args.op == HIERARCHICAL_SCAFFOLDS:
         mols = util.ReadMols(molReader)
         scaffold.HierarchicalScaffolds(
             mols, args.brics, args.o_mol, args.o_scaf, args.odelim, args.oheader
