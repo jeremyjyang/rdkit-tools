@@ -126,17 +126,19 @@ python3 -m rdktools.depict.App single -height 500 --width 600 --i valium.smiles 
 Tools for processing SMILES inputs and performing scaffold analysis. 
 ```
 (rdktools) $ python3 -m rdktools.scaffold.App -h
-usage: App.py [-h] {bmscaf,scafnet,scafnet_rings,demobm,demonet_img,demonet_html} ...
+usage: App.py [-h]
+              {bmscaf,scafnet,scafnet_rings,hier_scaf,demobm,demonet_img,demonet_html} ...
 
 RDKit scaffold analysis
 
 positional arguments:
-  {bmscaf,scafnet,scafnet_rings,demobm,demonet_img,demonet_html}
+  {bmscaf,scafnet,scafnet_rings,hier_scaf,demobm,demonet_img,demonet_html}
                         operation
     bmscaf              Generate scaffolds using Bemis-Murcko clustering
     scafnet             Generate a scaffold network using the given SMILES
     scafnet_rings       Generate a scaffold network using the given SMILES, with output
                         containing unique ringsystems only
+    hier_scaf           Derive hierarchical scaffolds for the given SMILES
     demobm              Demo scaffold generated using Bemis-Murcko clustering
     demonet_img         Demo generating scaffold network image
     demonet_html        Demo generating interactive scaffold network using pyvis
