@@ -16,7 +16,7 @@ import queue
 import re
 import sys
 import tempfile
-from typing import Optional
+from typing import Optional, Union
 
 import pyvis
 import rdkit
@@ -132,13 +132,8 @@ def Mols2BMScaffolds(mols: list[rdchem.Mol], molWriter):
 
 
 #############################################################################
-def Mols2ScafNet(
-    mols: list[rdchem.Mol],
-    brics: bool = False,
-    ofile: Optional[str] = None,
-    odelimeter: str = ",",
-    oheader: bool = False,
-):
+# TODO: add option to specify scafnet params via file
+def _get_default_scafnet_params(brics: bool):
     if brics:
         params = rdScaffoldNetwork.BRICSScaffoldParams()
     else:
@@ -152,16 +147,35 @@ def Mols2ScafNet(
         params.includeScaffoldsWithoutAttachments = False
         params.keepOnlyFirstFragment = False
         params.pruneBeforeFragmenting = True
+    return params
 
+
+def Mols2ScafNet(
+    mol_supplier: Union[list[rdchem.Mol], rdkit.Chem.rdmolfiles.SmilesMolSupplier],
+    brics: bool = False,
+    ofile: Optional[str] = None,
+    odelimeter: str = ",",
+    oheader: bool = False,
+    params: Optional[rdScaffoldNetwork.ScaffoldNetworkParams] = None,
+):
+    if params is None:
+        params = _get_default_scafnet_params(brics)
     attrs = [a for a in inspect.getmembers(params) if not (a[0].startswith("__"))]
     for a in attrs:
         logging.debug(f"{a[0]}: {a[1]}")
 
-    for i, mol in enumerate(mols):
-        molname = mol.GetProp("_Name") if mol.HasProp("_Name") else ""
-        logging.debug(f"{i+1}. {molname}:")
-
-    scafnet = rdScaffoldNetwork.CreateScaffoldNetwork(mols, params)
+    # for i, mol in enumerate(mols):
+    #    molname = mol.GetProp("_Name") if mol.HasProp("_Name") else ""
+    #    logging.debug(f"{i+1}. {molname}:")
+    scafnet = None
+    for mol in mol_supplier:
+        if scafnet is None:
+            scafnet = rdScaffoldNetwork.CreateScaffoldNetwork([mol], params)
+        else:
+            try:
+                rdScaffoldNetwork.UpdateScaffoldNetwork([mol], scafnet, params)
+            except rdkit.Chem.rdchem.KekulizeException:
+                logging.debug(f"Could not kekulize: {MolToSmiles(mol)}")
     if ofile is not None:
         write_scaffold_net(scafnet, ofile, odelimeter, oheader)
     logging.info(f"nodes: {len(scafnet.nodes)}; edges:{len(scafnet.edges)}")
@@ -188,6 +202,7 @@ def _construct_adjacency_list(scafnet: rdScaffoldNetwork) -> list[list]:
     return adjacency_list
 
 
+# TODO: may be better to use floyd-warshall or related algo here
 def _get_fragment_map(init_edge: NetworkEdge, adj_list: list[list]) -> dict:
     """
     Perform BFS to generate a mapping from all nodes which are connected
@@ -243,11 +258,8 @@ def write_hier_scafs(
         mol_smile = nodes[mol_idx]
         for fragment_idx in fragment_map:
             fragment_smile = nodes[fragment_idx]
-            if fragment_idx == mol_idx or not (
-                contains_ring(MolFromSmiles(fragment_smile))
-            ):
+            if fragment_idx == mol_idx:
                 # don't need to include the molecule itself (redundant)
-                # or fragments which are not scaffolds (ie, fragments with no ring)
                 continue
             scaf_depth = fragment_map[fragment_idx]
             mol_writer.writerow([mol_idx, mol_smile, fragment_idx, scaf_depth])
@@ -258,15 +270,33 @@ def write_hier_scafs(
     close_file(f_scaf)
 
 
+def _get_hier_scafnet_params():
+    params = rdScaffoldNetwork.ScaffoldNetworkParams()
+    params.collectMolCounts = False
+    params.flattenChirality = True
+    params.flattenIsotopes = True
+    params.flattenKeepLargest = True
+    params.includeGenericBondScaffolds = False
+    params.includeGenericScaffolds = False
+    params.includeScaffoldsWithAttachments = True
+    params.includeGenericBondScaffolds = False
+    params.includeScaffoldsWithAttachments = False
+    params.includeScaffoldsWithoutAttachments = True
+    params.keepOnlyFirstFragment = True
+    params.pruneBeforeFragmenting = True
+    return params
+
+
 def HierarchicalScaffolds(
-    mols: list[rdchem.Mol],
+    molReader,
     brics: bool = False,
     o_mol: str = None,
     o_scaf: str = None,
     odelim: str = None,
     oheader: bool = False,
 ):
-    scafnet = Mols2ScafNet(mols, brics)
+    params = _get_hier_scafnet_params()
+    scafnet = Mols2ScafNet(molReader, params=params)
     adjacency_list = _construct_adjacency_list(scafnet)
     mol_indices = []  # node indices of molecules in scafnet
     fragment_maps = []

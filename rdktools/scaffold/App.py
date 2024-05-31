@@ -206,9 +206,8 @@ if __name__ == "__main__":
             img.save(args.ofile_png, format="PNG")
     elif args.op == SCAFNET:
         ofile = args.ofile if args.ofile else sys.stdout
-        mols = util.ReadMols(molReader)
         scafnet = scaffold.Mols2ScafNet(
-            mols, args.brics, ofile, args.odelim, args.oheader
+            molReader, args.brics, ofile, args.odelim, args.oheader
         )
         if args.ofile_png:
             scaffold.Scafnet2Img(scafnet, args.ofile_png, args.mols_per_row)
@@ -226,9 +225,8 @@ if __name__ == "__main__":
             rings = scaffold.ScafNet2Rings(scafnet, molname, molWriter)
         logging.info(f"Mols processed: {n_mol}")
     elif args.op == HIERARCHICAL_SCAFFOLDS:
-        mols = util.ReadMols(molReader)
         scaffold.HierarchicalScaffolds(
-            mols, args.brics, args.o_mol, args.o_scaf, args.odelim, args.oheader
+            molReader, args.brics, args.o_mol, args.o_scaf, args.odelim, args.oheader
         )
     else:
         parser.error(f"Unsupported operation: {args.op}")
