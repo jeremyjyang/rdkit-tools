@@ -18,6 +18,7 @@ import sys
 import tempfile
 from typing import Optional, Union
 
+import numpy as np
 import pyvis
 import rdkit
 import rdkit.Chem
@@ -168,6 +169,8 @@ def Mols2ScafNet(
     #    molname = mol.GetProp("_Name") if mol.HasProp("_Name") else ""
     #    logging.debug(f"{i+1}. {molname}:")
     scafnet = None
+    mol_idx = 0
+    mol_indices = []  # node indices for input molecules
     for mol in mol_supplier:
         if scafnet is None:
             scafnet = rdScaffoldNetwork.CreateScaffoldNetwork([mol], params)
@@ -176,13 +179,22 @@ def Mols2ScafNet(
                 rdScaffoldNetwork.UpdateScaffoldNetwork([mol], scafnet, params)
             except rdkit.Chem.rdchem.KekulizeException:
                 logging.debug(f"Could not kekulize: {MolToSmiles(mol)}")
+        mol_indices.append(mol_idx)
+        mol_idx = len(scafnet.nodes)
     if ofile is not None:
         write_scaffold_net(scafnet, ofile, odelimeter, oheader)
     logging.info(f"nodes: {len(scafnet.nodes)}; edges:{len(scafnet.edges)}")
-    return scafnet
+    return scafnet, mol_indices
 
 
 #############################################################################
+class CustomNetworkEdge:
+    def __init__(self, edge_type: EdgeType, beginIdx: int, endIdx: int) -> None:
+        self.edge_type = edge_type
+        self.beginIdx = beginIdx
+        self.endIdx = endIdx
+
+
 def _get_node_edges(node_idx: int, edges: list[NetworkEdge]):
     """
     Get the edges which originate from a given node.
@@ -200,6 +212,20 @@ def _construct_adjacency_list(scafnet: rdScaffoldNetwork) -> list[list]:
         map(lambda x: _get_node_edges(x, scafnet.edges), range(n_nodes))
     )
     return adjacency_list
+
+
+def _insert_init_edge(adj_list: list[list], idx: int) -> int:
+    """
+    Insert initial edge from dummy node to molecule if molecule is a
+    scaffold of itself. This is necessary because when we write out scaffolds
+    we're looking for edges that have edge type "EdgeType.Initialize".
+    :param list[list] adj_list: adjacency list constructed by _construct_adjacency_list.
+        adj_list will be updated in-place
+    :return int: index of dummy node in adjacency list
+    """
+    dummy_idx = len(adj_list)  # counts start from 0, so this is max_idx+1
+    adj_list.append([CustomNetworkEdge(EdgeType.Initialize, dummy_idx, idx)])
+    return dummy_idx
 
 
 # TODO: may be better to use floyd-warshall or related algo here
@@ -287,6 +313,13 @@ def _get_hier_scafnet_params():
     return params
 
 
+def get_init_edge_idx(edges: list):
+    for i, e in enumerate(edges):
+        if e.type == EdgeType.Initialize:
+            return i
+    return -1  # not found
+
+
 def HierarchicalScaffolds(
     molReader,
     brics: bool = False,
@@ -296,18 +329,27 @@ def HierarchicalScaffolds(
     oheader: bool = False,
 ):
     params = _get_hier_scafnet_params()
-    scafnet = Mols2ScafNet(molReader, params=params)
+    scafnet, mol_indices = Mols2ScafNet(molReader, params=params)
+    nodes = list(scafnet.nodes)
     adjacency_list = _construct_adjacency_list(scafnet)
-    mol_indices = []  # node indices of molecules in scafnet
     fragment_maps = []
-    for e in scafnet.edges:
-        if e.type == EdgeType.Initialize:
-            fragment_map = _get_fragment_map(e, adjacency_list)
-            fragment_maps.append(fragment_map)
-            mol_indices.append(e.beginIdx)
+    for i, mol_idx in enumerate(mol_indices):
+        edges = adjacency_list[mol_idx]
+        init_edge_idx = get_init_edge_idx(edges)
+        if init_edge_idx != -1:
+            e = edges[init_edge_idx]
+        else:
+            # molecule is its own scaffold, need to insert dummy edge
+            new_mol_idx = _insert_init_edge(adjacency_list, mol_idx)
+            mol_indices[i] = new_mol_idx
+            mol_idx = new_mol_idx
+            nodes.append(new_mol_idx)
+            e = adjacency_list[new_mol_idx][0]
+        fragment_map = _get_fragment_map(e, adjacency_list)
+        fragment_maps.append(fragment_map)
     if o_mol is not None:
         write_hier_scafs(
-            fragment_maps, mol_indices, scafnet.nodes, o_mol, o_scaf, odelim, oheader
+            fragment_maps, mol_indices, nodes, o_mol, o_scaf, odelim, oheader
         )
     return fragment_maps
 
@@ -361,7 +403,7 @@ def DemoNetImg(scratchdir: str):
     logging.debug(f"DemoNetImg({brics}, {fout.name})")
     smi = "Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 flucloxacillin"
     mols = [MolFromSmiles(re.sub(r"\s.*$", "", smi))]
-    scafnet = Mols2ScafNet(mols, False)
+    scafnet, _ = Mols2ScafNet(mols, False)
     logging.info(f"Scafnet nodes: {len(scafnet.nodes)}; edges: {len(scafnet.edges)}")
     # scafmols = [MolFromSmiles(m) for m in scafnet.nodes]
     scafmols = []
@@ -401,7 +443,7 @@ def DemoNetHtml(scratchdir: str):
     logging.debug(f"DemoNetHtml({scratchdir}, {ofile})")
     demosmi = "Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 flucloxacillin"
     mols = [MolFromSmiles(re.sub(r"\s.*$", "", demosmi))]
-    scafnet = Mols2ScafNet(mols, False)
+    scafnet, _ = Mols2ScafNet(mols, False)
     logging.info(f"Scafnet nodes: {len(scafnet.nodes)}; edges: {len(scafnet.edges)}")
     g = Scafnet2Html(
         scafnet,
