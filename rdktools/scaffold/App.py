@@ -206,7 +206,7 @@ if __name__ == "__main__":
             img.save(args.ofile_png, format="PNG")
     elif args.op == SCAFNET:
         ofile = args.ofile if args.ofile else sys.stdout
-        scafnet, _ = scaffold.Mols2ScafNet(
+        scafnet, _, _ = scaffold.Mols2ScafNet(
             molReader, args.brics, ofile, args.odelim, args.oheader
         )
         if args.ofile_png:

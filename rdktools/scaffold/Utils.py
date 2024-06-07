@@ -18,7 +18,7 @@ import sys
 import tempfile
 from typing import Optional, Union
 
-import numpy as np
+import networkx as nx
 import pyvis
 import rdkit
 import rdkit.Chem
@@ -151,6 +151,23 @@ def _get_default_scafnet_params(brics: bool):
     return params
 
 
+def is_valid_scaf(can_smiles: str):
+    if len(can_smiles) == 0:
+        # empty string given
+        return False
+    elif can_smiles == "c1ccccc1" or can_smiles == "C1=CC=CC=C1":
+        # benzene excluded from scaffolds
+        return False
+    mol = MolFromSmiles(can_smiles)
+    if mol is None:
+        # invalid mol
+        return False
+    elif mol.HasSubstructMatch("[!R]-[!R;D1]"):
+        # scaffolds should not include single bonds that are not part of linker between two rings
+        return False
+    return True
+
+
 def Mols2ScafNet(
     mol_supplier: Union[list[rdchem.Mol], rdkit.Chem.rdmolfiles.SmilesMolSupplier],
     brics: bool = False,
@@ -161,6 +178,10 @@ def Mols2ScafNet(
 ):
     if params is None:
         params = _get_default_scafnet_params(brics)
+    # [!R]-[!R;D1] -> single, non-ring bond
+    SMARTS_pat = ["[!#0;R:1]-!@[!#0:2]>>[*:1]-[#0].[#0]-[*:2]"]
+    params = _get_hier_scafnet_params(SMARTS_pat)  # TODO: remove
+
     attrs = [a for a in inspect.getmembers(params) if not (a[0].startswith("__"))]
     for a in attrs:
         logging.debug(f"{a[0]}: {a[1]}")
@@ -171,6 +192,8 @@ def Mols2ScafNet(
     scafnet = None
     mol_idx = 0
     mol_indices = []  # node indices for input molecules
+    nx_graph = nx.empty_graph()
+    prev_edge_i = 0
     for mol in mol_supplier:
         if scafnet is None:
             scafnet = rdScaffoldNetwork.CreateScaffoldNetwork([mol], params)
@@ -180,17 +203,28 @@ def Mols2ScafNet(
             except rdkit.Chem.rdchem.KekulizeException:
                 logging.debug(f"Could not kekulize: {MolToSmiles(mol)}")
         mol_indices.append(mol_idx)
+        new_edges = list(
+            map(
+                lambda e: (e.beginIdx, e.endIdx, {"type": e.type}),
+                scafnet.edges[prev_edge_i:],
+            )
+        )
+        if len(new_edges) == 0:
+            # molecule is its own scaffold
+            new_edges = [(mol_idx, mol_idx, {"type": EdgeType.Initialize})]
+        nx_graph.add_edges_from(new_edges)
         mol_idx = len(scafnet.nodes)
+        prev_edge_i = len(scafnet.edges)
     if ofile is not None:
         write_scaffold_net(scafnet, ofile, odelimeter, oheader)
     logging.info(f"nodes: {len(scafnet.nodes)}; edges:{len(scafnet.edges)}")
-    return scafnet, mol_indices
+    return scafnet, mol_indices, nx_graph
 
 
 #############################################################################
 class CustomNetworkEdge:
     def __init__(self, edge_type: EdgeType, beginIdx: int, endIdx: int) -> None:
-        self.edge_type = edge_type
+        self.type = edge_type
         self.beginIdx = beginIdx
         self.endIdx = endIdx
 
@@ -228,6 +262,20 @@ def _insert_init_edge(adj_list: list[list], idx: int) -> int:
     return dummy_idx
 
 
+def _insert_init_edge_nx(g: nx.Graph, idx: int) -> int:
+    """
+    Insert initial edge from dummy node to molecule if molecule is a
+    scaffold of itself. This is necessary because when we write out scaffolds
+    we're looking for edges that have edge type "EdgeType.Initialize".
+    :param list[list] adj_list: adjacency list constructed by _construct_adjacency_list.
+        adj_list will be updated in-place
+    :return int: index of dummy node in adjacency list
+    """
+    dummy_idx = len(g.nodes())  # counts start from 0, so this is max_idx+1
+    g.add_edge(dummy_idx, idx, type=EdgeType.Initialize)
+    return dummy_idx
+
+
 # TODO: may be better to use floyd-warshall or related algo here
 def _get_fragment_map(init_edge: NetworkEdge, adj_list: list[list]) -> dict:
     """
@@ -255,13 +303,6 @@ def _get_fragment_map(init_edge: NetworkEdge, adj_list: list[list]) -> dict:
                 visited[e] = True
                 q.put(e)
     return fragment_nodes
-
-
-RING_PAT = rdkit.Chem.MolFromSmarts("[r]")  # atom belonging to ring
-
-
-def contains_ring(mol: rdchem.Mol) -> bool:
-    return len(mol.GetSubstructMatches(RING_PAT)) > 0
 
 
 def write_hier_scafs(
@@ -296,16 +337,17 @@ def write_hier_scafs(
     close_file(f_scaf)
 
 
-def _get_hier_scafnet_params():
-    params = rdScaffoldNetwork.ScaffoldNetworkParams()
+def _get_hier_scafnet_params(fragmentation_rules: Optional[list[str]] = None):
+    if fragmentation_rules:
+        params = rdScaffoldNetwork.ScaffoldNetworkParams(fragmentation_rules)
+    else:
+        params = rdScaffoldNetwork.ScaffoldNetworkParams()
     params.collectMolCounts = False
     params.flattenChirality = True
     params.flattenIsotopes = True
     params.flattenKeepLargest = True
     params.includeGenericBondScaffolds = False
     params.includeGenericScaffolds = False
-    params.includeScaffoldsWithAttachments = True
-    params.includeGenericBondScaffolds = False
     params.includeScaffoldsWithAttachments = False
     params.includeScaffoldsWithoutAttachments = True
     params.keepOnlyFirstFragment = True
@@ -329,10 +371,15 @@ def HierarchicalScaffolds(
     oheader: bool = False,
 ):
     params = _get_hier_scafnet_params()
-    scafnet, mol_indices = Mols2ScafNet(molReader, params=params)
+    scafnet, mol_indices, nx_graph = Mols2ScafNet(molReader, params=params)
     nodes = list(scafnet.nodes)
-    adjacency_list = _construct_adjacency_list(scafnet)
     fragment_maps = []
+    for i, mol_idx in enumerate(mol_indices):
+        bfs_tree = nx.bfs_tree(nx_graph, source=mol_idx)
+        fragment_map = nx.shortest_path_length(bfs_tree, source=mol_idx)
+        fragment_maps.append(fragment_map)
+    """
+    adjacency_list = _construct_adjacency_list(scafnet)
     for i, mol_idx in enumerate(mol_indices):
         edges = adjacency_list[mol_idx]
         init_edge_idx = get_init_edge_idx(edges)
@@ -347,6 +394,7 @@ def HierarchicalScaffolds(
             e = adjacency_list[new_mol_idx][0]
         fragment_map = _get_fragment_map(e, adjacency_list)
         fragment_maps.append(fragment_map)
+    """
     if o_mol is not None:
         write_hier_scafs(
             fragment_maps, mol_indices, nodes, o_mol, o_scaf, odelim, oheader
@@ -403,7 +451,7 @@ def DemoNetImg(scratchdir: str):
     logging.debug(f"DemoNetImg({brics}, {fout.name})")
     smi = "Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 flucloxacillin"
     mols = [MolFromSmiles(re.sub(r"\s.*$", "", smi))]
-    scafnet, _ = Mols2ScafNet(mols, False)
+    scafnet, _, _ = Mols2ScafNet(mols, False)
     logging.info(f"Scafnet nodes: {len(scafnet.nodes)}; edges: {len(scafnet.edges)}")
     # scafmols = [MolFromSmiles(m) for m in scafnet.nodes]
     scafmols = []
@@ -443,7 +491,7 @@ def DemoNetHtml(scratchdir: str):
     logging.debug(f"DemoNetHtml({scratchdir}, {ofile})")
     demosmi = "Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 flucloxacillin"
     mols = [MolFromSmiles(re.sub(r"\s.*$", "", demosmi))]
-    scafnet, _ = Mols2ScafNet(mols, False)
+    scafnet, _, _ = Mols2ScafNet(mols, False)
     logging.info(f"Scafnet nodes: {len(scafnet.nodes)}; edges: {len(scafnet.edges)}")
     g = Scafnet2Html(
         scafnet,
