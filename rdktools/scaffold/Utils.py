@@ -192,9 +192,14 @@ def Mols2ScafNet(
     scafnet = None
     mol_idx = 0
     mol_indices = []  # node indices for input molecules
-    nx_graph = nx.empty_graph()
+    nx_graph = nx.empty_graph(default=nx.DiGraph)
     prev_edge_i = 0
     for mol in mol_supplier:
+        if rdkit.Chem.rdMolDescriptors.CalcNumRings(mol) > 10:
+            logging.warn(
+                f"Not including {MolToSmiles(mol)} in graph as it has > 10 rings"
+            )
+            continue
         if scafnet is None:
             scafnet = rdScaffoldNetwork.CreateScaffoldNetwork([mol], params)
         else:
@@ -203,6 +208,7 @@ def Mols2ScafNet(
             except rdkit.Chem.rdchem.KekulizeException:
                 logging.debug(f"Could not kekulize: {MolToSmiles(mol)}")
         mol_indices.append(mol_idx)
+        # have to convert edges to tuple for networkx compatibility
         new_edges = list(
             map(
                 lambda e: (e.beginIdx, e.endIdx, {"type": e.type}),
