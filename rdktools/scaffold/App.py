@@ -87,14 +87,21 @@ def parse_args(parser: argparse.ArgumentParser):
                     dest="o_scaf",
                     required=True,
                     default=argparse.SUPPRESS,
-                    help="output file with detected scaffolds",
+                    help="output file with detected scaffolds and their ids",
                 )
                 sub_parser.add_argument(
                     "--o_mol",
                     dest="o_mol",
                     required=True,
                     default=argparse.SUPPRESS,
-                    help="output file mapping molecules to detected scaffolds",
+                    help="output file with molecules and their ids",
+                )
+                sub_parser.add_argument(
+                    "--o_mol2scaf",
+                    dest="o_mol2scaf",
+                    required=True,
+                    default=argparse.SUPPRESS,
+                    help="output file mapping mol ids to associated scaffold ids and their relative depth",
                 )
             else:
                 sub_parser.add_argument(
@@ -226,7 +233,12 @@ if __name__ == "__main__":
         logging.info(f"Mols processed: {n_mol}")
     elif args.op == HIERARCHICAL_SCAFFOLDS:
         scaffold.HierarchicalScaffolds(
-            molReader, args.brics, args.o_mol, args.o_scaf, args.odelim, args.oheader
+            molReader,
+            args.o_mol,
+            args.o_scaf,
+            args.o_mol2scaf,
+            args.odelim,
+            args.oheader,
         )
     else:
         parser.error(f"Unsupported operation: {args.op}")

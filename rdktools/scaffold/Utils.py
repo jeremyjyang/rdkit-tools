@@ -312,35 +312,40 @@ def _get_fragment_map(init_edge: NetworkEdge, adj_list: list[list]) -> dict:
 
 
 def write_hier_scafs(
+    o_mol: str,
+    o_scaf: str,
+    o_mol2scaf: str,
     fragment_maps: list[dict],
     mol_indices: list[int],
     nodes: list,
-    o_mol: str,
-    o_scaf: str,
     odelimeter: str,
     oheader: bool,
 ) -> None:
     # idx == ids
     mol_writer, f_mol = get_csv_writer(o_mol, odelimeter)
     scaf_writer, f_scaf = get_csv_writer(o_scaf, odelimeter)
+    mol2scaf_writer, f_mol2scaf = get_csv_writer(o_mol2scaf, odelimeter)
     if oheader:
-        mol_writer.writerow(["mol_id", "mol_smiles", "scaffold_id", "scaffold_depth"])
-        scaf_writer.writerow(["scaffold_id", "scaffold_smiles"])
+        mol_writer.writerow(["mol_id", "smiles"])
+        scaf_writer.writerow(["scaffold_id", "smiles"])
+        mol2scaf_writer.writerow(["mol_id", "scaffold_id", "scaffold_depth"])
     seen_scafs = [False] * len(nodes)
     for fragment_map, mol_idx in zip(fragment_maps, mol_indices):
         mol_smile = nodes[mol_idx]
+        mol_writer.writerow([mol_idx, mol_smile])
         for fragment_idx in fragment_map:
             fragment_smile = nodes[fragment_idx]
             if fragment_idx == mol_idx:
                 # don't need to include the molecule itself (redundant)
                 continue
             scaf_depth = fragment_map[fragment_idx]
-            mol_writer.writerow([mol_idx, mol_smile, fragment_idx, scaf_depth])
+            mol2scaf_writer.writerow([mol_idx, fragment_idx, scaf_depth])
             if not (seen_scafs[fragment_idx]):
                 scaf_writer.writerow([fragment_idx, fragment_smile])
                 seen_scafs[fragment_idx] = True
     close_file(f_mol)
     close_file(f_scaf)
+    close_file(f_mol2scaf)
 
 
 def _get_hier_scafnet_params(fragmentation_rules: Optional[list[str]] = None):
@@ -370,9 +375,9 @@ def get_init_edge_idx(edges: list):
 
 def HierarchicalScaffolds(
     molReader,
-    brics: bool = False,
-    o_mol: str = None,
-    o_scaf: str = None,
+    o_mol: str,
+    o_scaf: str,
+    o_mol2scaf: str,
     odelim: str = None,
     oheader: bool = False,
 ):
@@ -384,26 +389,16 @@ def HierarchicalScaffolds(
         bfs_tree = nx.bfs_tree(nx_graph, source=mol_idx)
         fragment_map = nx.shortest_path_length(bfs_tree, source=mol_idx)
         fragment_maps.append(fragment_map)
-    """
-    adjacency_list = _construct_adjacency_list(scafnet)
-    for i, mol_idx in enumerate(mol_indices):
-        edges = adjacency_list[mol_idx]
-        init_edge_idx = get_init_edge_idx(edges)
-        if init_edge_idx != -1:
-            e = edges[init_edge_idx]
-        else:
-            # molecule is its own scaffold, need to insert dummy edge
-            new_mol_idx = _insert_init_edge(adjacency_list, mol_idx)
-            mol_indices[i] = new_mol_idx
-            mol_idx = new_mol_idx
-            nodes.append(new_mol_idx)
-            e = adjacency_list[new_mol_idx][0]
-        fragment_map = _get_fragment_map(e, adjacency_list)
-        fragment_maps.append(fragment_map)
-    """
     if o_mol is not None:
         write_hier_scafs(
-            fragment_maps, mol_indices, nodes, o_mol, o_scaf, odelim, oheader
+            o_mol,
+            o_scaf,
+            o_mol2scaf,
+            fragment_maps,
+            mol_indices,
+            nodes,
+            odelim,
+            oheader,
         )
     return fragment_maps
 
