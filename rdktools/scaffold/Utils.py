@@ -161,12 +161,16 @@ def is_valid_scaf(can_smiles: str):
     if mol is None:
         # invalid mol
         return False
-    elif mol.HasSubstructMatch("[!R]-[!R;D1]"):
-        # scaffolds should not include single bonds that are not part of linker between two rings
-        return False
-    elif not (mol.HasSubstructMatch("[R]")):
+    ring_system = rdkit.Chem.MolFromSmarts("[R]")
+    if not (mol.HasSubstructMatch(ring_system)):
         # scaffolds should contain at least one ring-system
         return False
+    single_terminal_bond = rdkit.Chem.MolFromSmarts("*-[D1]")
+    if mol.HasSubstructMatch(single_terminal_bond):
+        # scaffolds should not include single terminal bonds
+        return False
+    # TODO: ideally would define SMARTS s.t. any single, non-linker bonds
+    # are matched
     return True
 
 
@@ -277,7 +281,7 @@ def write_hier_scafs(
         mol_writer.writerow(["mol_id", "smiles"])
         scaf_writer.writerow(["scaffold_id", "smiles"])
         mol2scaf_writer.writerow(["mol_id", "scaffold_id", "scaffold_depth"])
-    seen_scafs = [False] * len(nodes)
+    seen_scafs = {}
     for fragment_map, mol_idx in zip(fragment_maps, mol_indices):
         mol_smile = nodes[mol_idx]
         mol_writer.writerow([mol_idx, mol_smile])
@@ -287,12 +291,15 @@ def write_hier_scafs(
             if fragment_idx == mol_idx and n_frags > 1:
                 # don't need to include the molecule itself (redundant)
                 # (unless molecule is a self-scaffold)
-                continue
-            scaf_depth = fragment_map[fragment_idx]
-            mol2scaf_writer.writerow([mol_idx, fragment_idx, scaf_depth])
-            if not (seen_scafs[fragment_idx]):
-                scaf_writer.writerow([fragment_idx, fragment_smile])
-                seen_scafs[fragment_idx] = True
+                pass
+            elif not (is_valid_scaf(fragment_smile)):
+                pass
+            else:
+                scaf_depth = fragment_map[fragment_idx]
+                mol2scaf_writer.writerow([mol_idx, fragment_idx, scaf_depth])
+                if fragment_idx not in seen_scafs:
+                    scaf_writer.writerow([fragment_idx, fragment_smile])
+                    seen_scafs[fragment_idx] = True
     close_file(f_mol)
     close_file(f_scaf)
     close_file(f_mol2scaf)
@@ -311,9 +318,33 @@ def _get_hier_scafnet_params(fragmentation_rules: Optional[list[str]] = None):
     params.includeGenericScaffolds = False
     params.includeScaffoldsWithAttachments = False
     params.includeScaffoldsWithoutAttachments = True
-    params.keepOnlyFirstFragment = True
+    params.keepOnlyFirstFragment = False
     params.pruneBeforeFragmenting = True
     return params
+
+
+def trim_graph(g: nx.DiGraph, mol_indices: list[int]):
+    # remove invalid scaffolds from the graph
+    to_remove = []
+    # convert to dict for faster lookup time
+    mol_indices_dict = {i: True for i in mol_indices}
+    for node_idx, node_data in g.nodes(data=True):
+        if node_idx in mol_indices_dict:
+            # node is a molecule
+            pass
+        elif not (is_valid_scaf(node_data["smiles"])):
+            to_remove.append(node_idx)
+    g.remove_nodes_from(to_remove)
+    # reconnecting graph where necessary
+    for node_idx in to_remove:
+        for in_src, _ in g.in_edges(node_idx):
+            if in_src in to_remove:
+                continue
+            for _, out_dst in g.out_edges(node_idx):
+                if out_dst in to_remove:
+                    continue
+                g.add_edge(in_src, out_dst)
+    return g
 
 
 def HierarchicalScaffolds(
@@ -327,6 +358,7 @@ def HierarchicalScaffolds(
     params = _get_hier_scafnet_params()
     scafnet, mol_indices = Mols2ScafNet(molReader, params=params)
     nx_graph = ScafNet2NetworkX(scafnet)
+    # nx_graph = trim_graph(nx_graph, mol_indices)  # remove invalid scaffolds
     fragment_maps = []
     for mol_idx in mol_indices:
         bfs_tree = nx.bfs_tree(nx_graph, source=mol_idx)

@@ -2,6 +2,11 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.gitignore
+*.tsv
+*.sh
+*.html
+*.png
 
 # C extensions
 *.so
@@ -137,3 +142,4 @@ dmypy.json
 
 # PyCharm
 .idea/
+.gitignore
