@@ -169,13 +169,12 @@ def is_valid_scaf(can_smiles: str):
     if mol.HasSubstructMatch(single_terminal_bond):
         # scaffolds should not include single terminal bonds
         return False
-    # TODO: ideally would define SMARTS s.t. any single, non-linker bonds
-    # are matched
     return True
 
 
 def update_mol_indices(scafnet, mol_indices: list[int], self_scafs: list[str]):
     node_map = {smi: i for i, smi in enumerate(scafnet.nodes)}
+    n = len(mol_indices)
     for mol_smiles in self_scafs:
         if mol_smiles in node_map:
             idx = node_map[mol_smiles]
@@ -183,7 +182,9 @@ def update_mol_indices(scafnet, mol_indices: list[int], self_scafs: list[str]):
         else:
             # not expected to occur
             raise ValueError(f"Mol not found for {mol_smiles}")
-    return mol_indices
+    is_self_scaf = [False] * len(mol_indices)
+    is_self_scaf[n:] = [True] * (len(mol_indices) - n)
+    return mol_indices, is_self_scaf
 
 
 def Mols2ScafNet(
@@ -196,11 +197,6 @@ def Mols2ScafNet(
 ):
     if params is None:
         params = _get_default_scafnet_params(brics)
-    # default pattern used by RDKit, defining here to check for self-scafs
-    SMARTS_pat = "[!#0;R:1]-!@[!#0:2]>>[*:1]-[#0].[#0]-[*:2]"
-    fragmentation_rxn = rdChemReactions.ReactionFromSmarts(SMARTS_pat)
-    params = _get_hier_scafnet_params([SMARTS_pat])  # TODO: remove
-
     attrs = [a for a in inspect.getmembers(params) if not (a[0].startswith("__"))]
     for a in attrs:
         logging.debug(f"{a[0]}: {a[1]}")
@@ -212,6 +208,7 @@ def Mols2ScafNet(
     # molecules which are scaffolds of themselves OR are scaffolds of another mol
     # we need to track these for downstream tasks
     self_scafs = []
+    prev_edge_i = 0
     for i, mol in enumerate(mol_supplier):
         mol_smiles = MolToSmiles(mol)
         if mol_smiles in seen_mol_smiles:
@@ -229,22 +226,23 @@ def Mols2ScafNet(
                 rdScaffoldNetwork.UpdateScaffoldNetwork([mol], scafnet, params)
             except rdkit.Chem.rdchem.KekulizeException:
                 logging.warn(f"Could not kekulize: {i, mol_smiles}")
-
         if (
             mol_idx == len(scafnet.nodes)
-            or len(fragmentation_rxn.RunReactant(mol, 0)) == 0
+            or prev_edge_i == len(scafnet.edges)
+            or scafnet.edges[prev_edge_i].type != EdgeType.Initialize
         ):
             # molecule is a self-scaf or is the scaffold of another mol
             self_scafs.append(mol_smiles)
         else:
             mol_indices.append(mol_idx)
         mol_idx = len(scafnet.nodes)
+        prev_edge_i = len(scafnet.edges)
     # include indices of mols that are self-scafs
-    mol_indices = update_mol_indices(scafnet, mol_indices, self_scafs)
+    mol_indices, is_self_scaf = update_mol_indices(scafnet, mol_indices, self_scafs)
     if ofile is not None:
         write_scaffold_net(scafnet, ofile, odelimeter, oheader)
     logging.info(f"nodes: {len(scafnet.nodes)}; edges:{len(scafnet.edges)}")
-    return scafnet, mol_indices
+    return scafnet, mol_indices, is_self_scaf
 
 
 #############################################################################
@@ -269,6 +267,7 @@ def write_hier_scafs(
     o_mol2scaf: str,
     fragment_maps: list[dict],
     mol_indices: list[int],
+    is_self_scaf: list[bool],
     nodes: list,
     odelimeter: str,
     oheader: bool,
@@ -282,18 +281,20 @@ def write_hier_scafs(
         scaf_writer.writerow(["scaffold_id", "smiles"])
         mol2scaf_writer.writerow(["mol_id", "scaffold_id", "scaffold_depth"])
     seen_scafs = {}
-    for fragment_map, mol_idx in zip(fragment_maps, mol_indices):
+    seen_invalid_scafs = {}
+    for fragment_map, mol_idx, iss in zip(fragment_maps, mol_indices, is_self_scaf):
         mol_smile = nodes[mol_idx]
         mol_writer.writerow([mol_idx, mol_smile])
-        n_frags = len(fragment_map)
         for fragment_idx in fragment_map:
             fragment_smile = nodes[fragment_idx]
-            if fragment_idx == mol_idx and n_frags > 1:
+            if fragment_idx == mol_idx and not (iss):
                 # don't need to include the molecule itself (redundant)
                 # (unless molecule is a self-scaffold)
                 pass
-            elif not (is_valid_scaf(fragment_smile)):
-                pass
+            elif fragment_idx in seen_invalid_scafs or not (
+                is_valid_scaf(fragment_smile)
+            ):
+                seen_invalid_scafs[fragment_idx] = True
             else:
                 scaf_depth = fragment_map[fragment_idx]
                 mol2scaf_writer.writerow([mol_idx, fragment_idx, scaf_depth])
@@ -356,7 +357,7 @@ def HierarchicalScaffolds(
     oheader: bool = False,
 ):
     params = _get_hier_scafnet_params()
-    scafnet, mol_indices = Mols2ScafNet(molReader, params=params)
+    scafnet, mol_indices, is_self_scaf = Mols2ScafNet(molReader, params=params)
     nx_graph = ScafNet2NetworkX(scafnet)
     # nx_graph = trim_graph(nx_graph, mol_indices)  # remove invalid scaffolds
     fragment_maps = []
@@ -372,6 +373,7 @@ def HierarchicalScaffolds(
             o_mol2scaf,
             fragment_maps,
             mol_indices,
+            is_self_scaf,
             nodes,
             odelim,
             oheader,
@@ -428,7 +430,7 @@ def DemoNetImg(scratchdir: str):
     logging.debug(f"DemoNetImg({brics}, {fout.name})")
     smi = "Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 flucloxacillin"
     mols = [MolFromSmiles(re.sub(r"\s.*$", "", smi))]
-    scafnet, _ = Mols2ScafNet(mols, False)
+    scafnet, _, _ = Mols2ScafNet(mols, False)
     logging.info(f"Scafnet nodes: {len(scafnet.nodes)}; edges: {len(scafnet.edges)}")
     # scafmols = [MolFromSmiles(m) for m in scafnet.nodes]
     scafmols = []
@@ -468,7 +470,7 @@ def DemoNetHtml(scratchdir: str):
     logging.debug(f"DemoNetHtml({scratchdir}, {ofile})")
     demosmi = "Cc1onc(-c2c(F)cccc2Cl)c1C(=O)N[C@@H]1C(=O)N2[C@@H](C(=O)O)C(C)(C)S[C@H]12 flucloxacillin"
     mols = [MolFromSmiles(re.sub(r"\s.*$", "", demosmi))]
-    scafnet, _ = Mols2ScafNet(mols, False)
+    scafnet, _, _ = Mols2ScafNet(mols, False)
     logging.info(f"Scafnet nodes: {len(scafnet.nodes)}; edges: {len(scafnet.edges)}")
     g = Scafnet2Html(
         scafnet,
