@@ -21,7 +21,7 @@ def PurgeScratchDirs(dirlist,retire_secs,verbose):
       path=dir+'/'+filename
       ### should be YYYYMMDDHHMMSS
       date = filename.split('.')[1] if '.' in filename else filename
-      if not len(date)==14 or not re.match('\d\d\d\d\d\d\d\d\d\d\d\d\d\d$',date):
+      if not len(date)==14 or not re.match(r'\d\d\d\d\d\d\d\d\d\d\d\d\d\d$',date):
         if verbose:
           sys.stderr.write('%s: ERROR: bad date format: "%s"\n'%(PROG,date))
           ok=False

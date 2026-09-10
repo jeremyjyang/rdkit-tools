@@ -85,6 +85,7 @@ def MatchFilterMulti(
     n_mol = 0
     n_mol_matched = 0
     for mol in molReader:
+        mol_has_match = False
         if exclude_mol_props:
             clearMolProps(mol)
         if not mol.HasProp("_Name") or mol.GetProp("_Name") == "":
@@ -95,8 +96,8 @@ def MatchFilterMulti(
             )
             if len(matches) > 0:
                 query["n_mol_matched"] += 1
-        matchcounts = [q["n_mol_matched"] for q in queries]
-        if min(matchcounts) > 0:
+                mol_has_match = True
+        if mol_has_match:
             molWriter.write(mol)
             n_mol_matched += 1
         n_mol += 1
