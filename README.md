@@ -1,4 +1,4 @@
-# `RDKIT-TOOLS`
+# `rdkit-tools`
 
 Tools for use with RDKit. Motivated and intended for use with
 [CFDE](https://nih-cfde.org/) and CFChemDb, developed by the IDG-CFDE team.
@@ -14,6 +14,37 @@ RDKit:
 
 * <https://rdkit.org>
 * <https://www.rdkit.org/docs/Install.html>
+
+## Availability and installation
+
+### Installing from PyPI
+
+Releases at <https://pypi.org/project/rdktools/>.
+
+```
+pip install rdktools
+```
+However, current development snapshot may included additional functionality.
+
+### Installing from source
+
+Source at <https://github.com/jeremyjyang/rdkit-tools>
+
+___(First download or clone.)___
+
+
+Install `build` package.
+
+```
+python3 -m pip install --upgrade build
+```
+
+Install using `build`.  This supercedes the deprecated `setup.py install` and `easy_install` methods.
+
+```
+cd rdkit-tools
+python3 -m build
+```
 
 ## Dependencies
 

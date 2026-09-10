@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rdktools"
+description = "Tools and helpers for RDKit."
+authors = [
+	{name = "Jeremy J Yang", email = "jeremyjyang@gmail.com"},
+]
+version = "0.9.9"
+requires-python = ">= 3.10"
+dependencies = [
+	"rdkit",
+	"pandas",
+	"matplotlib",
+	"sklearn",
+	"pyvis",
+	"psycopg2",
+]
+readme = {file = "README.md", content-type = "text/markdown"}
+license = "MIT AND (Apache-2.0 OR BSD-2-Clause)"
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+HomePage = "https://github.com/jeremyjyang/rdkit-tools"
