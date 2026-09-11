@@ -22,28 +22,7 @@ RDKit:
 Releases at <https://pypi.org/project/rdktools/>.
 
 ```
-pip install rdktools
-```
-However, current development snapshot may included additional functionality.
-
-### Installing from source
-
-Source at <https://github.com/jeremyjyang/rdkit-tools>
-
-___(First download or clone.)___
-
-
-Install `build` package.
-
-```
-python3 -m pip install --upgrade build
-```
-
-Install using `build`.  This supercedes the deprecated `setup.py install` and `easy_install` methods.
-
-```
-cd rdkit-tools
-python3 -m build
+pip install --upgrade rdktools
 ```
 
 ## Dependencies
