@@ -23,7 +23,7 @@ parso==0.8.7
 pexpect==4.9.0
 pillow==12.3.0
 prompt_toolkit==3.0.53
-psycopg2==2.9.13
+psycopg2-binary==2.9.13
 ptyprocess==0.7.0
 pure_eval==0.2.4
 Pygments==2.21.0
