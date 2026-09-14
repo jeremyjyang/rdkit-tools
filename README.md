@@ -1,4 +1,4 @@
-# `rdkit-tools`
+# `rdkit-tools` (package: `rdktools`)
 
 Tools for use with RDKit. Motivated and intended for use with
 [CFDE](https://nih-cfde.org/) and CFChemDb, developed by the IDG-CFDE team.
@@ -15,6 +15,12 @@ RDKit:
 * <https://rdkit.org>
 * <https://www.rdkit.org/docs/Install.html>
 
+## Dependencies
+
+* Python 3.10+
+* RDKit (Python package `rdkit`)
+* Python packages: `pandas`, `numpy`, `scipy`, `matplotlib`, `scikit-learn`, `pillow`, `yaml`, `tqdm`, `click`, `PyMuPDF`, etc.
+
 ## Availability and installation
 
 ### Installing from PyPI
@@ -25,18 +31,29 @@ Releases at <https://pypi.org/project/rdktools/>.
 pip install --upgrade rdktools
 ```
 
-## Dependencies
+## Venv environment
 
-* RDKit Python package (via conda recommended).
+It may not be necessary or advantageous to configure an environment for all of `rdktools
+` functionality. Specific modules may be supported with `venv` environments with required 
+dependencies. Module documentation should indicate needed package dependencies. The follow
+ing steps should create an environment for much of the functionality of `rdktools`.
+
+ 1. `mkdir venv`
+ 1. `python3 -m venv venv`
+ 1. `source venv/bin/activate`
+ 1. `pip install -r pip_requirements.txt`
+ 1. `pip install --upgrade rdktools`
+
+### Installing from source
+
+Source at <https://github.com/jeremyjyang/rdkit-tools>
 
 ```
-$ conda create -n rdktools -c conda-forge rdkit ipykernel
-$ conda activate rdktools
-(rdktools) $ conda install -c conda-forge pyvis 
-(rdktools) $ conda install -c conda-forge networkx=2.5 
+git clone https://github.com/jeremyjyang/rdkit-tools.git
+cd rdkit-tools
+python3 -m pip install --upgrade build
+python3 -m build
 ```
-
-See also: [conda/environment.yml](conda/environment.yml)
 
 ## Contents
 
