@@ -19,7 +19,7 @@ RDKit:
 
 * Python 3.10+
 * RDKit (Python package `rdkit`)
-* Python packages: `pandas`, `numpy`, `scipy`, `matplotlib`, `scikit-learn`, `pillow`, `yaml`, `tqdm`, `click`, `PyMuPDF`, etc.
+* Python packages: `pandas`, `numpy`, `scipy`, `matplotlib`, `scikit-learn`, `pillow`, `yaml`, `tqdm`, `click`, `PyMuPDF`, `networkx`, `pyvis`, etc.
 
 ## Availability and installation
 
